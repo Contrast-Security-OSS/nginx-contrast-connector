@@ -1,0 +1,20 @@
+#!/bin/bash
+
+pushd "vendor"
+pushd "nginx-1.13.9"
+
+# NOTE: per protobuf-c link against the libprotobuf-c support library
+# https://github.com/protobuf-c/protobuf-c#Synposis
+CFLAGS="-g -O0" ./configure \
+    --with-debug \
+    --prefix=$(pwd)/../../build/nginx \
+    --conf-path=conf/nginx.conf \
+    --error-log-path=logs/error.log \
+    --http-log-path=logs/access.log \
+    --add-module=../../ \
+    --with-cc-opt="" \
+    --with-ld-opt="-lprotobuf-c"
+make
+make install
+popd
+popd

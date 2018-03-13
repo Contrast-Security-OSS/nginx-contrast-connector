@@ -1,0 +1,92 @@
+#!/bin/bash
+
+set -o nounset
+set -o errexit
+
+DIR=$(pwd)
+BUILDDIR=$DIR/build
+NGINX_DIR=nginx
+NGINX_VERSION=1.13.9
+
+clean() {
+  rm -rf build vendor
+}
+
+setup_local_directories() {
+  if [ ! -d $BUILDDIR ]; then
+    mkdir $BUILDDIR > /dev/null 2>&1
+    mkdir $BUILDDIR/$NGINX_DIR > /dev/null 2>&1
+  fi
+
+  if [ ! -d vendor ]; then
+    mkdir vendor > /dev/null 2>&1
+  fi
+}
+
+install_protobuf() {
+  if [ ! -d "vendor/protobuf" ]; then
+    pushd vendor > /dev/null 2>&1
+    git clone https://github.com/google/protobuf.git
+    pushd protobuf > /dev/null 2>&1
+    ./autogen.sh
+    ./configure --prefix=/usr
+    make
+    sudo make install
+    sudo ldconfig
+    popd > /dev/null 2>&1
+    popd > /dev/null 2>&1
+  else
+    printf "Protobuf library already installed\n"
+  fi
+}
+
+install_protobuf_c() {
+  if [ ! -d "vendor/protobuf-c" ]; then
+    pushd vendor > /dev/null 2>&1
+    git clone https://github.com/protobuf-c/protobuf-c.git
+    pushd protobuf-c > /dev/null 2>&1
+    ./autogen.sh
+    ./configure --prefix=/usr
+    make
+    sudo make install
+    popd > /dev/null 2>&1
+    popd > /dev/null 2>&1
+  else
+    printf "Protobuf-c library already installed\n"
+  fi
+}
+
+install_nginx() {
+  if [ ! -d "vendor/nginx-$NGINX_VERSION" ]; then
+    pushd vendor > /dev/null 2>&1
+    curl -s -L -O "http://nginx.org/download/nginx-$NGINX_VERSION.tar.gz"
+    tar xzf "nginx-$NGINX_VERSION.tar.gz"
+    pushd "nginx-$NGINX_VERSION" > /dev/null 2>&1
+    ./configure \
+        --with-debug \
+        --prefix=$(pwd)/../../build/nginx \
+        --conf-path=conf/nginx.conf \
+        --error-log-path=logs/error.log \
+        --http-log-path=logs/access.log
+    make
+    make install
+    popd > /dev/null 2>&1
+    popd > /dev/null 2>&1
+    ln -sf $(pwd)/nginx.conf $(pwd)/build/nginx/conf/nginx.conf
+  else
+    printf "NGINX already installed\n"
+  fi
+}
+
+if [[ "$#" -eq 1 ]]; then
+  if [[ "$1" == "clean" ]]; then
+    clean
+  else
+    echo "clean is the only option"
+  fi
+else
+  setup_local_directories
+  install_protobuf
+  install_protobuf_c
+  install_nginx
+fi
