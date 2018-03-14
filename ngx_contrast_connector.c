@@ -15,7 +15,7 @@
 #include "dtm.pb-c.h"
 #include "settings.pb-c.h"
 
-static void * ngx_contrast_connector_create_main_config(ngx_conf_t *cf);
+static void * ngx_http_contrast_connector_create_main_config(ngx_conf_t *cf);
 
 /*
  * From: https://github.com/SpiderLabs/ModSecurity-nginx
@@ -47,19 +47,37 @@ ngx_inline char * ngx_str_to_char(ngx_str_t a, ngx_pool_t *p)
  */
 typedef struct {
 	ngx_flag_t enable;
-	ngx_str_t path;
-} ngx_contrast_connector_conf_t;
+	ngx_flag_t debug;
+	ngx_str_t socket_path;
+} ngx_http_contrast_connector_conf_t;
 
 /*
  * available commands for module
  */
-static ngx_command_t ngx_contrast_connector_commands[] = {
+static ngx_command_t ngx_contrast_connector_commands[] = 
+{
 	{
 		ngx_string("contrast"),
 		NGX_HTTP_LOC_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_MAIN_CONF|NGX_CONF_FLAG,
 		ngx_conf_set_flag_slot,
 		NGX_HTTP_LOC_CONF_OFFSET,
-		offsetof(ngx_contrast_connector_conf_t, enable),
+		offsetof(ngx_http_contrast_connector_conf_t, enable),
+		NULL
+	},
+	{
+		ngx_string("contrast_debug"),
+		NGX_HTTP_LOC_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_MAIN_CONF|NGX_CONF_FLAG,
+		ngx_conf_set_flag_slot,
+		NGX_HTTP_LOC_CONF_OFFSET,
+		offsetof(ngx_http_contrast_connector_conf_t, debug),
+		NULL
+	},
+	{
+		ngx_string("contrast_unix_socket"),
+		NGX_HTTP_LOC_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
+		ngx_conf_set_str_slot,
+		NGX_HTTP_LOC_CONF_OFFSET,
+		offsetof(ngx_http_contrast_connector_conf_t, socket_path),
 		NULL
 	},
 	ngx_null_command
@@ -68,7 +86,7 @@ static ngx_command_t ngx_contrast_connector_commands[] = {
 /*
  * create main configuration
  */
-static void * ngx_contrast_connector_create_main_config(ngx_conf_t *cf)
+static void * ngx_http_contrast_connector_create_main_config(ngx_conf_t *cf)
 {
 	return NULL;
 }
