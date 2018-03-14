@@ -18,13 +18,23 @@ This repository attempts to build all the compiled libraries necessary including
 
 ### How do I get set up? ###
 
-* TODO
-* Summary of set up
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
+The current connector is designed to be setup and tested in a 
+[Vagrant](https://www.vagrantup.com/)/[VirtualBox](https://www.virtualbox.org/) virtual machine.
+
+* `vagrant up`
+* `vagrant ssh`
+* install RVM rb-env to get access to a modern ruby
+* `cd /vagrant`
+* `chmod +x script/*`
+* `script/bootstrap`
+* `gem install bundler`
+* `bundle install`
+* `rake nginx:compile`
+* `rake`
+
+Assuming all the steps succeed, you now have a NGINX instance with the speedracer connector module staticly linked.  
+Next steps are to setup speedracer configured for Unix sockets and ensure that speedracer can communicate with Teamserver on the host machine.
+
 
 ### Contribution guidelines ###
 
