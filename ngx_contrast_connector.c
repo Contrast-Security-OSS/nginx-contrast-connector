@@ -84,10 +84,21 @@ static ngx_command_t ngx_contrast_connector_commands[] =
 };
 
 /*
- * create main configuration
+ * create location configuration
  */
-static void * ngx_http_contrast_connector_create_main_config(ngx_conf_t *cf)
+static void * ngx_http_contrast_connector_create_loc_config(ngx_conf_t *cf)
 {
-	return NULL;
+	ngx_http_contrast_connector_conf_t *conf;
+	conf = ngx_pcalloc(cf->pool, sizeof(ngx_http_contrast_connector_conf_t));
+	if (conf == NULL) {
+		return NGX_CONF_ERROR;
+	}
+
+	conf->enable = NGX_CONF_UNSET;
+	conf->debug = NGX_CONF_UNSET;
+	ngx_conf_merge_str_value(conf->socket_path, conf->socket_path, "/tmp/default.sock");
+
+	fprintf(stderr, "current socket_path = %s\n", conf->socket_path);
+	return conf;
 }
 
