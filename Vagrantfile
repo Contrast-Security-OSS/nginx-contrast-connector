@@ -22,12 +22,12 @@ Vagrant.configure("2") do |config|
   # Create a forwarded port mapping which allows access to a specific port
   # within the machine from a port on the host machine. In the example below,
   # accessing "localhost:8080" will access port 80 on the guest machine.
-  config.vm.network "forwarded_port", guest: 80, host: 4080
-  config.vm.network "forwarded_port", guest: 8080, host: 4040
+  config.vm.network "forwarded_port", guest: 80, host: 18000
+  config.vm.network "forwarded_port", guest: 8080, host: 18080
 
   # Create a private network, which allows host-only access to the machine
   # using a specific IP.
-  config.vm.network "private_network", ip: "192.168.33.10"
+  config.vm.network "private_network", ip: "192.168.33.12"
 
   # Create a public network, which generally matched to bridged network.
   # Bridged networks make the machine appear as another physical device on
@@ -81,21 +81,21 @@ Vagrant.configure("2") do |config|
 #    apt-get -y install openresty
 
     # build and install libmodsecurity
-    git clone https://github.com/SpiderLabs/ModSecurity
-    cd ModSecurity/
-    git checkout -b v3/master origin/v3/master
-    sh build.sh
-    git submodule init
-    git submodule update
-    ./configure
-    make
-    make install
+#    git clone https://github.com/SpiderLabs/ModSecurity
+#    cd ModSecurity/
+#    git checkout -b v3/master origin/v3/master
+#    sh build.sh
+#    git submodule init
+#    git submodule update
+#    ./configure
+#    make
+#    make install
 
     # adding the libmodsecurity headers to the library path
 #    echo "LD_LIBRARY_PATH=/usr/local/modsecurity/lib" >> ~/.profile_example
 
     # downloading the owasp rules
-    git clone https://github.com/SpiderLabs/owasp-modsecurity-crs.git
+#    git clone https://github.com/SpiderLabs/owasp-modsecurity-crs.git
 
     # install go from the local package
 #    tar xvf /vagrant/go1.10.linux-amd64.tar.gz -C /usr/local

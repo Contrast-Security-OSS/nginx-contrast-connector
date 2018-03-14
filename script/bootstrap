@@ -43,8 +43,9 @@ install_protobuf() {
 install_protobuf_c() {
   if [ ! -d "vendor/protobuf-c" ]; then
     pushd vendor > /dev/null 2>&1
-    git clone https://github.com/protobuf-c/protobuf-c.git
+    git clone https://github.com/palmergs/protobuf-c.git
     pushd protobuf-c > /dev/null 2>&1
+    git checkout adding-std
     ./autogen.sh
     ./configure --prefix=/usr
     make
