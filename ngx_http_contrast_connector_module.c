@@ -99,8 +99,6 @@ static void * ngx_http_contrast_connector_create_loc_config(ngx_conf_t * cf)
 
     conf->enable = NGX_CONF_UNSET;
     conf->debug = NGX_CONF_UNSET;
-
-
     return conf;
 }
 
@@ -116,7 +114,10 @@ static char * ngx_http_contrast_connector_merge_loc_config(ngx_conf_t * cf, void
     ngx_conf_merge_off_value(conf->debug, prev->debug, NGX_CONF_UNSET);
     ngx_conf_merge_str_value(conf->socket_path, prev->socket_path, "/tmp/contrast-security.sock");
 
-    fprintf(stderr, "current socket_path = %s\n", conf->socket_path.data);
+    if (conf->debug > 0) {
+        fprintf(stderr, "current enabled = %d\n", conf->enable);
+        fprintf(stderr, "current socket_path = %s\n", conf->socket_path.data);
+    }
     return NGX_CONF_OK;
 }
 
@@ -151,7 +152,7 @@ static ngx_http_module_t ngx_http_contrast_connector_module_ctx = {
 };
 
 /*
- * module definition structur
+ * module definition structure
  */
 ngx_module_t ngx_http_contrast_connector_module = {
         NGX_MODULE_V1,
