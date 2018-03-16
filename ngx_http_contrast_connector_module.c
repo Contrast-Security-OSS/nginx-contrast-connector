@@ -214,6 +214,10 @@ static ngx_int_t ngx_http_contrast_connector_module_header_filter(ngx_http_reque
         fprintf(stderr, "DEBUG: in header filter\n");
     }
 
+    if (conf->enable > 0) {
+        fprintf(stderr, "DEBUG: header filter enabled\n");
+    }
+
     /* call the next filter in the chaing */
     return ngx_http_next_header_filter(r);
 }
@@ -237,6 +241,11 @@ static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request
     if (conf->debug > 0) {
         fprintf(stderr, "DEBUG: in body filter\n");
     }
+
+    if (conf->enable > 0) {
+        fprintf(stderr, "DEBUG: body filter enabled\n");
+    }
+
 
     return ngx_http_next_body_filter(r, chain);
 }
