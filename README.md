@@ -49,8 +49,10 @@ It should have also installed Go however the provisioner didn't update the profi
 The speedracer project should be mounted in the vagrant environment at `/go/src/contrast/speedracer` assuming this project and the speedracer project are both in sibling directories.
 
 * cd `/go/src/contrast/speedracer`
-* `dep` has a bug that prevents it working under virtual machines (?)
-  * `go get ...`
+* `curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh`
+* `dep ensure`
+    * NOTE: `dep` has a bug that prevents it working under virtual machines (?) which may require installing dependencies individually.
+
 	
 Next `dep` seems to have a bug where it won't correctly lock 
 
