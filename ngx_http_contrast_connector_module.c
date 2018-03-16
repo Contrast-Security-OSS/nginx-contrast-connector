@@ -115,10 +115,55 @@ static char * ngx_http_contrast_connector_merge_loc_config(ngx_conf_t * cf, void
     ngx_conf_merge_str_value(conf->socket_path, prev->socket_path, "/tmp/contrast-security.sock");
 
     if (conf->debug > 0) {
-        fprintf(stderr, "current enabled = %d\n", conf->enable);
+        fprintf(stderr, "current enabled = %ld\n", (long int)conf->enable);
         fprintf(stderr, "current socket_path = %s\n", conf->socket_path.data);
     }
     return NGX_CONF_OK;
+}
+
+
+/*
+ * static reference to next header filter callback
+ */
+static ngx_http_output_header_filter_pt ngx_http_next_header_filter;
+
+/*
+ * static reference to next body filter callback
+ */
+static ngx_http_output_body_filter_pt ngx_http_next_body_filter;
+
+
+/*
+ * act as filter for headers in request
+ */
+static ngx_int_t ngx_http_contrast_connector_module_header_filter(ngx_http_request_t *r)
+{
+
+
+    /* call the next filter in the chaing */
+    return ngx_http_next_header_filter(r);
+}
+
+/*
+ * act as filter for request body
+ */
+static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request_t *r, ngx_chain_t *chain)
+{
+    return ngx_http_next_body_filter(r, chain);
+}
+
+/*
+ * init module and place in the filter chain
+ */
+static ngx_int_t ngx_http_contrast_connector_module_init(ngx_conf_t * cf)
+{
+    ngx_http_next_header_filter = ngx_http_top_header_filter;
+    ngx_http_top_header_filter = ngx_http_contrast_connector_module_header_filter;
+
+    ngx_http_next_body_filter = ngx_http_top_body_filter;
+    ngx_http_top_body_filter = ngx_http_contrast_connector_module_body_filter;
+
+    return NGX_OK;
 }
 
 /*
@@ -130,7 +175,7 @@ static ngx_http_module_t ngx_http_contrast_connector_module_ctx = {
         NULL,
 
         /* post configuration */
-        NULL,
+        ngx_http_contrast_connector_module_init,
 
         /* create main configuration */
         NULL,
