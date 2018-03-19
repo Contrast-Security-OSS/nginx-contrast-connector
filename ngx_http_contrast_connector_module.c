@@ -275,34 +275,13 @@ static ngx_int_t ngx_http_contrast_connector_module_init(ngx_conf_t * cf)
     return NGX_OK;
 }
 
-/* TODO: macroize! 
-ngx_inline unsigned char* len_to_msg(size_t len)
-{
-    unsigned char msg[4] = {
-            (unsigned char)(len >> 24),
-            (unsigned char)(len >> 16),
-            (unsigned char)(len >> 8),
-            (unsigned char)(len)
-    };
-    return msg;
-}
-*/
-
 /*
- * set the values of a four byte array from the individual bytes of the length type
+ * assign the values of a four byte array from the individual bytes of the length type
  */
 #define len_to_msg(len, msg) msg[0] = (unsigned char)(len >> 24); msg[1] = (unsigned char)(len >> 16); msg[2] = (unsigned char)(len >> 8); msg[3] = (unsigned char)(len);
 
-/* TODO: macroize!
-ngx_inline size_t msg_to_len(unsigned char * msg)
-{
-    size_t len = (msg[0] << 24) | (msg[1] << 16) | (msg[2] << 8) | msg[3];
-    return len;
-}
-*/
-
 /*
- * convert an array of four bytes into an integer
+ * convert an array of four bytes into an integer and assign it to the second argument
  */
 #define msg_to_len(msg, len) (len = (msg[0] << 24) | (msg[1] << 16) | (msg[2] << 8) | msg[3])
 
