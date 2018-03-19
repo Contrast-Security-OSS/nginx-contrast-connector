@@ -15,6 +15,11 @@
 #include "dtm.pb-c.h"
 #include "settings.pb-c.h"
 
+/* Unix Socket stuff */
+#include <stdio.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+
 /* Connector stuff */
 #include "ngx_http_contrast_connector_common.h"
 
@@ -22,6 +27,7 @@ static void * ngx_http_contrast_connector_create_loc_config(ngx_conf_t * cf);
 static ngx_int_t ngx_http_contrast_connector_module_header_filter(ngx_http_request_t * r);
 static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request_t * r, ngx_chain_t * chain);
 static ngx_int_t ngx_http_contrast_connector_module_init(ngx_conf_t * cf);
+static ngx_int_t write_to_socket(ngx_str_t socket_path, void * data, size_t len, unsigned char * response);
 
 /*
  * static reference to next header filter callback
@@ -240,6 +246,9 @@ static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request
 
     if (conf->debug > 0) {
         fprintf(stderr, "DEBUG: in body filter\n");
+
+
+
     }
 
     if (conf->enable > 0) {
@@ -263,5 +272,100 @@ static ngx_int_t ngx_http_contrast_connector_module_init(ngx_conf_t * cf)
     ngx_http_next_body_filter = ngx_http_top_body_filter;
     ngx_http_top_body_filter = ngx_http_contrast_connector_module_body_filter;
 
+    return NGX_OK;
+}
+
+/* TODO: macroize! 
+ngx_inline unsigned char* len_to_msg(size_t len)
+{
+    unsigned char msg[4] = {
+            (unsigned char)(len >> 24),
+            (unsigned char)(len >> 16),
+            (unsigned char)(len >> 8),
+            (unsigned char)(len)
+    };
+    return msg;
+}
+*/
+
+/*
+ * set the values of a four byte array from the individual bytes of the length type
+ */
+#define len_to_msg(len, msg) msg[0] = (unsigned char)(len >> 24); msg[1] = (unsigned char)(len >> 16); msg[2] = (unsigned char)(len >> 8); msg[3] = (unsigned char)(len);
+
+/* TODO: macroize!
+ngx_inline size_t msg_to_len(unsigned char * msg)
+{
+    size_t len = (msg[0] << 24) | (msg[1] << 16) | (msg[2] << 8) | msg[3];
+    return len;
+}
+*/
+
+/*
+ * convert an array of four bytes into an integer
+ */
+#define msg_to_len(msg, len) (len = (msg[0] << 24) | (msg[1] << 16) | (msg[2] << 8) | msg[3])
+
+/*
+ * write a serialized protobuf instance to a unix socket
+ */
+static ngx_int_t write_to_socket(ngx_str_t socket_path, void * data, size_t len, unsigned char * response)
+{
+    fprintf(stderr, "ENTER: write_to_socket\n");
+
+    struct sockaddr_un server;
+    int sock = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (sock < 0) {
+        fprintf(stderr, "ERROR: could not open stream socket\n");
+        return NGX_ERROR;
+    }
+
+    server.sun_family = AF_UNIX;
+    strcpy(server.sun_path, socket_path.data);
+
+    if (connect(sock, (struct sockaddr *)&server, sizeof(struct sockaddr_un)) < 0) {
+        fprintf(stderr, "ERROR: could not connect to stream socket\n");
+        close(sock);
+        return NGX_ERROR;
+    }
+
+	unsigned char msg[4] = {0, 0, 0, 0};
+	len_to_msg(len, msg);
+    if (write(sock, msg, 4) < 0) {
+        fprintf(stderr, "ERROR: could not write message header\n");
+        close(sock);
+        return NGX_ERROR;
+    }
+
+    if (write(sock, data, len) < 0) {
+        fprintf(stderr, "ERROR: could not write message\n");
+        close(sock);
+        return NGX_ERROR;
+    }
+
+    unsigned char response_msg_len[4];
+    if (read(sock, response_msg_len, 4) < 4) {
+        fprintf(stderr, "ERROR: could not read four bytes fom response\n");
+        close(sock);
+        return NGX_ERROR;
+    }
+
+    size_t response_len = 0;
+	msg_to_len(response_msg_len, response_len);
+    if (response_len <= 0 || response_len > 1000000) {
+        fprintf(stderr, "ERROR: idiot check on response length failed\n");
+        close(sock);
+        return NGX_ERROR;
+    }
+
+    size_t actual_len = 0;
+    response = malloc(response_len);
+    if ((actual_len = read(sock, response, response_len)) < response_len) {
+        fprintf(stderr, "ERROR: actual length != expected length: %ld != %ld\n", actual_len, response_len);
+        close(sock);
+        return NGX_ERROR;
+    }
+
+    close(sock);
     return NGX_OK;
 }
