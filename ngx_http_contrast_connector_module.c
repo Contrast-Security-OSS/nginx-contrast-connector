@@ -218,15 +218,82 @@ static ngx_int_t ngx_http_contrast_connector_module_header_filter(ngx_http_reque
 
     if (conf->debug > 0) {
         fprintf(stderr, "DEBUG: in header filter\n");
+
+		fprintf(stderr, "INFO: uri = %s (%ld)\n", r->uri.data, r->uri.len);
+		fprintf(stderr, "INFO: unparsed uri = %s (%ld)\n", r->unparsed_uri.data, r->unparsed_uri.len);
+		fprintf(stderr, "INFO: args = %s (%ld)\n", r->args.data, r->args.len);
+		fprintf(stderr, "INFO: request iine = %s (%ld)\n", r->request_line.data, r->request_line.len);
+		fprintf(stderr, "INFO: method_name = %s (%ld)\n", r->method_name.data, r->method_name.len);
+		fprintf(stderr, "INFO: http protocol = %s (%ld)\n", r->http_protocol.data, r->http_protocol.len);
+
+		if (r->parent != NULL) {
+			fprintf(stderr, "WARN: parent structure was not NULL\n");
+		}
+
+		ngx_http_headers_in_t hin = r->headers_in;
+		ngx_list_t headers = hin.headers;
+		ngx_list_part_t * curr = NULL;
+		ngx_table_elt_t * entry = NULL;
+
+
+		fprintf(stderr, "DEBUG: about to call nalloc on headers list\n");
+		if (headers.nalloc > 0) {
+			fprintf(stderr, "DEBUG: the value from nalloc was %ld\n", headers.nalloc);
+			curr = &headers.part;
+			for(; curr != NULL; ) {
+				fprintf(stderr, "DEBUG: in the loop\n");
+				if (curr->nelts > 0) {
+					fprintf(stderr, "DEBUG: the value from nelts was %ld\n", curr->nelts);
+					entry = (ngx_table_elt_t *)curr->elts;
+					fprintf(stderr, "DEBUG: cast elts to a pointer to a ngx_table_elt_t\n");
+					if (entry != NULL) {
+						fprintf(stderr, "DEBUG: about to try and get key and value... expecting core dump.\n");
+						fprintf(stderr, "INFO: reading header item key: %s = value: %s\n", entry->key.data, entry->value.data);
+						fprintf(stderr, "DEBUG: after access\n");
+					} else {
+						fprintf(stderr, "WARN: elts was NULL\n");
+					}
+				} else {
+					fprintf(stderr, "WARN: nelts was 0\n");
+				}
+
+				fprintf(stderr, "DEBUG: about to assign next to curr\n");
+				if (curr->next != NULL) {
+					curr = curr->next;
+				} else {
+					curr = NULL;
+				}
+			}
+		} else {
+			fprintf(stderr, "WARN: headers allocated was 0\n");
+		}
     }
 
     if (conf->enable > 0) {
         fprintf(stderr, "DEBUG: header filter enabled\n");
+		Contrast__Api__Dtm__Message message = CONTRAST__API__DTM__MESSAGE__INIT;
+		Contrast__Api__Dtm__HttpRequest dtm = CONTRAST__API__DTM__HTTP_REQUEST__INIT;
+
+		if (r->http_version & NGX_HTTP_VERSION_10) { dtm.version = "HTTP/1.0"; }
+		else if (r->http_version & NGX_HTTP_VERSION_11) { dtm.version = "HTTP/1.1"; }
+		else if (r->http_version & NGX_HTTP_VERSION_20) { dtm.version = "HTTP/2.0"; }
+
+		if (r->method & NGX_HTTP_GET) { dtm.method = "GET"; }
+		else if (r-> method & NGX_HTTP_HEAD) { dtm.method = "HEAD"; }
+		else if (r-> method & NGX_HTTP_POST) { dtm.method = "POST"; }
+		else if (r-> method & NGX_HTTP_PUT) { dtm.method = "PUT"; }
+		else if (r-> method & NGX_HTTP_DELETE) { dtm.method = "DELETE"; }
+		else if (r-> method & NGX_HTTP_PATCH) { dtm.method = "PATCH"; }
+		else if (r-> method & NGX_HTTP_OPTIONS) { dtm.method = "OPTIONS"; }
+		else { dtm.method = "UNKNOWN"; }
+
     }
 
     /* call the next filter in the chaing */
     return ngx_http_next_header_filter(r);
 }
+
+
 
 /*
  * act as filter for request body
@@ -247,8 +314,12 @@ static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request
     if (conf->debug > 0) {
         fprintf(stderr, "DEBUG: in body filter\n");
 
-
-
+		fprintf(stderr, "INFO: uri = %s (%ld)\n", r->uri.data, r->uri.len);
+		fprintf(stderr, "INFO: args = %s (%ld)\n", r->args.data, r->args.len);
+		if (r->parent != NULL) {
+			fprintf(stderr, "WARN: parent structure was not NULL\n");
+		}
+		ngx_http_headers_in_t headers = r->headers_in;
     }
 
     if (conf->enable > 0) {
