@@ -31,6 +31,6 @@ task :bootstrap do
 end
 
 desc "Run the integration tests"
-task default: [ :bootstrap, "nginx:start", :integration, "nginx:stop" ]
+task default: [ :bootstrap, :integration ]
 
 
