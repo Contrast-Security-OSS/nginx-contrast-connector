@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <time.h>
+#include <sys/time.h>
 
 /* NGINX stuff */
 #include <nginx.h>
@@ -38,6 +40,16 @@ static ngx_http_output_header_filter_pt ngx_http_next_header_filter;
  * static reference to next body filter callback
  */
 static ngx_http_output_body_filter_pt ngx_http_next_body_filter;
+
+/*
+ * get the current epoch time in millis
+ */
+ngx_inline int64_t unix_millis() 
+{
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	return (tv.tv_sec * 1000 + tv.tv_usec / 1000);
+}
 
 /*
  * From: https://github.com/SpiderLabs/ModSecurity-nginx
@@ -297,30 +309,37 @@ static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request
     if (conf->enable > 0) {
         fprintf(stderr, "DEBUG: body filter enabled\n");
 		Contrast__Api__Dtm__Message message = CONTRAST__API__DTM__MESSAGE__INIT;
-		Contrast__Api__Dtm__HttpRequest dtm = CONTRAST__API__DTM__HTTP_REQUEST__INIT;
-		Contrast__Api__Dtm__HttpRequest__RequestHeadersEntry header = CONTRAST__API__DTM__HTTP_REQUEST__REQUEST_HEADERS_ENTRY__INIT;
+		Contrast__Api__Dtm__RawRequest dtm = CONTRAST__API__DTM__RAW_REQUEST__INIT;
+		Contrast__Api__Dtm__SimplePair pair = CONTRAST__API__DTM__SIMPLE_PAIR__INIT;
 
-		/* version */
-		if (r->http_version & NGX_HTTP_VERSION_10) { dtm.version = "HTTP/1.0"; }
-		else if (r->http_version & NGX_HTTP_VERSION_11) { dtm.version = "HTTP/1.1"; }
-		else if (r->http_version & NGX_HTTP_VERSION_20) { dtm.version = "HTTP/2.0"; }
+		/* timestamp */
+		struct timeval tv;
+		gettimeofday(&tv, NULL);
+		dtm.timestamp_ms = (tv.tv_sec * 1000 + tv.tv_usec / 1000);
 
-		/* method */
-		if (r->method & NGX_HTTP_GET) { dtm.method = "GET"; }
-		else if (r-> method & NGX_HTTP_HEAD) { dtm.method = "HEAD"; }
-		else if (r-> method & NGX_HTTP_POST) { dtm.method = "POST"; }
-		else if (r-> method & NGX_HTTP_PUT) { dtm.method = "PUT"; }
-		else if (r-> method & NGX_HTTP_DELETE) { dtm.method = "DELETE"; }
-		else if (r-> method & NGX_HTTP_PATCH) { dtm.method = "PATCH"; }
-		else if (r-> method & NGX_HTTP_OPTIONS) { dtm.method = "OPTIONS"; }
-		else { dtm.method = "UNKNOWN"; }
+		/* request line */
+		dtm.request_line = r->request_line.data;
+		dtm.normalized_uri = r->uri.data;
 
-		/* to address */
-		Contrast__Api__Dtm__Address address_to = CONTRAST__API__DTM__ADDRESS__INIT;
-		if (r->connection->addr_text.len > 0) { address_to.ip = r->connection->addr_text.data; }
+		/* ip */
+		struct sockaddr_in *sin;
+		ngx_addr_t addr;
+		char ipv4[INET_ADDRSTRLEN];
 
-		/* from address */
-		Contrast__Api__Dtm__Address address_from = CONTRAST__API__DTM__ADDRESS__INIT;
+		/* TODO: handle IPv6 */
+		addr.sockaddr = r->connection->sockaddr;
+		addr.socklen = r->connection->socklen;
+		if (addr.sockaddr->sa_family == AF_INET) {
+			sin = (struct sockaddr_in *)addr.sockaddr;
+			if (sin != NULL) {
+				dtm.port = sin->sin_port;
+
+				inet_ntop(AF_INET, &(sin->sin_addr), ipv4, INET_ADDRSTRLEN);
+				dtm.ip = ipv4;
+				dtm.ip_version = 4;
+				fprintf(stderr, "INFO: getting address from socket %s:%d\n", dtm.ip, dtm.port);
+			}
+		}
 
 		/* headers */
 		if (headers.nalloc > 0) {
@@ -334,15 +353,37 @@ static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request
 
 					curr = curr->next;
 					entry_ptr = (ngx_table_elt_t *)curr->elts;
+					count = 0;
 				}
 
 				entry = (&entry_ptr[count]);
-				header.key = entry->key.data;
-				header.value = entry->value.data;
+				pair.key = entry->key.data;
+				pair.value = entry->value.data;
 
-				
-
+				/* TODO: figure out how to add repeated header fields */		
 			}
+		}
+
+		/* body */
+		if (r->request_body != NULL) {
+			size_t body_len;
+			ngx_chain_t *in;
+
+			body_len = 0;
+			for (in = r->request_body->bufs; in != NULL; in = in->next) {
+				body_len += ngx_buf_size(in->buf);
+			}
+	
+			size_t buf_len = 0;
+			size_t offset = 0;
+			char * request_body = ngx_calloc(body_len + 1, NULL);
+			for (in = r->request_body->bufs; in != NULL; in = in->next) {
+				buf_len = ngx_buf_size(in->buf);
+				strncpy(request_body + offset, in->buf->pos, buf_len);
+				offset += buf_len;
+			}
+
+			dtm.request_body = request_body;
 		}
     }
 
