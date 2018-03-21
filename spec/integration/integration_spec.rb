@@ -3,14 +3,12 @@ require "spec_helper"
 describe "Integration Specs" do
 
   before(:all) do
-    `nohup ruby sinatra_app.rb > build/nginx/logs/sinatra.log 2>&1 &`
     `build/nginx/sbin/nginx`
     sleep 1
   end
 
   after(:all) do
     `build/nginx/sbin/nginx -s stop`
-    `kill $!`
   end
   
   describe "SQLi" do

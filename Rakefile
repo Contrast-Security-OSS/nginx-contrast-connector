@@ -23,6 +23,15 @@ namespace :nginx do
   end
 end
 
+namespace :sinatra do
+  desc "Starts Sinatra"
+  task :start do
+    `nohup ruby sinatra_app.rb > build/nginx/logs/sinatra.log 2>&1 &`
+    puts `echo $!`
+    sleep 1
+  end
+end
+
 desc "Bootstraps the local development environment"
 task :bootstrap do
   unless Dir.exists?("build") and Dir.exists?("vendor")

@@ -313,15 +313,18 @@ static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request
 		Contrast__Api__Dtm__SimplePair pair = CONTRAST__API__DTM__SIMPLE_PAIR__INIT;
 
 		/* timestamp */
+		fprintf(stderr, "DEBUG: getting timestamp\n");
 		struct timeval tv;
 		gettimeofday(&tv, NULL);
 		dtm.timestamp_ms = (tv.tv_sec * 1000 + tv.tv_usec / 1000);
 
 		/* request line */
+		fprintf(stderr, "DEBUG: getting request line and normalized uri\n");
 		dtm.request_line = r->request_line.data;
 		dtm.normalized_uri = r->uri.data;
 
 		/* ip */
+		fprintf(stderr, "DEBUG: getting ip address\n");
 		struct sockaddr_in *sin;
 		ngx_addr_t addr;
 		char ipv4[INET_ADDRSTRLEN];
@@ -343,6 +346,7 @@ static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request
 
 		/* headers */
 		if (headers.nalloc > 0) {
+			fprintf(stderr, "DEBUG: getting headers\n");
 			curr = &headers.part;
 			entry_ptr = (ngx_table_elt_t *)curr->elts;
 			for(count = 0; ; count++) {
@@ -359,6 +363,7 @@ static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request
 				entry = (&entry_ptr[count]);
 				pair.key = entry->key.data;
 				pair.value = entry->value.data;
+				fprintf(stderr, "INFO: count=%d key=%s value=%s\n", count, pair.key, pair.value);
 
 				/* TODO: figure out how to add repeated header fields */		
 			}
@@ -366,6 +371,7 @@ static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request
 
 		/* body */
 		if (r->request_body != NULL) {
+			fprintf(stderr, "DEBUG: getting request body\n");
 			size_t body_len;
 			ngx_chain_t *in;
 
@@ -373,17 +379,22 @@ static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request
 			for (in = r->request_body->bufs; in != NULL; in = in->next) {
 				body_len += ngx_buf_size(in->buf);
 			}
+			fprintf(stderr, "DEBUG: body_len=%ld\n", body_len);
 	
 			size_t buf_len = 0;
 			size_t offset = 0;
 			char * request_body = ngx_calloc(body_len + 1, NULL);
 			for (in = r->request_body->bufs; in != NULL; in = in->next) {
 				buf_len = ngx_buf_size(in->buf);
+				fprintf(stderr, "DEBUG: buf_len=%ld offset=%ld\n", buf_len, offset);
 				strncpy(request_body + offset, in->buf->pos, buf_len);
 				offset += buf_len;
 			}
 
 			dtm.request_body = request_body;
+			fprintf(stderr, "DEBUG: request_body=%s\n", dtm.request_body);
+		} else {
+			fprintf(stderr, "DEBUG: request body was NULL\n");
 		}
     }
 
