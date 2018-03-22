@@ -24,15 +24,24 @@
 
 /* Connector stuff */
 #include "ngx_http_contrast_connector_common.h"
+#include "ngx_http_contrast_connector_socket.h"
 
 static void * ngx_http_contrast_connector_create_loc_config(ngx_conf_t * cf);
+
+/* TODO: not using filters anymore...
 static ngx_int_t ngx_http_contrast_connector_module_header_filter(ngx_http_request_t * r);
 static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request_t * r, ngx_chain_t * chain);
-static ngx_int_t ngx_http_contrast_connector_module_init(ngx_conf_t * cf);
-static ngx_int_t write_to_socket(ngx_str_t socket_path, void * data, size_t len, unsigned char * response);
+*/
 
+static ngx_int_t ngx_http_contrast_connector_module_init(ngx_conf_t * cf);
+static char * ngx_http_contrast_connector(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static void ngx_http_contrast_connector_post_handler(ngx_http_request_t *r);
+static ngx_int_t ngx_http_contrast_connector_handler(ngx_http_request_t *r);
+
+/*
 static u_char * read_request_body(ngx_http_request_t * r, ngx_chain_t * chain);
 static u_char * append_request_body(u_char * dest, size_t dest_len, u_char * src, size_t src_len, ngx_log_t * log);
+*/
 
 /*
  * static reference to next header filter callback
@@ -140,8 +149,7 @@ static char * ngx_http_contrast_connector_merge_loc_config(ngx_conf_t * cf, void
     ngx_conf_merge_str_value(conf->socket_path, prev->socket_path, "/tmp/contrast-security.sock");
 
     if (conf->debug > 0) {
-        fprintf(stderr, "CONFIG enabled = %ld\n", (long int) conf->enable);
-        fprintf(stderr, "CONFIG socket_path = %s\n", conf->socket_path.data);
+		dd("config enabled socket_path=%s", conf->socket_path.data);
     }
     return NGX_CONF_OK;
 }
@@ -212,21 +220,26 @@ ngx_module_t ngx_http_contrast_connector_module = {
 
         /* exit master */
         NULL,
+
+		/* required */
         NGX_MODULE_V1_PADDING
 };
 
 /*
  * act as filter for headers in request
  */
+/* TODO not using filters anymore 
 static ngx_int_t ngx_http_contrast_connector_module_header_filter(ngx_http_request_t * r)
 {
     fprintf(stderr, "ENTER: ngx_http_contrast_connector_module_header_filter\n");
     return ngx_http_next_header_filter(r);
 }
+*/
 
 /*
  * act as filter for request body
  */
+/* TODO: not using filters anymore...
 static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request_t * r, ngx_chain_t * in)
 {
     fprintf(stderr, "ENTER: ngx_http_contrast_connector_module_body_filter\n");
@@ -244,13 +257,11 @@ static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request
 	u_char * dest = NULL;
 	size_t dest_len = 0;
 
-	/* Is filter invalid? */
 	if (in == NULL) {
 		fprintf(stderr, "WARN: passing to next filter early since the chain was NULL\n");
 		return ngx_http_next_body_filter(r, in);
 	}
 
-	/* Is body chain fully loaded? */
 	for (chain = in; chain != NULL; chain = chain->next) {
 		if (chain->buf->last_buf) { buffer_fully_loaded = 1; }
 	}
@@ -265,7 +276,6 @@ static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request
 		return ngx_http_next_body_filter(r, in);
 	}
 	
-	/* Load the location configuration */
     conf = ngx_http_get_module_loc_conf(r, ngx_http_contrast_connector_module);
     if (conf == NULL) {
         fprintf(stderr, "WARN: local configuration was NULL\n");
@@ -321,24 +331,20 @@ static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request
 		Contrast__Api__Dtm__RawRequest dtm = CONTRAST__API__DTM__RAW_REQUEST__INIT;
 		Contrast__Api__Dtm__SimplePair pair = CONTRAST__API__DTM__SIMPLE_PAIR__INIT;
 
-		/* timestamp */
 		fprintf(stderr, "DEBUG: getting timestamp\n");
 		struct timeval tv;
 		gettimeofday(&tv, NULL);
 		dtm.timestamp_ms = (tv.tv_sec * 1000 + tv.tv_usec / 1000);
 
-		/* request line */
 		fprintf(stderr, "DEBUG: getting request line and normalized uri\n");
 		dtm.request_line = r->request_line.data;
 		dtm.normalized_uri = r->uri.data;
 
-		/* ip */
 		fprintf(stderr, "DEBUG: getting ip address\n");
 		struct sockaddr_in *sin;
 		ngx_addr_t addr;
 		char ipv4[INET_ADDRSTRLEN];
 
-		/* TODO: handle IPv6 */
 		addr.sockaddr = r->connection->sockaddr;
 		addr.socklen = r->connection->socklen;
 		if (addr.sockaddr->sa_family == AF_INET) {
@@ -353,7 +359,6 @@ static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request
 			}
 		}
 
-		/* headers */
 		if (headers.nalloc > 0) {
 			fprintf(stderr, "DEBUG: getting headers\n");
 			curr = &headers.part;
@@ -373,12 +378,9 @@ static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request
 				pair.key = entry->key.data;
 				pair.value = entry->value.data;
 				fprintf(stderr, "INFO: count=%d key=%s value=%s\n", count, pair.key, pair.value);
-
-				/* TODO: figure out how to add repeated header fields */		
 			}
 		}
 
-		/* body */
 		fprintf(stderr, "DEBUG: getting request body\n");
 		dtm.request_body = read_request_body(r, in);
 		if (dtm.request_body != NULL) {
@@ -390,7 +392,9 @@ static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request
 
     return ngx_http_next_body_filter(r, in);
 }
+*/
 
+/* TODO: this is the response body... misnames
 static u_char * read_request_body(ngx_http_request_t * r, ngx_chain_t * in) 
 {
 	if (in == NULL) {
@@ -432,93 +436,107 @@ static u_char * append_request_body(u_char * dest, size_t dest_len, u_char * src
 	}
 	return dest;
 }
+*/
 
 /*
  * init module and place in the filter chain
  */
 static ngx_int_t ngx_http_contrast_connector_module_init(ngx_conf_t * cf)
 {
-    fprintf(stderr, "ENTER: ngx_http_contrast_connector_module_init\n");
 
-    ngx_http_next_header_filter = ngx_http_top_header_filter;
-    ngx_http_top_header_filter = ngx_http_contrast_connector_module_header_filter;
+	ngx_http_handler_pt *h;
+	ngx_http_core_main_conf_t *cmcf;
+	ngx_http_contrast_connector_conf_t *cccf;
 
-    ngx_http_next_body_filter = ngx_http_top_body_filter;
-    ngx_http_top_body_filter = ngx_http_contrast_connector_module_body_filter;
+	cccf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_contrast_connector_module);
+	if (!cccf->enable) {
+		dd("contrast connector not enabled");
+		return NGX_OK;
+	}
 
+	cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
+	
+	h = ngx_array_push(&cmcf->phases[NGX_HTTP_REWRITE_PHASE].handlers);
+	if (h == NULL) {
+		dd("could not push handler into phase");
+		return NGX_ERROR;
+	}
+
+	dd("assigned contrast connector handler (success)");
+	*h = ngx_http_contrast_connector_handler;
     return NGX_OK;
 }
 
-/*
- * assign the values of a four byte array from the individual bytes of the length type
- */
-#define len_to_msg(len, msg) msg[0] = (unsigned char)(len >> 24); msg[1] = (unsigned char)(len >> 16); msg[2] = (unsigned char)(len >> 8); msg[3] = (unsigned char)(len);
-
-/*
- * convert an array of four bytes into an integer and assign it to the second argument
- */
-#define msg_to_len(msg, len) (len = (msg[0] << 24) | (msg[1] << 16) | (msg[2] << 8) | msg[3])
-
-/*
- * write a serialized protobuf instance to a unix socket
- */
-static ngx_int_t write_to_socket(ngx_str_t socket_path, void * data, size_t len, unsigned char * response)
+static void ngx_http_contrast_connector_post_handler(ngx_http_request_t *r) 
 {
-    fprintf(stderr, "ENTER: write_to_socket\n");
+	ngx_http_contrast_connector_ctx_t *ctx;
 
-    struct sockaddr_un server;
-    int sock = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (sock < 0) {
-        fprintf(stderr, "ERROR: could not open stream socket\n");
-        return NGX_ERROR;
-    }
+	dd("finalize read request body");
+	ctx = ngx_http_get_module_ctx(r, ngx_http_contrast_connector_module);
 
-    server.sun_family = AF_UNIX;
-    strcpy(server.sun_path, socket_path.data);
+	if (ctx == NULL) {
+		dd("ctx was NULL");
+		ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
+	}
 
-    if (connect(sock, (struct sockaddr *)&server, sizeof(struct sockaddr_un)) < 0) {
-        fprintf(stderr, "ERROR: could not connect to stream socket\n");
-        close(sock);
-        return NGX_ERROR;
-    }
+#if defined(nginx_version) && nginx_verion >= 8011
+	r->main->count--;
+#endif
 
-	unsigned char msg[4] = {0, 0, 0, 0};
-	len_to_msg(len, msg);
-    if (write(sock, msg, 4) < 0) {
-        fprintf(stderr, "ERROR: could not write message header\n");
-        close(sock);
-        return NGX_ERROR;
-    }
-
-    if (write(sock, data, len) < 0) {
-        fprintf(stderr, "ERROR: could not write message\n");
-        close(sock);
-        return NGX_ERROR;
-    }
-
-    unsigned char response_msg_len[4];
-    if (read(sock, response_msg_len, 4) < 4) {
-        fprintf(stderr, "ERROR: could not read four bytes fom response\n");
-        close(sock);
-        return NGX_ERROR;
-    }
-
-    size_t response_len = 0;
-	msg_to_len(response_msg_len, response_len);
-    if (response_len <= 0 || response_len > 1000000) {
-        fprintf(stderr, "ERROR: idiot check on response length failed\n");
-        close(sock);
-        return NGX_ERROR;
-    }
-
-    size_t actual_len = 0;
-    response = malloc(response_len);
-    if ((actual_len = read(sock, response, response_len)) < response_len) {
-        fprintf(stderr, "ERROR: actual length != expected length: %ld != %ld\n", actual_len, response_len);
-        close(sock);
-        return NGX_ERROR;
-    }
-
-    close(sock);
-    return NGX_OK;
+	if (!ctx->done) {
+		ctx->done = 1;
+		ngx_http_core_run_phases(r);
+	}
 }
+
+static ngx_int_t ngx_http_contrast_connector_handler(ngx_http_request_t *r)
+{
+	ngx_int_t rc;
+	ngx_http_contrast_connector_conf_t *cccf;
+	ngx_http_contrast_connector_ctx_t *ctx;
+
+	dd("contrast connector handler, uri=%s c=%d", r->uri.data, r->main->count);
+
+	cccf = ngx_http_get_module_loc_conf(r, ngx_http_contrast_connector_module);
+	if (!cccf->enable) {
+		dd("module not enabled");
+		return NGX_DECLINED;
+	}
+
+	ctx = ngx_http_get_module_ctx(r, ngx_http_contrast_connector_module);
+	if (ctx == NULL) {
+		ctx = ngx_palloc(r->connection->pool, sizeof(ngx_http_contrast_connector_ctx_t));
+		if (ctx == NULL) {
+			dd("[ERROR] could not allocate ctx");
+			return NGX_HTTP_INTERNAL_SERVER_ERROR;
+		}
+
+		ctx->done = 0;
+		ngx_http_set_ctx(r, ctx, ngx_http_contrast_connector_module);
+	}
+
+	if (!ctx->done) {
+		r->request_body_in_single_buf = 1;
+		r->request_body_in_persistent_file = 1;
+		r->request_body_in_clean_file = 1;
+
+		rc = ngx_http_read_client_request_body(r, ngx_http_contrast_connector_post_handler);
+		if (rc == NGX_ERROR) {
+			dd("[ERROR] rc returned error");
+			return NGX_ERROR;
+		}
+
+		if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
+			dd("[ERROR] rc returned special response");
+			return rc;
+		}
+
+		dd("handler done");
+		return NGX_DONE;
+	}
+
+	dd("handler declined");
+	return NGX_DECLINED;
+}
+
+
