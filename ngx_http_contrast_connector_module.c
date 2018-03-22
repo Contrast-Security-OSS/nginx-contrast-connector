@@ -31,7 +31,8 @@ static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request
 static ngx_int_t ngx_http_contrast_connector_module_init(ngx_conf_t * cf);
 static ngx_int_t write_to_socket(ngx_str_t socket_path, void * data, size_t len, unsigned char * response);
 
-static size_t append_request_body(u_char * dest, size_t dest_len, u_char * src, size_t src_len, ngx_log_t * log);
+static u_char * read_request_body(ngx_http_request_t * r, ngx_chain_t * chain);
+static u_char * append_request_body(u_char * dest, size_t dest_len, u_char * src, size_t src_len, ngx_log_t * log);
 
 /*
  * static reference to next header filter callback
@@ -220,26 +221,6 @@ ngx_module_t ngx_http_contrast_connector_module = {
 static ngx_int_t ngx_http_contrast_connector_module_header_filter(ngx_http_request_t * r)
 {
     fprintf(stderr, "ENTER: ngx_http_contrast_connector_module_header_filter\n");
-
-    ngx_http_contrast_connector_conf_t * conf = NULL;
-
-    conf = ngx_http_get_module_loc_conf(r, ngx_http_contrast_connector_module);
-    if (conf == NULL) {
-
-        fprintf(stderr, "WARN: local configuration was NULL\n");
-        return NGX_OK;
-    }
-
-    if (conf->debug > 0) {
-        fprintf(stderr, "DEBUG: in header filter\n");
-
-    }
-
-    if (conf->enable > 0) {
-        fprintf(stderr, "DEBUG: header filter enabled\n");
-    }
-
-    /* call the next filter in the chaing */
     return ngx_http_next_header_filter(r);
 }
 
@@ -250,10 +231,9 @@ static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request
 {
     fprintf(stderr, "ENTER: ngx_http_contrast_connector_module_body_filter\n");
 
-
 	int buffer_fully_loaded = 0;
-	ngx_chain_t *chain = in;
-
+	ngx_chain_t *chain = NULL;
+	
     ngx_http_contrast_connector_conf_t * conf = NULL;
 	ngx_http_headers_in_t hin = r->headers_in;
 	ngx_list_t headers = hin.headers;
@@ -261,12 +241,35 @@ static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request
 	ngx_table_elt_t * entry_ptr = NULL;
 	ngx_table_elt_t * entry = NULL;
 	int count = 0;
+	u_char * dest = NULL;
+	size_t dest_len = 0;
 
+	/* Is filter invalid? */
+	if (in == NULL) {
+		fprintf(stderr, "WARN: passing to next filter early since the chain was NULL\n");
+		return ngx_http_next_body_filter(r, in);
+	}
+
+	/* Is body chain fully loaded? */
+	for (chain = in; chain != NULL; chain = chain->next) {
+		if (chain->buf->last_buf) { buffer_fully_loaded = 1; }
+	}
+	if (buffer_fully_loaded == 0) {
+		fprintf(stderr, "WARN: buffer not fully loaded so passing to filter chain\n");
+		u_char * tmp = read_request_body(r, in);
+		fprintf(stderr, "INFO: the current contents are %s\n\n", tmp);
+		if (tmp != NULL) {
+			free(tmp);
+		}
+
+		return ngx_http_next_body_filter(r, in);
+	}
+	
+	/* Load the location configuration */
     conf = ngx_http_get_module_loc_conf(r, ngx_http_contrast_connector_module);
     if (conf == NULL) {
-
         fprintf(stderr, "WARN: local configuration was NULL\n");
-        return NGX_OK;
+		return ngx_http_next_body_filter(r, in);
     }
 
     if (conf->debug > 0) {
@@ -376,43 +379,11 @@ static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request
 		}
 
 		/* body */
-		u_char * dest = NULL;
-		size_t dest_len = 0;
-		if (in != NULL) {
-			fprintf(stderr, "DEBUG: getting request body\n");
-			for (chain = in; chain != NULL; chain = chain->next) {
-				if (chain->buf->last_buf) {
-					buffer_fully_loaded = 1;
-				}
-			}
-
-			if (buffer_fully_loaded == 1) {
-				fprintf(stderr, "DEBUG: buffer fully loaded\n");
-				for (chain = in; chain != NULL; chain = chain->next) {
-					
-					fprintf(stderr, "DEBUG: iterating chain linked list\n");
-
-					u_char * src = chain->buf->start;
-					size_t src_len = chain->buf->end - src;
-					fprintf(stderr, "DEBUG: buffer length = %ld\n", src_len);
-					dest_len = append_request_body(dest, dest_len, src, src_len, r->connection->log);
-					fprintf(stderr, "DEBUG: after append length = %ld\n", dest_len);
-				}
-
-				dtm.request_body = dest;
-			} else {
-				fprintf(stderr, "DEBUG: buffer was not fully loaded!\n");
-			}
-
-			fprintf(stderr, "DEBUG: request_body=%s (%ld)\n", dtm.request_body, dest_len);
-
-			if (dest != NULL) {
-				fprintf(stderr, "DEBUG: about to free dest\n");
-				free(dest);
-			}
-
-		} else {
-			fprintf(stderr, "DEBUG: chain was NULL\n");
+		fprintf(stderr, "DEBUG: getting request body\n");
+		dtm.request_body = read_request_body(r, in);
+		if (dtm.request_body != NULL) {
+			fprintf(stderr, "DEBUG: about to free dest\n");
+			free(dtm.request_body);
 		}
     }
 
@@ -420,7 +391,33 @@ static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request
     return ngx_http_next_body_filter(r, in);
 }
 
-static size_t append_request_body(u_char * dest, size_t dest_len, u_char * src, size_t src_len, ngx_log_t *log)
+static u_char * read_request_body(ngx_http_request_t * r, ngx_chain_t * in) 
+{
+	if (in == NULL) {
+		return NULL;
+	}
+
+	u_char * dest = NULL;
+	size_t dest_len = 0;
+
+	ngx_chain_t * chain = NULL;
+	u_char * src = NULL;
+	size_t src_len = 0;
+
+	for (chain = in; chain != NULL; chain = chain->next) {
+		src = chain->buf->start;
+		src_len = chain->buf->end - src;
+		fprintf(stderr, "DEBUG: buffer length = %ld\n", src_len);
+
+		dest = append_request_body(dest, dest_len, src, src_len, r->connection->log);
+		dest_len += src_len;
+		fprintf(stderr, "DEBUG: after append %s (%ld)\n", dest, dest_len);
+	}
+
+	return dest;
+}
+
+static u_char * append_request_body(u_char * dest, size_t dest_len, u_char * src, size_t src_len, ngx_log_t *log)
 {
 	size_t new_len = src_len + dest_len;
 	u_char * tmp = NULL;
@@ -433,7 +430,7 @@ static size_t append_request_body(u_char * dest, size_t dest_len, u_char * src, 
 		strncpy(tmp + dest_len, src, src_len);
 		dest = tmp;
 	}
-	return new_len;
+	return dest;
 }
 
 /*

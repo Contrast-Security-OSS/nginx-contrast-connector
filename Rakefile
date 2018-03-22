@@ -30,6 +30,16 @@ namespace :sinatra do
     puts `echo $!`
     sleep 1
   end
+
+  task :stop do
+    processes = `ps -ef | grep sinatra_app`
+    processes.split("\n").select do |line| 
+      if line =~ /ruby sinatra_app.rb/
+        pid = line.split(/\s+/)[1]
+        `kill #{ pid }`
+      end
+    end
+  end
 end
 
 desc "Bootstraps the local development environment"

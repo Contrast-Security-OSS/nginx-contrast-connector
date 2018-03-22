@@ -11,8 +11,10 @@ post '/json' do
   erb :json
 end
 
-put '/text' do
-  @text = request.body
+post '/text' do
+  @text = request.body.respond_to?(:string) ? 
+      request.body.string : 
+      request.body.to_s
   erb :text
 end
 
