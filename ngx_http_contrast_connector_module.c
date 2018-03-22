@@ -31,6 +31,8 @@ static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request
 static ngx_int_t ngx_http_contrast_connector_module_init(ngx_conf_t * cf);
 static ngx_int_t write_to_socket(ngx_str_t socket_path, void * data, size_t len, unsigned char * response);
 
+static size_t append_request_body(u_char * dest, size_t dest_len, u_char * src, size_t src_len, ngx_log_t * log);
+
 /*
  * static reference to next header filter callback
  */
@@ -244,9 +246,13 @@ static ngx_int_t ngx_http_contrast_connector_module_header_filter(ngx_http_reque
 /*
  * act as filter for request body
  */
-static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request_t * r, ngx_chain_t * chain)
+static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request_t * r, ngx_chain_t * in)
 {
     fprintf(stderr, "ENTER: ngx_http_contrast_connector_module_body_filter\n");
+
+
+	int buffer_fully_loaded = 0;
+	ngx_chain_t *chain = in;
 
     ngx_http_contrast_connector_conf_t * conf = NULL;
 	ngx_http_headers_in_t hin = r->headers_in;
@@ -370,36 +376,64 @@ static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request
 		}
 
 		/* body */
-		if (r->request_body != NULL) {
+		u_char * dest = NULL;
+		size_t dest_len = 0;
+		if (in != NULL) {
 			fprintf(stderr, "DEBUG: getting request body\n");
-			size_t body_len;
-			ngx_chain_t *in;
-
-			body_len = 0;
-			for (in = r->request_body->bufs; in != NULL; in = in->next) {
-				body_len += ngx_buf_size(in->buf);
-			}
-			fprintf(stderr, "DEBUG: body_len=%ld\n", body_len);
-	
-			size_t buf_len = 0;
-			size_t offset = 0;
-			char * request_body = ngx_calloc(body_len + 1, NULL);
-			for (in = r->request_body->bufs; in != NULL; in = in->next) {
-				buf_len = ngx_buf_size(in->buf);
-				fprintf(stderr, "DEBUG: buf_len=%ld offset=%ld\n", buf_len, offset);
-				strncpy(request_body + offset, in->buf->pos, buf_len);
-				offset += buf_len;
+			for (chain = in; chain != NULL; chain = chain->next) {
+				if (chain->buf->last_buf) {
+					buffer_fully_loaded = 1;
+				}
 			}
 
-			dtm.request_body = request_body;
-			fprintf(stderr, "DEBUG: request_body=%s\n", dtm.request_body);
+			if (buffer_fully_loaded == 1) {
+				fprintf(stderr, "DEBUG: buffer fully loaded\n");
+				for (chain = in; chain != NULL; chain = chain->next) {
+					
+					fprintf(stderr, "DEBUG: iterating chain linked list\n");
+
+					u_char * src = chain->buf->start;
+					size_t src_len = chain->buf->end - src;
+					fprintf(stderr, "DEBUG: buffer length = %ld\n", src_len);
+					dest_len = append_request_body(dest, dest_len, src, src_len, r->connection->log);
+					fprintf(stderr, "DEBUG: after append length = %ld\n", dest_len);
+				}
+
+				dtm.request_body = dest;
+			} else {
+				fprintf(stderr, "DEBUG: buffer was not fully loaded!\n");
+			}
+
+			fprintf(stderr, "DEBUG: request_body=%s (%ld)\n", dtm.request_body, dest_len);
+
+			if (dest != NULL) {
+				fprintf(stderr, "DEBUG: about to free dest\n");
+				free(dest);
+			}
+
 		} else {
-			fprintf(stderr, "DEBUG: request body was NULL\n");
+			fprintf(stderr, "DEBUG: chain was NULL\n");
 		}
     }
 
 
-    return ngx_http_next_body_filter(r, chain);
+    return ngx_http_next_body_filter(r, in);
+}
+
+static size_t append_request_body(u_char * dest, size_t dest_len, u_char * src, size_t src_len, ngx_log_t *log)
+{
+	size_t new_len = src_len + dest_len;
+	u_char * tmp = NULL;
+
+	if (dest == NULL) {
+		dest = ngx_calloc(src_len + 1, log);
+		strncpy(dest, src, src_len);
+	} else {
+		tmp = realloc(dest, new_len + 1);
+		strncpy(tmp + dest_len, src, src_len);
+		dest = tmp;
+	}
+	return new_len;
 }
 
 /*

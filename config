@@ -1,6 +1,18 @@
 CORE_LIBS="$CORE_LIBS -lprotobuf-c"
 ngx_addon_name=ngx_http_contrast_connector_module
 HTTP_AUX_FILTER_MODULES="$HTTP_AUX_FILTER_MODULES ngx_http_contrast_connector_module"
-NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/dtm.pb-c.c \
+NGX_ADDON_SRCS="$NGX_ADDON_SRCS \
+    $ngx_addon_dir/dtm.pb-c.c \
     $ngx_addon_dir/settings.pb-c.c \
     $ngx_addon_dir/ngx_http_contrast_connector_module.c"
+
+pre_module='ngx_http_chunked_filter_module'
+if [ "$HTTP_V2" = "YES" ]; then
+    pre_module='ngx_http_v2_filter_module'
+fi
+
+# NOTE: ensure that the contrast connector module appears after the chunked filter
+# and http v2 modules
+#HTTP_FILTER_MODULES=`echo $HTTP_FILTER_MODULES | \
+#    sed -E "s/$ngx_addon_name/ /g" | \
+#    sed -E "s/$pre_module/$pre_module $ngx_addon_name/g"`
