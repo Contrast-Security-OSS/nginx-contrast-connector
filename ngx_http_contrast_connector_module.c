@@ -27,11 +27,6 @@
 #include "ngx_http_contrast_connector_socket.h"
 
 
-/* TODO: not using filters anymore...
-static ngx_int_t ngx_http_contrast_connector_module_header_filter(ngx_http_request_t * r);
-static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request_t * r, ngx_chain_t * chain);
-*/
-
 /*
  * allocate and initialize location configuration
  */
@@ -48,16 +43,6 @@ static ngx_int_t ngx_http_contrast_connector_module_init(ngx_conf_t * cf);
 static char * ngx_http_contrast_connector(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static void ngx_http_contrast_connector_post_handler(ngx_http_request_t *r);
 static ngx_int_t ngx_http_contrast_connector_handler(ngx_http_request_t *r);
-
-/*
-static u_char * read_request_body(ngx_http_request_t * r, ngx_chain_t * chain);
-static u_char * append_request_body(u_char * dest, size_t dest_len, u_char * src, size_t src_len, ngx_log_t * log);
-*/
-
-/*
- * static reference to next body filter callback
- */
-static ngx_http_request_body_filter_pt ngx_http_next_request_body_filter;
 
 /*
  * get the current epoch time in millis
@@ -244,100 +229,8 @@ static char * ngx_http_contrast_connector_merge_loc_config(ngx_conf_t * cf,
  */
 static ngx_int_t ngx_http_contrast_connector_module_init(ngx_conf_t * cf)
 {
-
-	ngx_http_handler_pt *h;
-	ngx_http_core_main_conf_t *cmcf;
-	ngx_http_contrast_connector_conf_t *cccf;
-
-	cccf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_contrast_connector_module);
-	if (!cccf->enable) {
-		dd("contrast connector not enabled");
-		return NGX_OK;
-	}
-
-	cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
-	
-	h = ngx_array_push(&cmcf->phases[NGX_HTTP_REWRITE_PHASE].handlers);
-	if (h == NULL) {
-		dd("could not push handler into phase");
-		return NGX_ERROR;
-	}
-
-	dd("assigned contrast connector handler (success)");
-	*h = ngx_http_contrast_connector_handler;
-    return NGX_OK;
+    return ngx_http_catch_body_init(cf);
 }
 
-static void ngx_http_contrast_connector_post_handler(ngx_http_request_t *r) 
-{
-	ngx_http_contrast_connector_ctx_t *ctx;
-
-	dd("finalize read request body");
-	ctx = ngx_http_get_module_ctx(r, ngx_http_contrast_connector_module);
-
-	if (ctx == NULL) {
-		dd("ctx was NULL");
-		ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
-	}
-
-#if defined(nginx_version) && nginx_verion >= 8011
-	r->main->count--;
-#endif
-
-	if (!ctx->done) {
-		ctx->done = 1;
-		ngx_http_core_run_phases(r);
-	}
-}
-
-static ngx_int_t ngx_http_contrast_connector_handler(ngx_http_request_t *r)
-{
-	ngx_int_t rc;
-	ngx_http_contrast_connector_conf_t *cccf;
-	ngx_http_contrast_connector_ctx_t *ctx;
-
-	dd("contrast connector handler, uri=%s c=%d", r->uri.data, r->main->count);
-
-	cccf = ngx_http_get_module_loc_conf(r, ngx_http_contrast_connector_module);
-	if (!cccf->enable) {
-		dd("module not enabled");
-		return NGX_DECLINED;
-	}
-
-	ctx = ngx_http_get_module_ctx(r, ngx_http_contrast_connector_module);
-	if (ctx == NULL) {
-		ctx = ngx_palloc(r->connection->pool, sizeof(ngx_http_contrast_connector_ctx_t));
-		if (ctx == NULL) {
-			dd("[ERROR] could not allocate ctx");
-			return NGX_HTTP_INTERNAL_SERVER_ERROR;
-		}
-
-		ctx->done = 0;
-		ngx_http_set_ctx(r, ctx, ngx_http_contrast_connector_module);
-	}
-
-	if (!ctx->done) {
-		r->request_body_in_single_buf = 1;
-		r->request_body_in_persistent_file = 1;
-		r->request_body_in_clean_file = 1;
-
-		rc = ngx_http_read_client_request_body(r, ngx_http_contrast_connector_post_handler);
-		if (rc == NGX_ERROR) {
-			dd("[ERROR] rc returned error");
-			return NGX_ERROR;
-		}
-
-		if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
-			dd("[ERROR] rc returned special response");
-			return rc;
-		}
-
-		dd("handler done");
-		return NGX_DONE;
-	}
-
-	dd("handler declined");
-	return NGX_DECLINED;
-}
 
 

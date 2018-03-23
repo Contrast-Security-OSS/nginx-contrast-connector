@@ -5,6 +5,7 @@ NGX_ADDON_SRCS="$NGX_ADDON_SRCS \
     $ngx_addon_dir/dtm.pb-c.c \
     $ngx_addon_dir/settings.pb-c.c \
     $ngx_addon_dir/ngx_http_contrast_connector_socket.c \
+    $ngx_addon_dir/ngx_http_contrast_connector_request_filter.c \
     $ngx_addon_dir/ngx_http_contrast_connector_response_filters.c \
     $ngx_addon_dir/$ngx_addon_name.c"
 
