@@ -10,85 +10,62 @@ static ngx_http_request_body_filter_pt ngx_http_next_request_body_filter;
 /*
  * temporary storage for a key value pair
  */
-typedef struct {
+typedef struct pair_s {
 	u_char * key;
 	u_char * value;
+    struct pair_s * next;
 } pair_t;
 
-/*
- * temporary storage for all headers found
- */
-typedef struct {
-	pair_t * array;
-	size_t count;
-	size_t nalloc;
-} headers_t;
+static void free_pair(pair_t * head) 
+{
+	if (head->next != NULL) {
+		free_pair(head->next);
+	}
+
+	// NOTE: values are pointers to ngx_str_t data elements so don't free
+
+	free(head);
+}
 
 /*
  * read request headers and build a structure 
  */
-static headers_t * read_headers(ngx_http_request_t * r) 
+static pair_t * read_headers(ngx_http_request_t * r) 
 {
-	headers_t * headers = NULL;
+	pair_t * headers = NULL;
+	pair_t * next_header = NULL;
 
 	ngx_list_t list = r->headers_in.headers;
 	if (list.nalloc > 0) {
-		dd("headers: list.nalloc = %ld", list.nalloc);	
+		// dd("headers: list.nalloc = %ld", list.nalloc);	
 		ngx_list_part_t * curr = &list.part;
 		ngx_table_elt_t * entry_ptr = (ngx_table_elt_t *)curr->elts;
 		ngx_table_elt_t * entry = NULL;
 
 		for(int count = 0; ; count++) {
 
-			dd("headers: curr->nelts = %ld", curr->nelts);
+			// dd("headers: curr->nelts = %ld", curr->nelts);
 			if (count >= curr->nelts) {
 				if (curr->next == NULL) {
 					break;
 				}
 
-				dd("headers: geetting next block...");
+				// dd("headers: geetting next block...");
 				curr = curr->next;
 				entry_ptr = (ngx_table_elt_t *)curr->elts;
 				count = 0;
 			}
 
 			entry = (&entry_ptr[count]);
-			
-			if (headers == NULL) {
-
-				dd("headers: initializing headers size=%ld", sizeof(headers_t));
-				headers = ngx_calloc(sizeof(headers_t), r->connection->log);
-
-				dd("headers: initializing array size=%ld", sizeof(pair_t *) * curr->nelts);
-				headers->array = ngx_calloc(sizeof(pair_t *) * curr->nelts, r->connection->log);
-				headers->nalloc = curr->nelts;
+		
+			pair_t * prev = next_header;	
+			next_header = ngx_calloc(sizeof(pair_t), r->connection->log);
+			next_header->key = entry->key.data;
+			next_header->value = entry->value.data;
+			if (prev == NULL) {
+				headers = next_header;
 			} else {
-
-				dd("headers: reallocating array");
-				pair_t * tmp = ngx_calloc(
-						sizeof(pair_t *) * (headers->nalloc + curr->nelts),
-						r->connection->log);
-				for(int i = 0; i < headers->count; ++i) {
-					tmp[i] = headers->array[i];
-				}
-				free(headers->array);
-				headers->array = tmp;
-				headers->nalloc += curr->nelts;	
-			}
-
-			dd("headers: attempting t allocate a new pair");
-			pair_t * pair = ngx_calloc(sizeof(pair_t), r->connection->log);
-			if (pair == NULL) {
-				dd("headers: WTF people I can't allocate a pair?");
-			} else {
-				dd("headers: pair allocated %ld", sizeof(pair_t));
-				pair->key = entry->key.data;
-				pair->value = entry->value.data;
-				dd("headers: attempting to assign %s=%s", pair->key, pair->value);
-
-				headers->array[headers->count] = *pair;
-				//&(headers->array + headers->count) = pair;
-				headers->count++;
+				prev->next = next_header;
 			}
 		}
 	}
@@ -100,10 +77,19 @@ static headers_t * read_headers(ngx_http_request_t * r)
  * temporary storage for an address
  */
 typedef struct {
-	char * address;
+	u_char * address;
 	int32_t port;
 	int32_t version;
 } address_t;
+
+static void free_address(address_t * address) {
+	if (address != NULL) {
+		if (address->address != NULL) {
+			free(address->address);
+		}
+		free(address);
+	}
+}
 
 static ngx_int_t read_address(struct sockaddr * sockaddr, 
 		address_t * addr, 
@@ -118,7 +104,6 @@ static ngx_int_t read_address(struct sockaddr * sockaddr,
 				inet_ntop(AF_INET, &(sin->sin_addr), addr->address, INET_ADDRSTRLEN);
 				addr->port = sin->sin_port;
 				addr->version = 4;
-				dd("read ipv4 port=%d addr=%s", addr->port, addr->address);
 				return NGX_OK;
 			}
 		}
@@ -149,7 +134,6 @@ static u_char * read_body(ngx_chain_t * in, ngx_log_t *log)
 	for (ngx_chain_t * chain = in; chain != NULL; chain = chain->next) {
 		chunk = chain->buf->pos;
 		chunk_len = chain->buf->last - chunk;
-		dd("chunk length: %ld", chunk_len);
 
 		if (body == NULL) {
 			body = ngx_calloc(chunk_len + 1, log);
@@ -218,18 +202,15 @@ static ngx_int_t ngx_http_catch_body_filter(ngx_http_request_t *r, ngx_chain_t *
 	}
 
 	// headers
-	headers_t * headers = read_headers(r);
+	pair_t * headers = read_headers(r);
 
 	// free headers
 	if (headers != NULL) {
-		if (headers->array != NULL) {
-			dd("iterating headers");
-			for(int i = 0; i < headers->count; ++i) {
-				dd("%d %s=%s", i, headers->array[i].key, headers->array[i].value);
-			}
-			free(headers->array);
+		for(pair_t * header = headers; header != NULL; header = header->next) {
+			dd("header: %s=%s", header->key, header->value);
 		}
-		free(headers);
+		
+		free_pair(headers);
 	}
 
 	// free request body
@@ -239,20 +220,10 @@ static ngx_int_t ngx_http_catch_body_filter(ngx_http_request_t *r, ngx_chain_t *
 	}	
 
 	// free client address
-	if (client_address != NULL) {
-		if (client_address->address != NULL) {
-			free(client_address->address);
-		}
-		free(client_address); 
-	}
+	free_address(client_address);
 
 	// free server address
-	if (server_address != NULL) {
-		if (server_address->address != NULL) {
-			free(server_address->address);
-		}
-		free(server_address); 
-	}
+	free_address(server_address);
 
 	dd("next filter in chain");
     return ngx_http_next_request_body_filter(r, in);
