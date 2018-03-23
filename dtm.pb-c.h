@@ -575,12 +575,15 @@ struct  _Contrast__Api__Dtm__RawRequest
   /*
    * IPv4 or IPv6 string
    */
-  char *ip;
+  char *client_ip;
   /*
    * 4 or 6 or -1 (for unknown)
    */
-  int32_t ip_version;
-  int32_t port;
+  int32_t client_ip_version;
+  int32_t client_port;
+  char *server_ip;
+  int32_t server_ip_version;
+  int32_t server_port;
   /*
    * Request Headers
    */
@@ -593,7 +596,7 @@ struct  _Contrast__Api__Dtm__RawRequest
 };
 #define CONTRAST__API__DTM__RAW_REQUEST__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&contrast__api__dtm__raw_request__descriptor) \
-    , (char *)protobuf_c_empty_string, 0, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, 0, 0, 0,NULL, (char *)protobuf_c_empty_string }
+    , (char *)protobuf_c_empty_string, 0, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, 0, 0, (char *)protobuf_c_empty_string, 0, 0, 0,NULL, (char *)protobuf_c_empty_string }
 
 
 struct  _Contrast__Api__Dtm__HttpRequest__NormalizedRequestParamsEntry

@@ -41,6 +41,11 @@ typedef struct {
 extern ngx_module_t ngx_http_contrast_connector_module;
 
 /*
+ * utility method to get unix millis
+ */
+int64_t unix_millis();
+
+/*
  * update request body filter chain
  */
 ngx_int_t ngx_http_catch_body_init(ngx_conf_t *cf);

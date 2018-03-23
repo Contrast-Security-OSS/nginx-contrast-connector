@@ -145,12 +145,12 @@ static ngx_int_t ngx_http_contrast_connector_module_body_filter(ngx_http_request
 		if (addr.sockaddr->sa_family == AF_INET) {
 			sin = (struct sockaddr_in *)addr.sockaddr;
 			if (sin != NULL) {
-				dtm.port = sin->sin_port;
+				dtm.client_port = sin->sin_port;
 
 				inet_ntop(AF_INET, &(sin->sin_addr), ipv4, INET_ADDRSTRLEN);
-				dtm.ip = ipv4;
-				dtm.ip_version = 4;
-				dd("address from socket: %s:%d", dtm.ip, dtm.port);
+				dtm.client_ip = ipv4;
+				dtm.client_ip_version = 4;
+				dd("address from socket: %s:%d", dtm.client_ip, dtm.client_port);
 			}
 		}
 
