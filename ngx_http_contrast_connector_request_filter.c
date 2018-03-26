@@ -13,17 +13,18 @@ static ngx_http_request_body_filter_pt ngx_http_next_request_body_filter;
 typedef struct pair_s {
 	u_char * key;
 	u_char * value;
+	size_t count; // HACK: keep track of the count in the root element
     struct pair_s * next;
 } pair_t;
 
 static void free_pair(pair_t * head) 
 {
 	if (head->next != NULL) {
+		// NOTE: values are pointers to ngx_str_t data elements so don't free
+		//  if (head->next->key != NULL) { free(head->next->key); }
+		//  if (head->next->value != NULL) { free(head->next->value); }
 		free_pair(head->next);
 	}
-
-	// NOTE: values are pointers to ngx_str_t data elements so don't free
-
 	free(head);
 }
 
@@ -62,11 +63,13 @@ static pair_t * read_headers(ngx_http_request_t * r)
 			next_header = ngx_calloc(sizeof(pair_t), r->connection->log);
 			next_header->key = entry->key.data;
 			next_header->value = entry->value.data;
+			next_header->count = 0;
 			if (prev == NULL) {
 				headers = next_header;
 			} else {
 				prev->next = next_header;
 			}
+			headers->count++;
 		}
 	}
 
@@ -161,6 +164,8 @@ static ngx_int_t ngx_http_catch_body_filter(ngx_http_request_t *r, ngx_chain_t *
 
     conf = ngx_http_get_module_loc_conf(r, ngx_http_contrast_connector_module);
     if (!conf->enable) {
+		
+		// early return if module it not enabled
         return ngx_http_next_request_body_filter(r, in);
     }
 
@@ -203,15 +208,22 @@ static ngx_int_t ngx_http_catch_body_filter(ngx_http_request_t *r, ngx_chain_t *
 
 	// headers
 	pair_t * headers = read_headers(r);
+	if (headers != NULL && headers->count > 0) {
+		dtm.n_request_headers = headers->count;
+		dtm.request_headers = ngx_calloc(sizeof(Contrast__Api__Dtm__SimplePair *) * headers->count, r->connection->log);
+		int count = 0;
+		for(pair_t * curr_header = headers; curr_header != NULL; curr_header = curr_header->next) {
+			Contrast__Api__Dtm__SimplePair * pair = ngx_calloc(sizeof(Contrast__Api__Dtm__SimplePair), r->connection->log);
+			pair->key = curr_header->key;
+			pair->value = curr_header->value;
+			dd("[header %d] %s=%s", count, pair->key, pair->value); 
+			*(dtm.request_headers + count) = pair;
+			count++;
+		}
+	}
 
 	// free headers
-	if (headers != NULL) {
-		for(pair_t * header = headers; header != NULL; header = header->next) {
-			dd("header: %s=%s", header->key, header->value);
-		}
-		
-		free_pair(headers);
-	}
+	free_pair(headers);
 
 	// free request body
 	if (request_body != NULL) {
