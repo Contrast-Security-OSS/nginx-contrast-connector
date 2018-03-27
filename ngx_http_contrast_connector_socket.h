@@ -22,7 +22,7 @@
 /*
  * write a serialized protobuf instance to a unix socket
  */
-static ngx_int_t write_to_service(ngx_str_t socket_path, 
+ngx_int_t write_to_service(ngx_str_t socket_path, 
 		void * data, 
 		size_t data_len, 
 		char * response,

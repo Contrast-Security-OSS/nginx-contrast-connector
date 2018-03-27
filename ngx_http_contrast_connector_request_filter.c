@@ -1,6 +1,7 @@
 #include "dtm.pb-c.h"
 #include "settings.pb-c.h"
 #include "ngx_http_contrast_connector_common.h"
+#include "ngx_http_contrast_connector_socket.h"
 
  /*
   * static reference to next request body filter callback
@@ -21,8 +22,8 @@ static void free_pair(pair_t * head)
 {
 	if (head->next != NULL) {
 		// NOTE: values are pointers to ngx_str_t data elements so don't free
-		//  if (head->next->key != NULL) { free(head->next->key); }
-		//  if (head->next->value != NULL) { free(head->next->value); }
+		if (head->next->key != NULL) { free(head->next->key); }
+		if (head->next->value != NULL) { free(head->next->value); }
 		free_pair(head->next);
 	}
 	free(head);
@@ -61,8 +62,13 @@ static pair_t * read_headers(ngx_http_request_t * r)
 		
 			pair_t * prev = next_header;	
 			next_header = ngx_calloc(sizeof(pair_t), r->connection->log);
-			next_header->key = entry->key.data;
-			next_header->value = entry->value.data;
+
+			next_header->key = ngx_calloc(entry->key.len + 1, r->connection->log);
+			strncpy(next_header->key, entry->key.data, entry->key.len);
+
+			next_header->value = ngx_calloc(entry->value.len + 1, r->connection->log);
+			strncpy(next_header->value, entry->value.data, entry->value.len);
+
 			next_header->count = 0;
 			if (prev == NULL) {
 				headers = next_header;
@@ -153,16 +159,16 @@ static u_char * read_body(ngx_chain_t * in, ngx_log_t *log)
 	return body;
 }
 
+static int64_t message_count = 0;
+
 /*
  * examine http request and forward to speedracer
  */
 static ngx_int_t ngx_http_catch_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 {
-    u_char *p;
-    ngx_chain_t *cl;
-    ngx_http_contrast_connector_conf_t *conf;
-
-    conf = ngx_http_get_module_loc_conf(r, ngx_http_contrast_connector_module);
+	ngx_log_t * log = r->connection->log;
+    ngx_http_contrast_connector_conf_t * conf = ngx_http_get_module_loc_conf(r, 
+			ngx_http_contrast_connector_module);
     if (!conf->enable) {
 		
 		// early return if module it not enabled
@@ -183,12 +189,12 @@ static ngx_int_t ngx_http_catch_body_filter(ngx_http_request_t *r, ngx_chain_t *
 	dd("normalized_uri: %s", dtm.normalized_uri);
 
 	// request body (if any)
-	u_char * request_body = read_body(in, r->connection->log);
+	u_char * request_body = read_body(in, log);
 	dtm.request_body = request_body;
 
 	// client address (if any)
-	address_t * client_address = ngx_calloc(sizeof(address_t), r->connection->log);
-	read_address(r->connection->sockaddr, client_address, r->connection->log);
+	address_t * client_address = ngx_calloc(sizeof(address_t), log);
+	read_address(r->connection->sockaddr, client_address, log);
 	if (client_address != NULL && client_address->address != NULL) {
 		dtm.client_ip = client_address->address;
 		dtm.client_ip_version = client_address->version;
@@ -197,8 +203,8 @@ static ngx_int_t ngx_http_catch_body_filter(ngx_http_request_t *r, ngx_chain_t *
 	}
 
 	// server address (if any) (address of service proxying to)
-	address_t * server_address = ngx_calloc(sizeof(address_t), r->connection->log);
-	read_address(r->connection->listening->sockaddr, server_address, r->connection->log);
+	address_t * server_address = ngx_calloc(sizeof(address_t), log);
+	read_address(r->connection->listening->sockaddr, server_address, log);
 	if (server_address != NULL && server_address->address != NULL) {
 		dtm.server_ip = server_address->address;
 		dtm.server_ip_version = server_address->version;
@@ -209,18 +215,87 @@ static ngx_int_t ngx_http_catch_body_filter(ngx_http_request_t *r, ngx_chain_t *
 	// headers
 	pair_t * headers = read_headers(r);
 	if (headers != NULL && headers->count > 0) {
-		dtm.n_request_headers = headers->count;
-		dtm.request_headers = ngx_calloc(sizeof(Contrast__Api__Dtm__SimplePair *) * headers->count, r->connection->log);
-		int count = 0;
+		dd("header count = %ld", headers->count);
+		//dtm.n_request_headers = headers->count;
+		//dtm.request_headers = ngx_calloc(sizeof(Contrast__Api__Dtm__SimplePair *) * headers->count, log);
+		int idx = 0;
 		for(pair_t * curr_header = headers; curr_header != NULL; curr_header = curr_header->next) {
-			Contrast__Api__Dtm__SimplePair * pair = ngx_calloc(sizeof(Contrast__Api__Dtm__SimplePair), r->connection->log);
+			Contrast__Api__Dtm__SimplePair * pair = ngx_calloc(sizeof(Contrast__Api__Dtm__SimplePair), log);
 			pair->key = curr_header->key;
 			pair->value = curr_header->value;
-			dd("[header %d] %s=%s", count, pair->key, pair->value); 
-			*(dtm.request_headers + count) = pair;
-			count++;
+			dd("[header %d] %s=%s", idx, pair->key, pair->value); 
+		//	dtm.request_headers[idx++] = pair;
 		}
 	}
+
+	// prepare and serialize protobuf messages
+	Contrast__Api__Dtm__Message msg = CONTRAST__API__DTM__MESSAGE__INIT;
+	msg.client_id = "NGINX";
+	msg.client_number = (int32_t)ngx_process_slot;
+	msg.client_total = (int32_t)1;
+	msg.message_count = ++message_count;
+	msg.app_name = "NGINX"; // TODO: configuration or other method for determining name?
+	msg.app_language = "Ruby";  // TODO: change this when Universal Agent is supported type
+	msg.timestamp_ms = unix_millis();
+	msg.event_case = CONTRAST__API__DTM__MESSAGE__EVENT_REQUEST;
+	msg.request = &dtm;
+	dd("built parent message structure");
+
+	// send message to service
+	size_t len = contrast__api__dtm__message__get_packed_size(&msg);
+	dd("estimated size of packed message: %ld", len);
+
+	// store the response; this is allocated by the socket function so must be freed here
+	u_char * response = NULL;
+
+	// buffer for storing the serialized message
+	void * buf = ngx_alloc(len, log);
+
+	if (buf != NULL) {
+
+		size_t packed_size = contrast__api__dtm__message__pack(&msg, buf);
+		dd("actual packed message size: %ld", packed_size);
+		if (write_to_service(conf->socket_path, buf, len, response, log) != NGX_OK) {
+			if (response != NULL) {
+				free(response);
+				response = NULL;
+				dd("[ERROR] error from write_to_service");
+			}
+		}
+		free(buf);
+	} else {
+		dd("[ERROR] could not allocate buffer size for protobuf message");
+	}
+
+	// deserialize and parse response
+	Contrast__Api__Settings__ProtectState *settings = NULL;
+	ngx_int_t boom = 0;
+	if (response != NULL) {
+		settings = contrast__api__settings__protect_state__unpack(NULL, 
+				sizeof(response), 
+				response);
+
+		if (settings != NULL) {
+
+			if (settings->security_exception) {
+
+				// flag for NGX_boom!
+				dd("[BOOM!] security exception found: %s uuid=%s", 
+						settings->security_message,
+						settings->uuid);
+				boom = 1;
+			} else {
+				dd("no security exception in settings");
+			}
+		} else {
+			dd("[ERROR] could not parse settings");
+		}
+
+		// TODO: it appears response and the unpacked settings share the same memory (?)
+		// so you only free one?
+		free(response);
+	}
+
 
 	// free headers
 	free_pair(headers);
@@ -238,6 +313,9 @@ static ngx_int_t ngx_http_catch_body_filter(ngx_http_request_t *r, ngx_chain_t *
 	free_address(server_address);
 
 	dd("next filter in chain");
+	if (boom) {
+		return NGX_HTTP_FORBIDDEN;
+	}
     return ngx_http_next_request_body_filter(r, in);
 }
 
