@@ -216,15 +216,16 @@ static ngx_int_t ngx_http_catch_body_filter(ngx_http_request_t *r, ngx_chain_t *
 	pair_t * headers = read_headers(r);
 	if (headers != NULL && headers->count > 0) {
 		dd("header count = %ld", headers->count);
-		//dtm.n_request_headers = headers->count;
-		//dtm.request_headers = ngx_calloc(sizeof(Contrast__Api__Dtm__SimplePair *) * headers->count, log);
+		dtm.n_request_headers = headers->count;
+		dtm.request_headers = ngx_calloc(sizeof(Contrast__Api__Dtm__SimplePair *) * headers->count, log);
 		int idx = 0;
 		for(pair_t * curr_header = headers; curr_header != NULL; curr_header = curr_header->next) {
 			Contrast__Api__Dtm__SimplePair * pair = ngx_calloc(sizeof(Contrast__Api__Dtm__SimplePair), log);
+			contrast__api__dtm__simple_pair__init(pair);
 			pair->key = curr_header->key;
 			pair->value = curr_header->value;
 			dd("[header %d] %s=%s", idx, pair->key, pair->value); 
-		//	dtm.request_headers[idx++] = pair;
+			dtm.request_headers[idx++] = pair;
 		}
 	}
 
