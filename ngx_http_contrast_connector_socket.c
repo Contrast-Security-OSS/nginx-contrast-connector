@@ -1,3 +1,4 @@
+#include "settings.pb-c.h"
 #include "ngx_http_contrast_connector_common.h"
 #include "ngx_http_contrast_connector_socket.h"
 
@@ -17,10 +18,9 @@
 /*
  * write a serialized protobuf instance to a unix socket
  */
-ngx_int_t write_to_service(ngx_str_t socket_path, 
+ngx_str_t * write_to_service(ngx_str_t socket_path, 
 		void * data, 
 		size_t data_len, 
-		char * response,
 		ngx_log_t * log)
 {
 	dd("write_to_service");
@@ -29,7 +29,7 @@ ngx_int_t write_to_service(ngx_str_t socket_path,
 	int sock = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (sock < 0) {
 		dd("[ERROR] socket not valid");
-		return NGX_ERROR;
+		return NULL;
 	}
 
 	server.sun_family = AF_UNIX;
@@ -37,7 +37,7 @@ ngx_int_t write_to_service(ngx_str_t socket_path,
 	if (connect(sock, (struct sockaddr *)&server, sizeof(struct sockaddr_un)) < 0) {
 		dd("[ERROR] cound not connect to stream socket");
 		close(sock);
-		return NGX_ERROR;
+		return NULL;
 	}
 
 	char msg_prefix[4] = { 0, 0, 0, 0 };
@@ -45,20 +45,20 @@ ngx_int_t write_to_service(ngx_str_t socket_path,
 	if (write(sock, msg_prefix, 4) < 0) {
 		dd("[ERROR] could not write message prefix");
 		close(sock);
-		return NGX_ERROR;
+		return NULL;
 	}
 
 	if (write(sock, data, data_len) < 0) {
 		dd("[ERROR] could not write message");
 		close(sock);
-		return NGX_ERROR;
+		return NULL;
 	}
 
 	char response_prefix[4] = { 0, 0, 0, 0 };
 	if (read(sock, response_prefix, 4) < 4) {
 		dd("[ERROR] could not read four bytes from response prefix");
 		close(sock);
-		return NGX_ERROR;
+		return NULL;
 	}
 
 	size_t response_len = 0;
@@ -66,17 +66,22 @@ ngx_int_t write_to_service(ngx_str_t socket_path,
 	if (response_len <= 0 || response_len > 1000000) {
 		dd("[WARN] idiot check on response prefix (len=%ld) failed", response_len);
 		close(sock);
-		return NGX_ERROR;
+		return NULL;
 	}
 
 	size_t actual_len = 0;
-	response = malloc(response_len);
+	u_char * response = ngx_alloc(response_len, log);
 	if ((actual_len = read(sock, response, response_len)) < response_len) {
 		dd("[WARN] expected len did not match acutal len(%ld != %ld", actual_len, response_len);
+		free(response);
 		close(sock);
-		return NGX_ERROR;
+		return NULL;
 	}
 
 	close(sock);
-	return NGX_OK;
+
+	ngx_str_t * str = ngx_alloc(sizeof(ngx_str_t), log);
+	str->data = response;
+	str->len = actual_len;
+	return str;
 }	

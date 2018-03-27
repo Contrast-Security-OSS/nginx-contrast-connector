@@ -1,5 +1,14 @@
+/* NGINX stuff */
+#include <nginx.h>
+#include <ngx_config.h>
+#include <ngx_core.h>
+#include <ngx_http.h>
+
+/* Protobuf stuff */
 #include "dtm.pb-c.h"
 #include "settings.pb-c.h"
+
+/* Connector stuff */
 #include "ngx_http_contrast_connector_common.h"
 #include "ngx_http_contrast_connector_socket.h"
 
@@ -28,6 +37,8 @@ static void free_pair(pair_t * head)
 	}
 	free(head);
 }
+
+
 
 /*
  * read request headers and build a structure 
@@ -247,21 +258,16 @@ static ngx_int_t ngx_http_catch_body_filter(ngx_http_request_t *r, ngx_chain_t *
 	dd("estimated size of packed message: %ld", len);
 
 	// store the response; this is allocated by the socket function so must be freed here
-	u_char * response = NULL;
+	ngx_str_t * response = NULL;
 
 	// buffer for storing the serialized message
 	void * buf = ngx_alloc(len, log);
-
 	if (buf != NULL) {
 
 		size_t packed_size = contrast__api__dtm__message__pack(&msg, buf);
 		dd("actual packed message size: %ld", packed_size);
-		if (write_to_service(conf->socket_path, buf, len, response, log) != NGX_OK) {
-			if (response != NULL) {
-				free(response);
-				response = NULL;
-				dd("[ERROR] error from write_to_service");
-			}
+		if ((response = write_to_service(conf->socket_path, buf, len, log)) == NULL) {
+			dd("[ERROR] error from write_to_service");
 		}
 		free(buf);
 	} else {
@@ -269,32 +275,42 @@ static ngx_int_t ngx_http_catch_body_filter(ngx_http_request_t *r, ngx_chain_t *
 	}
 
 	// deserialize and parse response
-	Contrast__Api__Settings__ProtectState *settings = NULL;
+	Contrast__Api__Settings__AgentSettings *settings = NULL;
 	ngx_int_t boom = 0;
 	if (response != NULL) {
-		settings = contrast__api__settings__protect_state__unpack(NULL, 
-				sizeof(response), 
-				response);
+		dd("attempting to unpack agent settings: %ld", sizeof(*response));
+		settings = contrast__api__settings__agent_settings__unpack(NULL, 
+				response->len, 
+				response->data);
 
-		if (settings != NULL) {
-
-			if (settings->security_exception) {
-
-				// flag for NGX_boom!
-				dd("[BOOM!] security exception found: %s uuid=%s", 
-						settings->security_message,
-						settings->uuid);
-				boom = 1;
-			} else {
-				dd("no security exception in settings");
-			}
+		if (settings == NULL) {
+			dd("[ERROR] settings was null!");
 		} else {
-			dd("[ERROR] could not parse settings");
+			if (settings->protect_state == NULL) {
+				dd("[ERROR] settings->protect_state was NULL!");
+			} else {
+
+				dd("what was security exception: exception=%d", 
+						settings->protect_state->security_exception);
+				if (settings->protect_state->security_exception) {
+
+					// flag for NGX_boom!
+					dd("[BOOM!] security exception found: %s uuid=%s", 
+							settings->protect_state->security_message,
+							settings->protect_state->uuid);
+					boom = 1;
+				} else {
+					dd("no security exception in settings");
+				}
+			}
 		}
 
 		// TODO: it appears response and the unpacked settings share the same memory (?)
 		// so you only free one?
+		free(response->data);
 		free(response);
+	} else {
+		dd("[WARN] response was null");
 	}
 
 
