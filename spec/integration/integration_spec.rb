@@ -20,7 +20,7 @@ describe "Integration Specs" do
         expect(http.response_code).to eq(200)
       end
 
-      it "blocks a request with an attack venctor" do
+      it "blocks a request with an attack vector" do
         http = Curl.get("http://127.0.0.1:8888", { attack: "' OR 1=1; --" })
         expect(http.response_code).to eq(403)
       end

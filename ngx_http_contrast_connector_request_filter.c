@@ -18,6 +18,11 @@
 static ngx_http_request_body_filter_pt ngx_http_next_request_body_filter;
 
 /*
+ * static refernce to next output header filter callback
+ */
+static ngx_http_output_header_filter_pt ngx_http_next_output_header_filter;
+
+/*
  * temporary storage for a key value pair
  */
 typedef struct pair_s {
@@ -37,8 +42,6 @@ static void free_pair(pair_t * head)
 	}
 	free(head);
 }
-
-
 
 /*
  * read request headers and build a structure 
@@ -177,6 +180,8 @@ static int64_t message_count = 0;
  */
 static ngx_int_t ngx_http_catch_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 {
+	dd("\n\nin ngx_http_catch_body_filter...");
+
 	ngx_log_t * log = r->connection->log;
     ngx_http_contrast_connector_conf_t * conf = ngx_http_get_module_loc_conf(r, 
 			ngx_http_contrast_connector_module);
@@ -192,6 +197,7 @@ static ngx_int_t ngx_http_catch_body_filter(ngx_http_request_t *r, ngx_chain_t *
 	dtm.timestamp_ms = unix_millis();
 
 	// request line
+	// TODO: all these fields should be strncpy using data and len
 	dtm.request_line = r->request_line.data;
 	dd("request_line: %s", dtm.request_line);
 
@@ -202,6 +208,7 @@ static ngx_int_t ngx_http_catch_body_filter(ngx_http_request_t *r, ngx_chain_t *
 	// request body (if any)
 	u_char * request_body = read_body(in, log);
 	dtm.request_body = request_body;
+	dd("request_body: %s", dtm.request_body);
 
 	// client address (if any)
 	address_t * client_address = ngx_calloc(sizeof(address_t), log);
@@ -330,10 +337,22 @@ static ngx_int_t ngx_http_catch_body_filter(ngx_http_request_t *r, ngx_chain_t *
 	free_address(server_address);
 
 	dd("next filter in chain");
-	if (boom) {
+	if (boom == 1) {
+		dd("boom was true...");
 		return NGX_HTTP_FORBIDDEN;
 	}
+
+	dd("boom was false...");
     return ngx_http_next_request_body_filter(r, in);
+}
+
+/*
+ * examine headers and forward to speedracer
+ */
+static ngx_int_t ngx_http_catch_header_filter(ngx_http_request_t * r) 
+{
+	dd("\n\nin ngx_http_catch_header_filter");
+	return ngx_http_next_output_header_filter(r);
 }
 
 /*
@@ -343,6 +362,9 @@ ngx_int_t ngx_http_catch_body_init(ngx_conf_t *cf)
 {
     ngx_http_next_request_body_filter = ngx_http_top_request_body_filter;
     ngx_http_top_request_body_filter = ngx_http_catch_body_filter;
+
+	ngx_http_next_output_header_filter = ngx_http_top_header_filter;
+	ngx_http_top_header_filter = ngx_http_catch_header_filter;
 
     return NGX_OK;
 }
