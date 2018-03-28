@@ -56,7 +56,7 @@ The speedracer project should be mounted in the vagrant environment at `/go/src/
 	
 ### How do I test? ###
 
-After you're set up you should have a Speedracer instance running on the vagrant box. The `contrast_security.yaml` should be setup to communicate out to Teamserver instance (for my vagrant, `url: http://10.0.2.2:19980/Contrast` seemed to work.)
+After you're set up you should have a Speedracer instance running on the vagrant box. The `contrast_security.yaml` should be setup to communicate out to Teamserver instance (for my vagrant, `url: http://10.0.2.2:19980/Contrast` seemed to work). To get Teamserver to recognize ModSecurity as a rule, use the `local-modsecurity-rule` branch in Teamserver.
 
 Next, NGINX won't forward POST and PUT request to static resources so you need to have a "real" server to proxy to. I've setup a simple sinatra app to receive requests. Run `rake sinatra:start` to fire that up.
 
