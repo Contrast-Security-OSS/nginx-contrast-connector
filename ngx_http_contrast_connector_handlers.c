@@ -176,6 +176,175 @@ static u_char * read_body(ngx_chain_t * in, ngx_log_t *log)
 static int64_t message_count = 0;
 
 /*
+ * parse connection and params for non-request body requests
+ */
+ngx_int_t ngx_http_contrast_connector_post_rewrite_handler(ngx_http_request_t *r)
+{
+	dd("\n\nIn post rewrite handler!");
+
+	ngx_log_t * log = r->connection->log;
+    ngx_http_contrast_connector_conf_t * conf = ngx_http_get_module_loc_conf(r, 
+			ngx_http_contrast_connector_module);
+    if (!conf->enable) {
+		
+		// this handler declines to handle this request
+		return NGX_DECLINED;
+    }
+
+	if (r->method != NGX_HTTP_GET) {
+
+		// TODO: for testing only; we should be more sophisticated about
+		// whether we should decline at this point (e.g. checking Content-Length?)
+		return NGX_DECLINED;
+	}
+
+	Contrast__Api__Dtm__RawRequest dtm = CONTRAST__API__DTM__RAW_REQUEST__INIT;
+
+	// timestamp
+	dtm.timestamp_ms = unix_millis();
+
+	// request line
+	// TODO: all these fields should be strncpy using data and len
+	dtm.request_line = r->request_line.data;
+	dd("request_line: %s", dtm.request_line);
+
+	// normalized uri
+	dtm.normalized_uri = r->uri.data;
+	dd("normalized_uri: %s", dtm.normalized_uri);
+
+	// client address (if any)
+	address_t * client_address = ngx_calloc(sizeof(address_t), log);
+	read_address(r->connection->sockaddr, client_address, log);
+	if (client_address != NULL && client_address->address != NULL) {
+		dtm.client_ip = client_address->address;
+		dtm.client_ip_version = client_address->version;
+		dtm.client_port = client_address->port;
+		dd("-> ip=%s (ipv%d) port=%d", dtm.client_ip, dtm.client_ip_version, dtm.client_port); 
+	}
+
+	// server address (if any) (address of service proxying to)
+	address_t * server_address = ngx_calloc(sizeof(address_t), log);
+	read_address(r->connection->listening->sockaddr, server_address, log);
+	if (server_address != NULL && server_address->address != NULL) {
+		dtm.server_ip = server_address->address;
+		dtm.server_ip_version = server_address->version;
+		dtm.server_port = server_address->port;
+		dd("<- ip=%s (ipv%d) port=%d", dtm.server_ip, dtm.server_ip_version, dtm.server_port); 
+	}
+
+	// headers
+	pair_t * headers = read_headers(r);
+	if (headers != NULL && headers->count > 0) {
+		dd("header count = %ld", headers->count);
+		dtm.n_request_headers = headers->count;
+		dtm.request_headers = ngx_calloc(sizeof(Contrast__Api__Dtm__SimplePair *) * headers->count, log);
+		int idx = 0;
+		for(pair_t * curr_header = headers; curr_header != NULL; curr_header = curr_header->next) {
+			Contrast__Api__Dtm__SimplePair * pair = ngx_calloc(sizeof(Contrast__Api__Dtm__SimplePair), log);
+			contrast__api__dtm__simple_pair__init(pair);
+			pair->key = curr_header->key;
+			pair->value = curr_header->value;
+			dd("[header %d] %s=%s", idx, pair->key, pair->value); 
+			dtm.request_headers[idx++] = pair;
+		}
+	}
+
+	// prepare and serialize protobuf messages
+	Contrast__Api__Dtm__Message msg = CONTRAST__API__DTM__MESSAGE__INIT;
+	msg.client_id = "NGINX";
+	msg.client_number = (int32_t)ngx_process_slot;
+	msg.client_total = (int32_t)1;
+	msg.message_count = ++message_count;
+	msg.app_name = "NGINX"; // TODO: configuration or other method for determining name?
+	msg.app_language = "Ruby";  // TODO: change this when Universal Agent is supported type
+	msg.timestamp_ms = unix_millis();
+	msg.event_case = CONTRAST__API__DTM__MESSAGE__EVENT_REQUEST;
+	msg.request = &dtm;
+	dd("built parent message structure");
+
+	// send message to service
+	size_t len = contrast__api__dtm__message__get_packed_size(&msg);
+	dd("estimated size of packed message: %ld", len);
+
+	// store the response; this is allocated by the socket function so must be freed here
+	ngx_str_t * response = NULL;
+
+	// buffer for storing the serialized message
+	void * buf = ngx_alloc(len, log);
+	if (buf != NULL) {
+
+		size_t packed_size = contrast__api__dtm__message__pack(&msg, buf);
+		dd("actual packed message size: %ld", packed_size);
+		if ((response = write_to_service(conf->socket_path, buf, len, log)) == NULL) {
+			dd("[ERROR] error from write_to_service");
+		}
+		free(buf);
+	} else {
+		dd("[ERROR] could not allocate buffer size for protobuf message");
+	}
+
+	// deserialize and parse response
+	Contrast__Api__Settings__AgentSettings *settings = NULL;
+	ngx_int_t boom = 0;
+	if (response != NULL) {
+		dd("attempting to unpack agent settings: %ld", sizeof(*response));
+		settings = contrast__api__settings__agent_settings__unpack(NULL, 
+				response->len, 
+				response->data);
+
+		if (settings == NULL) {
+			dd("[ERROR] settings was null!");
+		} else {
+			if (settings->protect_state == NULL) {
+				dd("[ERROR] settings->protect_state was NULL!");
+			} else {
+
+				dd("what was security exception: exception=%d", 
+						settings->protect_state->security_exception);
+				if (settings->protect_state->security_exception) {
+
+					// flag for NGX_boom!
+					dd("[BOOM!] security exception found: %s uuid=%s", 
+							settings->protect_state->security_message,
+							settings->protect_state->uuid);
+					boom = 1;
+				} else {
+					dd("no security exception in settings");
+				}
+			}
+		}
+
+		// TODO: it appears response and the unpacked settings share the same memory (?)
+		// so you only free one?
+		free(response->data);
+		free(response);
+	} else {
+		dd("[WARN] response was null");
+	}
+
+
+	// free headers
+	free_pair(headers);
+
+	// free client address
+	free_address(client_address);
+
+	// free server address
+	free_address(server_address);
+
+	dd("next filter in chain");
+	if (boom == 1) {
+		dd("boom was true...");
+		return NGX_HTTP_FORBIDDEN;
+	}
+
+	dd("boom was false...");
+
+	return NGX_DECLINED;
+}
+
+
+/*
  * examine http request and forward to speedracer
  */
 static ngx_int_t ngx_http_catch_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
