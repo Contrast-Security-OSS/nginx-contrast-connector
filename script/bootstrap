@@ -28,6 +28,7 @@ install_protobuf() {
     pushd vendor > /dev/null 2>&1
     git clone https://github.com/google/protobuf.git
     pushd protobuf > /dev/null 2>&1
+    git submodule update --init --recursive
     ./autogen.sh
     ./configure --prefix=/usr
     make

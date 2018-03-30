@@ -266,33 +266,9 @@ static void free_dtm(Contrast__Api__Dtm__RawRequest * dtm)
 
 static int64_t message_count = 0;
 
-/*
- * parse connection and params for non-request body requests
- */
-ngx_int_t ngx_http_contrast_connector_post_rewrite_handler(ngx_http_request_t *r)
-{
-	dd("\n\nIn post rewrite handler!");
-
-	ngx_log_t * log = r->connection->log;
-    ngx_http_contrast_connector_conf_t * conf = ngx_http_get_module_loc_conf(r, 
-			ngx_http_contrast_connector_module);
-    if (!conf->enable) {
-		
-		// this handler declines to handle this request
-		return NGX_DECLINED;
-    }
-
-	if (r->method != NGX_HTTP_GET) {
-
-		// TODO: for testing only; we should be more sophisticated about
-		// whether we should decline at this point (e.g. checking Content-Length?)
-		return NGX_DECLINED;
-	}
-
-	Contrast__Api__Dtm__RawRequest * dtm = build_dtm_from_request(r);
-	if (dtm == NULL) {
-		return NGX_DECLINED;
-	}
+static ngx_int_t send_dtm_to_socket(Contrast__Api__Dtm__RawRequest * dtm, 
+		ngx_str_t socket_path, 
+		ngx_log_t * log) {
 
 	Contrast__Api__Dtm__Message msg = CONTRAST__API__DTM__MESSAGE__INIT;
 	msg.client_id = "NGINX";
@@ -320,7 +296,7 @@ ngx_int_t ngx_http_contrast_connector_post_rewrite_handler(ngx_http_request_t *r
 
 		size_t packed_size = contrast__api__dtm__message__pack(&msg, buf);
 		dd("actual packed message size: %ld", packed_size);
-		if ((response = write_to_service(conf->socket_path, buf, len, log)) == NULL) {
+		if ((response = write_to_service(socket_path, buf, len, log)) == NULL) {
 			dd("[ERROR] error from write_to_service");
 		}
 		free(buf);
@@ -367,16 +343,50 @@ ngx_int_t ngx_http_contrast_connector_post_rewrite_handler(ngx_http_request_t *r
 		dd("[WARN] response was null");
 	}
 
+	return boom;
+}
+
+
+/*
+ * parse connection and params for non-request body requests
+ */
+ngx_int_t ngx_http_contrast_connector_post_rewrite_handler(ngx_http_request_t *r)
+{
+	dd("\n\nIn post rewrite handler!");
+
+	ngx_log_t * log = r->connection->log;
+    ngx_http_contrast_connector_conf_t * conf = ngx_http_get_module_loc_conf(r, 
+			ngx_http_contrast_connector_module);
+    if (!conf->enable) {
+		
+		// this handler declines to handle this request
+		return NGX_DECLINED;
+    }
+
+	if (r->method != NGX_HTTP_GET) {
+
+		// TODO: for testing only; we should be more sophisticated about
+		// whether we should decline at this point (e.g. checking Content-Length?)
+		return NGX_DECLINED;
+	}
+
+	Contrast__Api__Dtm__RawRequest * dtm = build_dtm_from_request(r);
+	if (dtm == NULL) {
+		return NGX_DECLINED;
+	}
+
+	ngx_int_t boom = send_dtm_to_socket(dtm, conf->socket_path, log);
+
 	free_dtm(dtm);
 
 	dd("next filter in chain");
-	if (boom == 1) {
+	if (boom != 0) {
+
 		dd("boom was true...");
 		return NGX_HTTP_FORBIDDEN;
 	}
 
 	dd("boom was false...");
-
 	return NGX_DECLINED;
 }
 
@@ -406,83 +416,11 @@ static ngx_int_t ngx_http_catch_body_filter(ngx_http_request_t *r, ngx_chain_t *
 	dtm->request_body = read_body(in, log);
 	dd("request_body: %s", dtm->request_body);
 
-	Contrast__Api__Dtm__Message msg = CONTRAST__API__DTM__MESSAGE__INIT;
-	msg.client_id = "NGINX";
-	msg.pid = (int32_t)ngx_processes[ngx_process_slot].pid;
-	msg.client_number = (int32_t)1;
-	msg.client_total = (int32_t)1;
-	msg.message_count = ++message_count;
-	msg.app_name = "NGINX"; // TODO: configuration or other method for determining name?
-	msg.app_language = "Ruby";  // TODO: change this when Universal Agent is supported type
-	msg.timestamp_ms = unix_millis();
-	msg.event_case = CONTRAST__API__DTM__MESSAGE__EVENT_REQUEST;
-	msg.request = dtm;
-	dd("built parent message structure");
-
-	// send message to service
-	size_t len = contrast__api__dtm__message__get_packed_size(&msg);
-	dd("estimated size of packed message: %ld", len);
-
-	// store the response; this is allocated by the socket function so must be freed here
-	ngx_str_t * response = NULL;
-
-	// buffer for storing the serialized message
-	void * buf = ngx_alloc(len, log);
-	if (buf != NULL) {
-
-		size_t packed_size = contrast__api__dtm__message__pack(&msg, buf);
-		dd("actual packed message size: %ld", packed_size);
-		if ((response = write_to_service(conf->socket_path, buf, len, log)) == NULL) {
-			dd("[ERROR] error from write_to_service");
-		}
-		free(buf);
-	} else {
-		dd("[ERROR] could not allocate buffer size for protobuf message");
-	}
-
-	// deserialize and parse response
-	Contrast__Api__Settings__AgentSettings *settings = NULL;
-	ngx_int_t boom = 0;
-	if (response != NULL) {
-		dd("attempting to unpack agent settings: %ld", sizeof(*response));
-		settings = contrast__api__settings__agent_settings__unpack(NULL, 
-				response->len, 
-				response->data);
-
-		if (settings == NULL) {
-			dd("[ERROR] settings was null!");
-		} else {
-			if (settings->protect_state == NULL) {
-				dd("[ERROR] settings->protect_state was NULL!");
-			} else {
-
-				dd("what was security exception: exception=%d", 
-						settings->protect_state->security_exception);
-				if (settings->protect_state->security_exception) {
-
-					// flag for NGX_boom!
-					dd("[BOOM!] security exception found: %s uuid=%s", 
-							settings->protect_state->security_message,
-							settings->protect_state->uuid);
-					boom = 1;
-				} else {
-					dd("no security exception in settings");
-				}
-			}
-		}
-
-		// TODO: it appears response and the unpacked settings share the same memory (?)
-		// so you only free one?
-		free(response->data);
-		free(response);
-	} else {
-		dd("[WARN] response was null");
-	}
+	ngx_int_t boom = send_dtm_to_socket(dtm, conf->socket_path, log);
 
 	free_dtm(dtm);
 
-	dd("next filter in chain");
-	if (boom == 1) {
+	if (boom != 0) {
 		dd("boom was true...");
 		return NGX_HTTP_FORBIDDEN;
 	}
