@@ -28,9 +28,10 @@ install_protobuf() {
     pushd vendor > /dev/null 2>&1
     git clone https://github.com/google/protobuf.git
     pushd protobuf > /dev/null 2>&1
+    git checkout v3.5.2
     git submodule update --init --recursive
     ./autogen.sh
-    ./configure --prefix=/usr
+    ./configure 
     make
     sudo make install
     sudo ldconfig
@@ -43,12 +44,15 @@ install_protobuf() {
 
 install_protobuf_c() {
   if [ ! -d "vendor/protobuf-c" ]; then
+    export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+LD_LIBRARY_PATH:}:/usr/local/lib"
     pushd vendor > /dev/null 2>&1
     git clone https://github.com/palmergs/protobuf-c.git
+    #git clone https://github.com/protobuf-c/protobuf-c.git
     pushd protobuf-c > /dev/null 2>&1
-    git checkout adding-std
+    git checkout v1.3.0
+    #git checkout adding-std
     ./autogen.sh
-    ./configure --prefix=/usr
+    ./configure 
     make
     sudo make install
     popd > /dev/null 2>&1
@@ -92,7 +96,7 @@ install_libmodsecurity() {
     git submodule update
     ./configure
     make
-    make install
+    sudo make install
     popd > /dev/null 2>&1
     popd > /dev/null 2>&1
   else
@@ -107,8 +111,32 @@ install_owasp() {
     git clone https://github.com/SpiderLabs/owasp-modsecurity-crs.git
     cp crs-setup.conf owasp-modsecurity-crs/.
     cp modsecurity.conf owasp-modsecurity-crs/.
+    sudo touch /var/log/modsec_audit.log
+    sudo chown ubuntu /var/log/modsec_audit.log
+    popd > /dev/null 2>&1
   else
     printf "OWASP ModSecurity rules already installed\n"
+  fi
+}
+
+# NOTE: this is not used by the connector but is required for speedracer
+install_go() {
+  if [ ! -d "/usr/local/go" ]; then
+    pushd vendor > /dev/null 2>&1
+    wget https://dl.google.com/go/go1.10.1.linux-amd64.tar.gz
+    tar -C /usr/local -xzf go1.10.1.linux-amd64.tar.gz
+    sudo chown -R ubuntu /usr/local/go
+    popd > /dev/null 2>&1
+  else
+    printf "GO already installed\n"
+  fi
+
+  if [[ ! -v GOHOME ]]; then
+    cd /go/src/contrast/speedracer
+    curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+    dep ensure
+  else
+    printf "GO already configured\n"
   fi
 }
 
@@ -125,4 +153,5 @@ else
   install_nginx
   install_libmodsecurity
   install_owasp
+  install_go
 fi
