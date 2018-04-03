@@ -23,7 +23,7 @@ The current connector is designed to be setup and tested in a
 
 * `vagrant up`
 * `vagrant ssh`
-* install RVM rb-env to get access to a modern ruby
+* install RVM rb-env to get access to a modern ruby (https://rvm.io/)
 * `cd /vagrant`
 * `chmod +x script/*`
 * `script/bootstrap`
