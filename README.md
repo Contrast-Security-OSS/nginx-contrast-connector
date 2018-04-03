@@ -30,6 +30,7 @@ The current connector is designed to be setup and tested in a
 * `gem install bundler`
 * `bundle install`
 * `rake nginx:compile`
+* start up a Sinatra app so POST requests can be tested: `rake sinatra:start` 
 * `rake`
 
 Assuming all the steps succeed, you now have a NGINX instance with the speedracer connector module staticly linked.  Next steps are to setup speedracer configured for Unix sockets and ensure that speedracer can communicate with Teamserver on the host machine.
