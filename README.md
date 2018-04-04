@@ -59,6 +59,12 @@ The speedracer project should be mounted in the vagrant environment at `/go/src/
 
 After you're set up you should have a Speedracer instance running on the vagrant box. The `contrast_security.yaml` should be setup to communicate out to Teamserver instance (for my vagrant, `url: http://10.0.2.2:19980/Contrast` seemed to work). To get Teamserver to recognize ModSecurity as a rule, use the `local-modsecurity-rule` branch in Teamserver.
 
+You'll need to enable the `ModSecurity` rule in teamserver. 
+
+    insert ignore into rasp_protection_rules (uuid, name, category, description, can_block_at_perimeter) values ('mod-security', 'ModSecurity', 'Input Validation', 'A vulnerability identified by the libmodsecurity library and the open source OWASP rule set.', 1);
+    
+    insert ignore into rasp_protection_rules_languages (protection_rules_id, language) values (the_id_from_the_previous_insert, 'RUBY');
+
 Next, NGINX won't forward POST and PUT request to static resources so you need to have a "real" server to proxy to. I've setup a simple sinatra app to receive requests. Run `rake sinatra:start` to fire that up.
 
 When you run `rake` in the project root (i.e. `/vagrant`) it will attempt startup NGINX server with a location `/sinatra` that will proxy to the sinatra server. The request body filter in the connector will intercept that request and build a protobuf `RawRequest` instance and make a unix socket connection to speedracer (make sure speedracer is using unix sockets at `socket: /tmp/contrast-service.sock` not the tcp endpoint). Speedracer should parse it and send back an exception if an attack is seen. 
