@@ -61,9 +61,11 @@ After you're set up you should have a Speedracer instance running on the vagrant
 
 You'll need to enable the `ModSecurity` rule in teamserver. 
 
-    insert ignore into rasp_protection_rules (uuid, name, category, description, can_block_at_perimeter) values ('mod-security', 'ModSecurity', 'Input Validation', 'A vulnerability identified by the libmodsecurity library and the open source OWASP rule set.', 1);
+    insert ignore into rasp_protection_rules (uuid, name, category, description, can_block_at_perimeter) 
+        values ('mod-security', 'ModSecurity', 'Input Validation', 'A vulnerability identified by the libmodsecurity library and the open source OWASP rule set.', 1);
     
-    insert ignore into rasp_protection_rules_languages (protection_rules_id, language) values (the_id_from_the_previous_insert, 'RUBY');
+    insert ignore into rasp_protection_rules_languages (protection_rules_id, language) 
+        values (the_id_from_the_previous_insert, 'RUBY');
 
 Next, NGINX won't forward POST and PUT request to static resources so you need to have a "real" server to proxy to. I've setup a simple sinatra app to receive requests. Run `rake sinatra:start` to fire that up.
 
