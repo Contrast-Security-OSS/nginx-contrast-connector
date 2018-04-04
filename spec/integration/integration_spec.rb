@@ -52,6 +52,56 @@ describe "Integration Specs" do
         http = Curl.post("http://127.0.0.1:8888/sinatra/text", { attack: "alert(document.cookie)" })
         expect(http.response_code).to eq(403)
       end
+
+      it "allows a request with a JSON body" do
+        http = Curl.post("http://127.0.0.1:8888/sinatra/json", '{"alert": {"test": "there ia s document and a cookie in the lunchroom" } }') do |curl|
+          curl.headers['Accept'] = 'application/json'
+          curl.headers['Content-Type'] = 'application/json'
+          curl.headers['Api-Version'] = '2.2'
+        end
+
+        expect(http.response_code).to eq(200)
+      end
+
+      it "blocks a request with a JSON attack vector" do
+        http = Curl.post("http://127.0.0.1:8888/sinatra/json", '{"test": { "nested": {"attack": "alert(document.cookie)"} } }') do |curl|
+          curl.headers['Accept'] = 'application/json'
+          curl.headers['Content-Type'] = 'application/json'
+          curl.headers['Api-Version'] = '2.2'
+        end
+
+        expect(http.response_code).to eq(403)
+      end
+
+      it "allows a request with an XML body" do
+        http = Curl.post("http://127.0.0.1:8888/sinatra/xml", '<element attr="test"><alert><document/><cookie/></alert></element>') do |curl|
+          curl.headers['Accept'] = 'text/xml'
+          curl.headers['Content-Type'] = 'text/xml'
+          curl.headers['Api-Version'] = '2.2'
+        end
+
+        expect(http.response_code).to eq(200)
+      end
+
+      it "blocks a request with a XML attack vector" do
+        http = Curl.post("http://127.0.0.1:8888/sinatra/xml", '<element attr="test">alert(document.cookie)</element>') do |curl|
+          curl.headers['Accept'] = 'text/xml'
+          curl.headers['Content-Type'] = 'text/xml'
+          curl.headers['Api-Version'] = '2.2'
+        end
+
+        expect(http.response_code).to eq(403)
+      end
+
+      # TODO: Not sure this should actually succeed
+      #it "blocks a request with a XML attribute attack vector" do
+      #  http = Curl.post("http://127.0.0.1:8888/sinatra/xml", '<element attr="alert(document.cookie)">this is safe</element>') do |curl|
+      #    curl.headers['Accept'] = 'text/xml'
+      #    curl.headers['Content-Type'] = 'text/xml'
+      #    curl.headers['Api-Version'] = '2.2'
+      #  end
+      #  expect(http.response_code).to eq(403)
+      #end
     end
   end
 end
