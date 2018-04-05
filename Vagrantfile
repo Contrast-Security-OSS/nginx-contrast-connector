@@ -23,11 +23,11 @@ Vagrant.configure("2") do |config|
   # within the machine from a port on the host machine. In the example below,
   # accessing "localhost:8080" will access port 80 on the guest machine.
   config.vm.network "forwarded_port", guest: 80, host: 18000
-  config.vm.network "forwarded_port", guest: 8080, host: 18080
+  config.vm.network "forwarded_port", guest: 8888, host: 18888
 
   # Create a private network, which allows host-only access to the machine
   # using a specific IP.
-  config.vm.network "private_network", ip: "192.168.33.12"
+  config.vm.network "private_network", ip: "192.168.33.0"
 
   # Create a public network, which generally matched to bridged network.
   # Bridged networks make the machine appear as another physical device on
@@ -38,7 +38,7 @@ Vagrant.configure("2") do |config|
   # the path on the host to the actual folder. The second argument is
   # the path on the guest to mount the folder. And the optional third
   # argument is a set of non-required options.
-  config.vm.synced_folder "../../go", "/go"
+  config.vm.synced_folder "../go-speedracer-go", "/go/src/contrast/speedracer"
 
   # Provider-specific configuration so you can fine-tune various
   # backing providers for Vagrant. These expose provider-specific options.
@@ -72,45 +72,37 @@ Vagrant.configure("2") do |config|
     apt-get -y upgrade
     apt-get -y install gcc g++ make lua5.3 liblua5.3-0 liblua5.3.dev libxml2-dev software-properties-common unzip
     apt-get -y install libc6-dev flex bison curl doxygen libyajl-dev libgeoip-dev libtool dh-autoreconf libcurl4-gnutls-dev libxml2 libpcre++-dev libxml2-dev
-#    apt-get -y install libhiredis-dev redis-server
-
-    # install openresty (nginx + lua plugins)
-#    wget -qO - https://openresty.org/package/pubkey.gpg | sudo apt-key add -
-#    add-apt-repository -y "deb http://openresty.org/package/ubuntu $(lsb_release -sc) main"
-#    apt-get update
-#    apt-get -y install openresty
 
     # build and install libmodsecurity
-#    git clone https://github.com/SpiderLabs/ModSecurity
-#    cd ModSecurity/
-#    git checkout -b v3/master origin/v3/master
-#    sh build.sh
-#    git submodule init
-#    git submodule update
-#    ./configure
-#    make
-#    make install
+    git clone https://github.com/SpiderLabs/ModSecurity
+    cd ModSecurity/
+    git checkout -b v3/master origin/v3/master
+    sh build.sh
+    git submodule init
+    git submodule update
+    ./configure
+    sudo chown -R ubuntu /usr/local
+    make
+    make install
 
     # adding the libmodsecurity headers to the library path
-#    echo "LD_LIBRARY_PATH=/usr/local/modsecurity/lib" >> ~/.profile_example
+    echo "LD_LIBRARY_PATH=/usr/local/modsecurity/lib" >> ~/.profile_example
 
     # downloading the owasp rules
-#    git clone https://github.com/SpiderLabs/owasp-modsecurity-crs.git
+    git clone https://github.com/SpiderLabs/owasp-modsecurity-crs.git
 
-    # install go from the local package
-#    tar xvf /vagrant/go1.10.linux-amd64.tar.gz -C /usr/local
-#    echo "export PATH=$PATH:/usr/local/go/bin" >> ~/.profile_example
-#    echo "export GOROOT=/usr/local/go" >> ~/.profile_example
-#    echo "export GOBIN=/usr/local/go/bin" >> ~/.profile_example
-#    echo "export GOPATH=/go" >> ~/.profile_example
+    # install GO as ubuntu user
+    sudo su - ubuntu
+    cd ~
+    wget -q https://dl.google.com/go/go1.10.linux-amd64.tar.gz
+    tar -C /usr/local -xzf go1.10.linux-amd64.tar.gz
 
-    # install the luarocks package manager
-#    wget -q https://luarocks.org/releases/luarocks-2.4.3.tar.gz
-#    tar zxpf luarocks-2.4.3.tar.gz
-#    cd luarocks-2.4.3
-#    ./configure
-#    make bootstrap
-#    luarocks install luasocket
+    chown -R ubuntu /go
+    echo 'export GOHOME=/go' > .go-profile
+    echo 'export GOROOT=/usr/local/go' >> .go-profile
+    echo 'export GOBIN=/usr/local/go/bin' >> .go-profile
+    exit
+  
 
   SHELL
 end

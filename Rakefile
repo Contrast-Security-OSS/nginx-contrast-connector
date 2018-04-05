@@ -23,6 +23,25 @@ namespace :nginx do
   end
 end
 
+namespace :sinatra do
+  desc "Starts Sinatra"
+  task :start do
+    `nohup ruby sinatra_app.rb > build/nginx/logs/sinatra.log 2>&1 &`
+    puts `echo $!`
+    sleep 1
+  end
+
+  task :stop do
+    processes = `ps -ef | grep sinatra_app`
+    processes.split("\n").select do |line| 
+      if line =~ /ruby sinatra_app.rb/
+        pid = line.split(/\s+/)[1]
+        `kill #{ pid }`
+      end
+    end
+  end
+end
+
 desc "Bootstraps the local development environment"
 task :bootstrap do
   unless Dir.exists?("build") and Dir.exists?("vendor")
@@ -31,6 +50,6 @@ task :bootstrap do
 end
 
 desc "Run the integration tests"
-task default: [ :bootstrap, "nginx:start", :integration, "nginx:stop" ]
+task default: [ :bootstrap, :integration ]
 
 

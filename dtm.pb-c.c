@@ -685,6 +685,51 @@ void   contrast__api__dtm__address__free_unpacked
   assert(message->base.descriptor == &contrast__api__dtm__address__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
+void   contrast__api__dtm__raw_request__init
+                     (Contrast__Api__Dtm__RawRequest         *message)
+{
+  static const Contrast__Api__Dtm__RawRequest init_value = CONTRAST__API__DTM__RAW_REQUEST__INIT;
+  *message = init_value;
+}
+size_t contrast__api__dtm__raw_request__get_packed_size
+                     (const Contrast__Api__Dtm__RawRequest *message)
+{
+  assert(message->base.descriptor == &contrast__api__dtm__raw_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t contrast__api__dtm__raw_request__pack
+                     (const Contrast__Api__Dtm__RawRequest *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &contrast__api__dtm__raw_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t contrast__api__dtm__raw_request__pack_to_buffer
+                     (const Contrast__Api__Dtm__RawRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &contrast__api__dtm__raw_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Contrast__Api__Dtm__RawRequest *
+       contrast__api__dtm__raw_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Contrast__Api__Dtm__RawRequest *)
+     protobuf_c_message_unpack (&contrast__api__dtm__raw_request__descriptor,
+                                allocator, len, data);
+}
+void   contrast__api__dtm__raw_request__free_unpacked
+                     (Contrast__Api__Dtm__RawRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &contrast__api__dtm__raw_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
 void   contrast__api__dtm__http_request__normalized_request_params_entry__init
                      (Contrast__Api__Dtm__HttpRequest__NormalizedRequestParamsEntry         *message)
 {
@@ -860,6 +905,51 @@ void   contrast__api__dtm__http_response__free_unpacked
   if(!message)
     return;
   assert(message->base.descriptor == &contrast__api__dtm__http_response__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   contrast__api__dtm__simple_pair__init
+                     (Contrast__Api__Dtm__SimplePair         *message)
+{
+  static const Contrast__Api__Dtm__SimplePair init_value = CONTRAST__API__DTM__SIMPLE_PAIR__INIT;
+  *message = init_value;
+}
+size_t contrast__api__dtm__simple_pair__get_packed_size
+                     (const Contrast__Api__Dtm__SimplePair *message)
+{
+  assert(message->base.descriptor == &contrast__api__dtm__simple_pair__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t contrast__api__dtm__simple_pair__pack
+                     (const Contrast__Api__Dtm__SimplePair *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &contrast__api__dtm__simple_pair__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t contrast__api__dtm__simple_pair__pack_to_buffer
+                     (const Contrast__Api__Dtm__SimplePair *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &contrast__api__dtm__simple_pair__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Contrast__Api__Dtm__SimplePair *
+       contrast__api__dtm__simple_pair__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Contrast__Api__Dtm__SimplePair *)
+     protobuf_c_message_unpack (&contrast__api__dtm__simple_pair__descriptor,
+                                allocator, len, data);
+}
+void   contrast__api__dtm__simple_pair__free_unpacked
+                     (Contrast__Api__Dtm__SimplePair *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &contrast__api__dtm__simple_pair__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
 void   contrast__api__dtm__pair__init
@@ -2623,7 +2713,7 @@ void   contrast__api__dtm__trace_stack__free_unpacked
   assert(message->base.descriptor == &contrast__api__dtm__trace_stack__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
-static const ProtobufCFieldDescriptor contrast__api__dtm__message__field_descriptors[17] =
+static const ProtobufCFieldDescriptor contrast__api__dtm__message__field_descriptors[18] =
 {
   {
     "client_id",
@@ -2794,6 +2884,18 @@ static const ProtobufCFieldDescriptor contrast__api__dtm__message__field_descrip
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
   {
+    "request",
+    19,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_MESSAGE,
+    offsetof(Contrast__Api__Dtm__Message, event_case),
+    offsetof(Contrast__Api__Dtm__Message, request),
+    &contrast__api__dtm__raw_request__descriptor,
+    NULL,
+    0 | PROTOBUF_C_FIELD_FLAG_ONEOF,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
     "prefilter",
     20,
     PROTOBUF_C_LABEL_NONE,
@@ -2840,20 +2942,21 @@ static const unsigned contrast__api__dtm__message__field_indices_by_name[] = {
   0,   /* field[0] = client_id */
   1,   /* field[1] = client_number */
   2,   /* field[2] = client_total */
-  15,   /* field[15] = infilter */
+  16,   /* field[16] = infilter */
   3,   /* field[3] = message_count */
   7,   /* field[7] = pid */
-  16,   /* field[16] = postfilter */
+  17,   /* field[17] = postfilter */
   8,   /* field[8] = ppid */
-  14,   /* field[14] = prefilter */
+  15,   /* field[15] = prefilter */
+  14,   /* field[14] = request */
   9,   /* field[9] = server_activity */
   4,   /* field[4] = timestamp_ms */
 };
 static const ProtobufCIntRange contrast__api__dtm__message__number_ranges[2 + 1] =
 {
   { 1, 0 },
-  { 20, 14 },
-  { 0, 17 }
+  { 19, 14 },
+  { 0, 18 }
 };
 const ProtobufCMessageDescriptor contrast__api__dtm__message__descriptor =
 {
@@ -2863,7 +2966,7 @@ const ProtobufCMessageDescriptor contrast__api__dtm__message__descriptor =
   "Contrast__Api__Dtm__Message",
   "contrast.api.dtm",
   sizeof(Contrast__Api__Dtm__Message),
-  17,
+  18,
   contrast__api__dtm__message__field_descriptors,
   contrast__api__dtm__message__field_indices_by_name,
   2,  contrast__api__dtm__message__number_ranges,
@@ -4454,6 +4557,191 @@ const ProtobufCMessageDescriptor contrast__api__dtm__address__descriptor =
   (ProtobufCMessageInit) contrast__api__dtm__address__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
+static const ProtobufCFieldDescriptor contrast__api__dtm__raw_request__field_descriptors[12] =
+{
+  {
+    "uuid",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__RawRequest, uuid),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "timestamp_ms",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT64,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__RawRequest, timestamp_ms),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "request_line",
+    4,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__RawRequest, request_line),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "normalized_uri",
+    5,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__RawRequest, normalized_uri),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "client_ip",
+    6,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__RawRequest, client_ip),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "client_ip_version",
+    7,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__RawRequest, client_ip_version),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "client_port",
+    8,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__RawRequest, client_port),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "server_ip",
+    10,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__RawRequest, server_ip),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "server_ip_version",
+    11,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__RawRequest, server_ip_version),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "server_port",
+    12,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__RawRequest, server_port),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "request_headers",
+    14,
+    PROTOBUF_C_LABEL_REPEATED,
+    PROTOBUF_C_TYPE_MESSAGE,
+    offsetof(Contrast__Api__Dtm__RawRequest, n_request_headers),
+    offsetof(Contrast__Api__Dtm__RawRequest, request_headers),
+    &contrast__api__dtm__simple_pair__descriptor,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "request_body",
+    16,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__RawRequest, request_body),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned contrast__api__dtm__raw_request__field_indices_by_name[] = {
+  4,   /* field[4] = client_ip */
+  5,   /* field[5] = client_ip_version */
+  6,   /* field[6] = client_port */
+  3,   /* field[3] = normalized_uri */
+  11,   /* field[11] = request_body */
+  10,   /* field[10] = request_headers */
+  2,   /* field[2] = request_line */
+  7,   /* field[7] = server_ip */
+  8,   /* field[8] = server_ip_version */
+  9,   /* field[9] = server_port */
+  1,   /* field[1] = timestamp_ms */
+  0,   /* field[0] = uuid */
+};
+static const ProtobufCIntRange contrast__api__dtm__raw_request__number_ranges[5 + 1] =
+{
+  { 1, 0 },
+  { 4, 2 },
+  { 10, 7 },
+  { 14, 10 },
+  { 16, 11 },
+  { 0, 12 }
+};
+const ProtobufCMessageDescriptor contrast__api__dtm__raw_request__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "contrast.api.dtm.RawRequest",
+  "RawRequest",
+  "Contrast__Api__Dtm__RawRequest",
+  "contrast.api.dtm",
+  sizeof(Contrast__Api__Dtm__RawRequest),
+  12,
+  contrast__api__dtm__raw_request__field_descriptors,
+  contrast__api__dtm__raw_request__field_indices_by_name,
+  5,  contrast__api__dtm__raw_request__number_ranges,
+  (ProtobufCMessageInit) contrast__api__dtm__raw_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
 static const ProtobufCFieldDescriptor contrast__api__dtm__http_request__normalized_request_params_entry__field_descriptors[2] =
 {
   {
@@ -5513,6 +5801,57 @@ const ProtobufCMessageDescriptor contrast__api__dtm__http_response__descriptor =
   contrast__api__dtm__http_response__field_indices_by_name,
   2,  contrast__api__dtm__http_response__number_ranges,
   (ProtobufCMessageInit) contrast__api__dtm__http_response__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor contrast__api__dtm__simple_pair__field_descriptors[2] =
+{
+  {
+    "key",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__SimplePair, key),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "value",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__SimplePair, value),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned contrast__api__dtm__simple_pair__field_indices_by_name[] = {
+  0,   /* field[0] = key */
+  1,   /* field[1] = value */
+};
+static const ProtobufCIntRange contrast__api__dtm__simple_pair__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 2 }
+};
+const ProtobufCMessageDescriptor contrast__api__dtm__simple_pair__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "contrast.api.dtm.SimplePair",
+  "SimplePair",
+  "Contrast__Api__Dtm__SimplePair",
+  "contrast.api.dtm",
+  sizeof(Contrast__Api__Dtm__SimplePair),
+  2,
+  contrast__api__dtm__simple_pair__field_descriptors,
+  contrast__api__dtm__simple_pair__field_indices_by_name,
+  1,  contrast__api__dtm__simple_pair__number_ranges,
+  (ProtobufCMessageInit) contrast__api__dtm__simple_pair__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor contrast__api__dtm__pair__field_descriptors[2] =

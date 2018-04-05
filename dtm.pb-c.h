@@ -37,6 +37,7 @@ typedef struct _Contrast__Api__Dtm__Library Contrast__Api__Dtm__Library;
 typedef struct _Contrast__Api__Dtm__LibraryUsageUpdate Contrast__Api__Dtm__LibraryUsageUpdate;
 typedef struct _Contrast__Api__Dtm__LibraryUsageUpdate__ClassNamesEntry Contrast__Api__Dtm__LibraryUsageUpdate__ClassNamesEntry;
 typedef struct _Contrast__Api__Dtm__Address Contrast__Api__Dtm__Address;
+typedef struct _Contrast__Api__Dtm__RawRequest Contrast__Api__Dtm__RawRequest;
 typedef struct _Contrast__Api__Dtm__HttpRequest Contrast__Api__Dtm__HttpRequest;
 typedef struct _Contrast__Api__Dtm__HttpRequest__NormalizedRequestParamsEntry Contrast__Api__Dtm__HttpRequest__NormalizedRequestParamsEntry;
 typedef struct _Contrast__Api__Dtm__HttpRequest__RequestHeadersEntry Contrast__Api__Dtm__HttpRequest__RequestHeadersEntry;
@@ -47,6 +48,7 @@ typedef struct _Contrast__Api__Dtm__AgentEvent__OptionsEntry Contrast__Api__Dtm_
 typedef struct _Contrast__Api__Dtm__HttpResponse Contrast__Api__Dtm__HttpResponse;
 typedef struct _Contrast__Api__Dtm__HttpResponse__ResponseHeadersEntry Contrast__Api__Dtm__HttpResponse__ResponseHeadersEntry;
 typedef struct _Contrast__Api__Dtm__HttpResponse__NormalizedResponseHeadersEntry Contrast__Api__Dtm__HttpResponse__NormalizedResponseHeadersEntry;
+typedef struct _Contrast__Api__Dtm__SimplePair Contrast__Api__Dtm__SimplePair;
 typedef struct _Contrast__Api__Dtm__Pair Contrast__Api__Dtm__Pair;
 typedef struct _Contrast__Api__Dtm__AttackResult Contrast__Api__Dtm__AttackResult;
 typedef struct _Contrast__Api__Dtm__RaspRuleSample Contrast__Api__Dtm__RaspRuleSample;
@@ -178,6 +180,7 @@ typedef enum {
   CONTRAST__API__DTM__MESSAGE__EVENT_APPLICATION_CREATE = 12,
   CONTRAST__API__DTM__MESSAGE__EVENT_APPLICATION_UPDATE = 13,
   CONTRAST__API__DTM__MESSAGE__EVENT_ACTIVITY = 14,
+  CONTRAST__API__DTM__MESSAGE__EVENT_REQUEST = 19,
   CONTRAST__API__DTM__MESSAGE__EVENT_PREFILTER = 20,
   CONTRAST__API__DTM__MESSAGE__EVENT_INFILTER = 21,
   CONTRAST__API__DTM__MESSAGE__EVENT_POSTFILTER = 22
@@ -230,6 +233,7 @@ struct  _Contrast__Api__Dtm__Message
     Contrast__Api__Dtm__ApplicationCreate *application_create;
     Contrast__Api__Dtm__ApplicationUpdate *application_update;
     Contrast__Api__Dtm__Activity *activity;
+    Contrast__Api__Dtm__RawRequest *request;
     Contrast__Api__Dtm__HttpRequest *prefilter;
     Contrast__Api__Dtm__AgentEvent *infilter;
     Contrast__Api__Dtm__HttpResponse *postfilter;
@@ -552,6 +556,49 @@ struct  _Contrast__Api__Dtm__Address
     , (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, 0 }
 
 
+struct  _Contrast__Api__Dtm__RawRequest
+{
+  ProtobufCMessage base;
+  /*
+   * this is optional unless the agent has a way of assigning a unique id that is valid for the lifespan of the request
+   */
+  char *uuid;
+  int64_t timestamp_ms;
+  /*
+   * e.g. GET /test?a=1&b=2 HTTP/1.1
+   */
+  char *request_line;
+  /*
+   * e.g. GET /?a=1 HTTP/1.1 results in a normalized uri of /index.html 
+   */
+  char *normalized_uri;
+  /*
+   * IPv4 or IPv6 string
+   */
+  char *client_ip;
+  /*
+   * 4 or 6 or -1 (for unknown)
+   */
+  int32_t client_ip_version;
+  int32_t client_port;
+  char *server_ip;
+  int32_t server_ip_version;
+  int32_t server_port;
+  /*
+   * Request Headers
+   */
+  size_t n_request_headers;
+  Contrast__Api__Dtm__SimplePair **request_headers;
+  /*
+   * Request Body
+   */
+  char *request_body;
+};
+#define CONTRAST__API__DTM__RAW_REQUEST__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&contrast__api__dtm__raw_request__descriptor) \
+    , (char *)protobuf_c_empty_string, 0, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, 0, 0, (char *)protobuf_c_empty_string, 0, 0, 0,NULL, (char *)protobuf_c_empty_string }
+
+
 struct  _Contrast__Api__Dtm__HttpRequest__NormalizedRequestParamsEntry
 {
   ProtobufCMessage base;
@@ -831,6 +878,17 @@ struct  _Contrast__Api__Dtm__HttpResponse
 #define CONTRAST__API__DTM__HTTP_RESPONSE__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&contrast__api__dtm__http_response__descriptor) \
     , (char *)protobuf_c_empty_string, 0, 0, 0,NULL, 0, 0,NULL, (char *)protobuf_c_empty_string, 0, CONTRAST__API__DTM__HTTP_REQUEST__DOCUMENT_TYPE__NORMAL }
+
+
+struct  _Contrast__Api__Dtm__SimplePair
+{
+  ProtobufCMessage base;
+  char *key;
+  char *value;
+};
+#define CONTRAST__API__DTM__SIMPLE_PAIR__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&contrast__api__dtm__simple_pair__descriptor) \
+    , (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string }
 
 
 struct  _Contrast__Api__Dtm__Pair
@@ -1708,6 +1766,25 @@ Contrast__Api__Dtm__Address *
 void   contrast__api__dtm__address__free_unpacked
                      (Contrast__Api__Dtm__Address *message,
                       ProtobufCAllocator *allocator);
+/* Contrast__Api__Dtm__RawRequest methods */
+void   contrast__api__dtm__raw_request__init
+                     (Contrast__Api__Dtm__RawRequest         *message);
+size_t contrast__api__dtm__raw_request__get_packed_size
+                     (const Contrast__Api__Dtm__RawRequest   *message);
+size_t contrast__api__dtm__raw_request__pack
+                     (const Contrast__Api__Dtm__RawRequest   *message,
+                      uint8_t             *out);
+size_t contrast__api__dtm__raw_request__pack_to_buffer
+                     (const Contrast__Api__Dtm__RawRequest   *message,
+                      ProtobufCBuffer     *buffer);
+Contrast__Api__Dtm__RawRequest *
+       contrast__api__dtm__raw_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   contrast__api__dtm__raw_request__free_unpacked
+                     (Contrast__Api__Dtm__RawRequest *message,
+                      ProtobufCAllocator *allocator);
 /* Contrast__Api__Dtm__HttpRequest__NormalizedRequestParamsEntry methods */
 void   contrast__api__dtm__http_request__normalized_request_params_entry__init
                      (Contrast__Api__Dtm__HttpRequest__NormalizedRequestParamsEntry         *message);
@@ -1785,6 +1862,25 @@ Contrast__Api__Dtm__HttpResponse *
                       const uint8_t       *data);
 void   contrast__api__dtm__http_response__free_unpacked
                      (Contrast__Api__Dtm__HttpResponse *message,
+                      ProtobufCAllocator *allocator);
+/* Contrast__Api__Dtm__SimplePair methods */
+void   contrast__api__dtm__simple_pair__init
+                     (Contrast__Api__Dtm__SimplePair         *message);
+size_t contrast__api__dtm__simple_pair__get_packed_size
+                     (const Contrast__Api__Dtm__SimplePair   *message);
+size_t contrast__api__dtm__simple_pair__pack
+                     (const Contrast__Api__Dtm__SimplePair   *message,
+                      uint8_t             *out);
+size_t contrast__api__dtm__simple_pair__pack_to_buffer
+                     (const Contrast__Api__Dtm__SimplePair   *message,
+                      ProtobufCBuffer     *buffer);
+Contrast__Api__Dtm__SimplePair *
+       contrast__api__dtm__simple_pair__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   contrast__api__dtm__simple_pair__free_unpacked
+                     (Contrast__Api__Dtm__SimplePair *message,
                       ProtobufCAllocator *allocator);
 /* Contrast__Api__Dtm__Pair methods */
 void   contrast__api__dtm__pair__init
@@ -2598,6 +2694,9 @@ typedef void (*Contrast__Api__Dtm__LibraryUsageUpdate_Closure)
 typedef void (*Contrast__Api__Dtm__Address_Closure)
                  (const Contrast__Api__Dtm__Address *message,
                   void *closure_data);
+typedef void (*Contrast__Api__Dtm__RawRequest_Closure)
+                 (const Contrast__Api__Dtm__RawRequest *message,
+                  void *closure_data);
 typedef void (*Contrast__Api__Dtm__HttpRequest__NormalizedRequestParamsEntry_Closure)
                  (const Contrast__Api__Dtm__HttpRequest__NormalizedRequestParamsEntry *message,
                   void *closure_data);
@@ -2627,6 +2726,9 @@ typedef void (*Contrast__Api__Dtm__HttpResponse__NormalizedResponseHeadersEntry_
                   void *closure_data);
 typedef void (*Contrast__Api__Dtm__HttpResponse_Closure)
                  (const Contrast__Api__Dtm__HttpResponse *message,
+                  void *closure_data);
+typedef void (*Contrast__Api__Dtm__SimplePair_Closure)
+                 (const Contrast__Api__Dtm__SimplePair *message,
                   void *closure_data);
 typedef void (*Contrast__Api__Dtm__Pair_Closure)
                  (const Contrast__Api__Dtm__Pair *message,
@@ -2776,6 +2878,7 @@ extern const ProtobufCMessageDescriptor contrast__api__dtm__library__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__dtm__library_usage_update__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__dtm__library_usage_update__class_names_entry__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__dtm__address__descriptor;
+extern const ProtobufCMessageDescriptor contrast__api__dtm__raw_request__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__dtm__http_request__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__dtm__http_request__normalized_request_params_entry__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__dtm__http_request__request_headers_entry__descriptor;
@@ -2788,6 +2891,7 @@ extern const ProtobufCMessageDescriptor contrast__api__dtm__agent_event__options
 extern const ProtobufCMessageDescriptor contrast__api__dtm__http_response__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__dtm__http_response__response_headers_entry__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__dtm__http_response__normalized_response_headers_entry__descriptor;
+extern const ProtobufCMessageDescriptor contrast__api__dtm__simple_pair__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__dtm__pair__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__dtm__attack_result__descriptor;
 extern const ProtobufCEnumDescriptor    contrast__api__dtm__attack_result__response_type__descriptor;

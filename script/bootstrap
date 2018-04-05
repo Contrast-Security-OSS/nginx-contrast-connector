@@ -79,6 +79,38 @@ install_nginx() {
   fi
 }
 
+# NOTE: this is not used by the connector but is required for speedracer
+install_libmodsecurity() {
+  if [ ! -d "vendor/ModSecurity" ]; then
+    pushd vendor > /dev/null 2>&1
+    git clone https://github.com/SpiderLabs/ModSecurity
+    pushd ModSecurity > /dev/null 2>&1
+    git checkout -b v3/master origin/v3/master
+    sh build.sh
+    git submodule init
+    git submodule update
+    ./configure
+    make
+    make install
+    popd > /dev/null 2>&1
+    popd > /dev/null 2>&1
+  else
+    printf "LibModSecurity already installed\n"
+  fi
+}
+
+# NOTE: this is not used by the connector but is required for speedracer
+install_owasp() {
+  if [ ! -d "vendor/owasp-modsecurity-crs" ]; then
+    pushd vendor > /dev/null 2>&1
+    git clone https://github.com/SpiderLabs/owasp-modsecurity-crs.git
+    cp crs-setup.conf owasp-modsecurity-crs/.
+    cp modsecurity.conf owasp-modsecurity-crs/.
+  else
+    printf "OWASP ModSecurity rules already installed\n"
+  fi
+}
+
 if [[ "$#" -eq 1 ]]; then
   if [[ "$1" == "clean" ]]; then
     clean
@@ -90,4 +122,6 @@ else
   install_protobuf
   install_protobuf_c
   install_nginx
+  install_libmodsecurity
+  install_owasp
 fi
