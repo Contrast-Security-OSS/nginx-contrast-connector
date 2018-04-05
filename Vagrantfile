@@ -38,7 +38,7 @@ Vagrant.configure("2") do |config|
   # the path on the host to the actual folder. The second argument is
   # the path on the guest to mount the folder. And the optional third
   # argument is a set of non-required options.
-  config.vm.synced_folder "../go-speedracer-go", "/go/src/contrast/speedracer"
+  config.vm.synced_folder "../../projects/go-speedracer-go", "/go/src/contrast/speedracer"
 
   # Provider-specific configuration so you can fine-tune various
   # backing providers for Vagrant. These expose provider-specific options.
@@ -71,7 +71,7 @@ Vagrant.configure("2") do |config|
     apt-get update
     apt-get -y upgrade
     apt-get -y install gcc g++ make lua5.3 liblua5.3-0 liblua5.3.dev libxml2-dev software-properties-common unzip
-    apt-get -y install libc6-dev flex bison curl doxygen libyajl-dev libgeoip-dev libtool dh-autoreconf libcurl4-gnutls-dev libxml2 libpcre++-dev libxml2-dev
+    apt-get -y install libc6-dev flex bison curl doxygen libyajl-dev libgeoip-dev libtool dh-autoreconf libcurl4-gnutls-dev libxml2 libpcre++-dev libxml2-dev zlib1g-dev
 
     # build and install libmodsecurity
     git clone https://github.com/SpiderLabs/ModSecurity
