@@ -229,7 +229,28 @@ static char * ngx_http_contrast_connector_merge_loc_config(ngx_conf_t * cf,
  */
 static ngx_int_t ngx_http_contrast_connector_module_init(ngx_conf_t * cf)
 {
-    return ngx_http_catch_body_init(cf);
+	ngx_http_core_main_conf_t *main_conf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
+	if (main_conf == NULL) {
+		dd("Main conf was NULL");
+		return NGX_ERROR;
+	}
+	
+	/* Phase 1: process request after the rewrite phase */
+	ngx_http_handler_pt * h_post_rewrite = ngx_array_push(&main_conf->phases[NGX_HTTP_REWRITE_PHASE].handlers);
+	if (h_post_rewrite == NULL) {
+		dd("Post rewrite handler was NULL");
+		return NGX_ERROR;
+	}
+	*h_post_rewrite = ngx_http_contrast_connector_post_rewrite_handler;
+
+	/* Phase 2: processing requests with request body */
+	if (ngx_http_catch_body_init(cf) != NGX_OK) {
+		dd("Not able to initialize catch body filter");
+		return NGX_ERROR;
+	}
+
+	dd("Completed initialization of contrast connector module");
+    return NGX_OK;
 }
 
 

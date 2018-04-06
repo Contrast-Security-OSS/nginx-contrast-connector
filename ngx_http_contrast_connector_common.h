@@ -50,4 +50,8 @@ int64_t unix_millis();
  */
 ngx_int_t ngx_http_catch_body_init(ngx_conf_t *cf);
 
+/*
+ * parse connection and params for non-request body request
+ */
+ngx_int_t ngx_http_contrast_connector_post_rewrite_handler(ngx_http_request_t * r);
 #endif
