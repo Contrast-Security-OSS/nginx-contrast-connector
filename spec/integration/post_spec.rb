@@ -12,36 +12,6 @@ describe "Integration Specs" do
   end
   
   describe "SQLi" do
-
-
-    describe "GET" do
-      it "allows a request without an attack vector" do
-        http = Curl.get("http://127.0.0.1:8888")
-        expect(http.response_code).to eq(200)
-      end
-
-      it "blocks a request with an attack vector" do
-        http = Curl.get("http://127.0.0.1:8888", { attack: "' OR 1=1; --" })
-        expect(http.response_code).to eq(403)
-      end
-
-      it "allows a request to a proxy without an attack vector" do
-        http = Curl.get("http://127.0.0.1:8888/sinatra/simple")
-        expect(http.response_code).to eq(200)
-      end
-
-      it "allows a request to a proxy without an attack vector with params" do
-        http = Curl.get("http://127.0.0.1:8888/sinatra/simple", { a: 1, b: 2, c: { d: [ 1, 2, 3] } } )
-        expect(http.response_code).to eq(200)
-      end
-
-      it "blocks a request with an attack vector" do
-        http = Curl.get("http://127.0.0.1:8888/sinatra/simple", { attack: "' OR 1=1; --" })
-        expect(http.response_code).to eq(403)
-      end
-    end
-
-
     describe "POST" do
       it "allows a request without an attack vector" do
         http = Curl.post("http://127.0.0.1:8888/sinatra/text", { a: 1, b: 2, c: { d: [1, 2, 3] }})
@@ -92,16 +62,6 @@ describe "Integration Specs" do
 
         expect(http.response_code).to eq(403)
       end
-
-      # TODO: Not sure this should actually succeed
-      #it "blocks a request with a XML attribute attack vector" do
-      #  http = Curl.post("http://127.0.0.1:8888/sinatra/xml", '<element attr="alert(document.cookie)">this is safe</element>') do |curl|
-      #    curl.headers['Accept'] = 'text/xml'
-      #    curl.headers['Content-Type'] = 'text/xml'
-      #    curl.headers['Api-Version'] = '2.2'
-      #  end
-      #  expect(http.response_code).to eq(403)
-      #end
     end
   end
 end
