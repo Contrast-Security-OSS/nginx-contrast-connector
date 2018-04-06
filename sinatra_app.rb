@@ -1,20 +1,32 @@
 require 'thin'
 require 'sinatra'
 require 'json'
+require 'ox'
 
 get '/simple' do
   erb :simple
 end
 
+def safe_string body
+  if body.respond_to?(:string)
+    body.string
+  else
+    body.to_s
+  end
+end
+
 post '/json' do
-  @obj = JSON.parse(request.body)
+  @obj = JSON.parse(safe_string(request.body))
   erb :json
 end
 
+post '/xml' do
+  @obj = Ox.parse(safe_string(request.body))
+  erb :xml
+end
+
 post '/text' do
-  @text = request.body.respond_to?(:string) ? 
-      request.body.string : 
-      request.body.to_s
+  @text = safe_string(request.body)
   erb :text
 end
 
@@ -29,6 +41,13 @@ __END__
 
 @@ json
   <h1>Received the following JSON</h1>
+  <div>
+    <%= @obj.inspect %>
+  </div>
+
+
+@@ xml
+  <h1>Received the following XML</h1>
   <div>
     <%= @obj.inspect %>
   </div>

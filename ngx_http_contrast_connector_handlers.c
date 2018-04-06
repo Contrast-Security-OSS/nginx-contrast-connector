@@ -276,7 +276,7 @@ static ngx_int_t send_dtm_to_socket(Contrast__Api__Dtm__RawRequest * dtm,
 	msg.client_number = (int32_t)1;
 	msg.client_total = (int32_t)1;
 	msg.message_count = ++message_count;
-	msg.app_name = "NGINX"; // TODO: configuration or other method for determining name?
+	msg.app_name = "Vagrant"; // TODO: configuration or other method for determining name?
 	msg.app_language = "Ruby";  // TODO: change this when Universal Agent is supported type
 	msg.timestamp_ms = unix_millis();
 	msg.event_case = CONTRAST__API__DTM__MESSAGE__EVENT_REQUEST;
