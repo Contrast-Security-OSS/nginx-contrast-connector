@@ -5,10 +5,10 @@
 /*
  * assign the values of a four byte array from the individual bytes of the length type
  */
-#define len_to_msg(len, msg) msg[0] = (char)(len >> 24); \
-	msg[1] = (char)(len >> 16); \
-	msg[2] = (char)(len >> 8); \
-	msg[3] = (char)(len)
+#define len_to_msg(len, msg) msg[0] = (u_char)(len >> 24); \
+	msg[1] = (u_char)(len >> 16); \
+	msg[2] = (u_char)(len >> 8); \
+	msg[3] = (u_char)(len)
 
 /*
  * convert an array of four bytes into an integer and assign it to the second argument
@@ -40,7 +40,7 @@ ngx_str_t * write_to_service(ngx_str_t socket_path,
 		return NULL;
 	}
 
-	char msg_prefix[4] = { 0, 0, 0, 0 };
+	u_char msg_prefix[4] = { 0, 0, 0, 0 };
 	len_to_msg(data_len, msg_prefix);
 	if (write(sock, msg_prefix, 4) < 0) {
 		dd("[ERROR] could not write message prefix");
@@ -54,7 +54,7 @@ ngx_str_t * write_to_service(ngx_str_t socket_path,
 		return NULL;
 	}
 
-	char response_prefix[4] = { 0, 0, 0, 0 };
+	u_char response_prefix[4] = { 0, 0, 0, 0 };
 	if (read(sock, response_prefix, 4) < 4) {
 		dd("[ERROR] could not read four bytes from response prefix");
 		close(sock);
