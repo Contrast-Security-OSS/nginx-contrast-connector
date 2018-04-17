@@ -11,7 +11,7 @@ Vagrant.configure("2") do |config|
   # https://docs.vagrantup.com.
 
   # Every Vagrant development environment requires a box. You can search for
-  # boxes at https://atlas.hashicorp.com/search.
+  # boxes at https://vagrantcloud.com/search.
   config.vm.box = "centos/7"
 
   # Disable automatic box update checking. If you disable this, then
@@ -22,6 +22,7 @@ Vagrant.configure("2") do |config|
   # Create a forwarded port mapping which allows access to a specific port
   # within the machine from a port on the host machine. In the example below,
   # accessing "localhost:8080" will access port 80 on the guest machine.
+  # NOTE: This will enable public access to the opened port
   config.vm.network "forwarded_port", guest: 80, host: 18000
   config.vm.network "forwarded_port", guest: 8888, host: 18888
 
@@ -38,7 +39,7 @@ Vagrant.configure("2") do |config|
   # the path on the host to the actual folder. The second argument is
   # the path on the guest to mount the folder. And the optional third
   # argument is a set of non-required options.
-  config.vm.synced_folder "../../projects/go-speedracer-go", "/go/src/contrast/speedracer"
+  config.vm.synced_folder "../../projects/go-speedracer-go", "/go/src/contrast/speedracer", owner: "vagrant", group: "vagrant"
 
   # Provider-specific configuration so you can fine-tune various
   # backing providers for Vagrant. These expose provider-specific options.
@@ -55,23 +56,21 @@ Vagrant.configure("2") do |config|
   # View the documentation for the provider you are using for more
   # information on available options.
 
-  # Define a Vagrant Push strategy for pushing to Atlas. Other push strategies
-  # such as FTP and Heroku are also available. See the documentation at
-  # https://docs.vagrantup.com/v2/push/atlas.html for more information.
-  # config.push.define "atlas" do |push|
-  #   push.app = "YOUR_ATLAS_USERNAME/YOUR_APPLICATION_NAME"
-  # end
-
   # Enable provisioning with a shell script. Additional provisioners such as
   # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
   # documentation for more information about their specific syntax and use.
   config.vm.provision "shell", inline: <<-SHELL
     
+    yum update
+    yum upgrade
+
+    # base stuff
+    yum -y install vim git bash wget 
+
     # install base development libraries
-    apt-get update
-    apt-get -y upgrade
-    apt-get -y install gcc g++ make lua5.3 liblua5.3-0 liblua5.3.dev libxml2-dev software-properties-common unzip
-    apt-get -y install libc6-dev flex bison curl doxygen libyajl-dev libgeoip-dev libtool dh-autoreconf libcurl4-gnutls-dev libxml2 libpcre++-dev libxml2-dev zlib1g-dev
+    yum -y install gcc gcc-c++ make lua-devel libxml2-devel software-properties-common unzip
+    yum -y install flex bison curl doxygen libyajl-devel libtool libtool-ltdl-devel dh-autoreconf 
+    yum -y install pcre-devel pcre pcre-cpp GeoIP-devel libcurl-devel zlib-devel yajl yajl-devel lmdb lmdb-devel ssdeep ssdeep-devel
 
     # build and install libmodsecurity
     git clone https://github.com/SpiderLabs/ModSecurity
@@ -81,7 +80,7 @@ Vagrant.configure("2") do |config|
     git submodule init
     git submodule update
     ./configure
-    sudo chown -R ubuntu /usr/local
+    sudo chown -R vagrant /usr/local
     make
     make install
 
@@ -91,18 +90,17 @@ Vagrant.configure("2") do |config|
     # downloading the owasp rules
     git clone https://github.com/SpiderLabs/owasp-modsecurity-crs.git
 
-    # install GO as ubuntu user
-    sudo su - ubuntu
+    # install GO as vagrant user
+    sudo su - vagrant
     cd ~
     wget -q https://dl.google.com/go/go1.10.linux-amd64.tar.gz
     tar -C /usr/local -xzf go1.10.linux-amd64.tar.gz
 
-    chown -R ubuntu /go
+    chown -R vagrant /go
     echo 'export GOHOME=/go' > .go-profile
     echo 'export GOROOT=/usr/local/go' >> .go-profile
     echo 'export GOBIN=/usr/local/go/bin' >> .go-profile
     exit
   
-
   SHELL
 end
