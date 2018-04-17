@@ -72,6 +72,7 @@ Vagrant.configure("2") do |config|
     apt-get -y upgrade
     apt-get -y install gcc g++ make lua5.3 liblua5.3-0 liblua5.3.dev libxml2-dev software-properties-common unzip
     apt-get -y install libc6-dev flex bison curl doxygen libyajl-dev libgeoip-dev libtool dh-autoreconf libcurl4-gnutls-dev libxml2 libpcre++-dev libxml2-dev zlib1g-dev
+    apt-get -y install liblmdb-dev liblmdb++-dev ssdeep 
 
     # build and install libmodsecurity
     git clone https://github.com/SpiderLabs/ModSecurity
