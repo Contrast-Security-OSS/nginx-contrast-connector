@@ -33,6 +33,7 @@ typedef struct {
   ngx_flag_t enable;
   ngx_flag_t debug;
   ngx_str_t socket_path;
+  ngx_str_t app_name;
 } ngx_http_contrast_connector_conf_t;
 
 /*
@@ -49,6 +50,11 @@ int64_t unix_millis();
  * update request body filter chain
  */
 ngx_int_t ngx_http_catch_body_init(ngx_conf_t *cf);
+
+/*
+ * utility method to copy C strings from ngx strings
+ */
+char * ngx_str_to_char(ngx_str_t a, ngx_pool_t *p);
 
 /*
  * parse connection and params for non-request body request
