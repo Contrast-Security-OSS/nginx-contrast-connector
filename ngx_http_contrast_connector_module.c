@@ -198,7 +198,7 @@ static const char DEFAULT_SOCKET[] = "/tmp/contrast-security.sock";
 /*
  * default name for applications in contrast service
  */
-static const char DEFAULT_NAME[] = "nginx";
+static const char DEFAULT_NAME[] = "__cs_nginx__";
 
 /*
  * create location configuration
