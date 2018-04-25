@@ -267,8 +267,20 @@ static void free_dtm(Contrast__Api__Dtm__RawRequest * dtm)
 static int64_t message_count = 0;
 
 static ngx_int_t send_dtm_to_socket(Contrast__Api__Dtm__RawRequest * dtm, 
-		ngx_str_t socket_path, 
-		ngx_log_t * log) {
+		ngx_str_t socket_path,
+		ngx_str_t app_name,
+		ngx_log_t * log,
+		ngx_pool_t * pool) {
+
+	// non-zero value indicates that the request should be blocked
+	ngx_int_t boom = 0;
+
+	// copy app name into temporary variable
+	char * app_name_str = ngx_str_to_char(app_name, pool);
+	if(app_name_str == NULL || app_name_str == -1) {
+		dd("cannot determine appname from configuration");
+		return boom;
+	}
 
 	Contrast__Api__Dtm__Message msg = CONTRAST__API__DTM__MESSAGE__INIT;
 	msg.client_id = "NGINX";
@@ -276,12 +288,12 @@ static ngx_int_t send_dtm_to_socket(Contrast__Api__Dtm__RawRequest * dtm,
 	msg.client_number = (int32_t)1;
 	msg.client_total = (int32_t)1;
 	msg.message_count = ++message_count;
-	msg.app_name = "Vagrant"; // TODO: configuration or other method for determining name?
+	msg.app_name = app_name_str;
 	msg.app_language = "Ruby";  // TODO: change this when Universal Agent is supported type
 	msg.timestamp_ms = unix_millis();
 	msg.event_case = CONTRAST__API__DTM__MESSAGE__EVENT_REQUEST;
 	msg.request = dtm;
-	dd("built parent message structure");
+	dd("built parent message structure: %s (%s)", msg.app_name, msg.app_language);
 
 	// send message to service
 	size_t len = contrast__api__dtm__message__get_packed_size(&msg);
@@ -306,7 +318,6 @@ static ngx_int_t send_dtm_to_socket(Contrast__Api__Dtm__RawRequest * dtm,
 
 	// deserialize and parse response
 	Contrast__Api__Settings__AgentSettings *settings = NULL;
-	ngx_int_t boom = 0;
 	if (response != NULL) {
 		dd("attempting to unpack agent settings: %ld", sizeof(*response));
 		settings = contrast__api__settings__agent_settings__unpack(NULL, 
@@ -337,12 +348,19 @@ static ngx_int_t send_dtm_to_socket(Contrast__Api__Dtm__RawRequest * dtm,
 
 		// TODO: it appears response and the unpacked settings share the same memory (?)
 		// so you only free one?
+		dd("about to free response data");
 		free(response->data);
+
+		dd("about to free response");
 		free(response);
 	} else {
 		dd("[WARN] response was null");
 	}
 
+	dd("about to free name string");
+	// TODO: even though this is allocated from the configuration structure; if 
+	// I try to free it here I get an exception. I don't know why.
+	// free(app_name_str);
 	return boom;
 }
 
@@ -355,13 +373,14 @@ ngx_int_t ngx_http_contrast_connector_post_rewrite_handler(ngx_http_request_t *r
 	dd("\n\nIn post rewrite handler!");
 
 	ngx_log_t * log = r->connection->log;
-    ngx_http_contrast_connector_conf_t * conf = ngx_http_get_module_loc_conf(r, 
+	ngx_pool_t * pool = r->pool;
+	ngx_http_contrast_connector_conf_t * conf = ngx_http_get_module_loc_conf(r, 
 			ngx_http_contrast_connector_module);
-    if (!conf->enable) {
+	if (!conf->enable) {
 		
 		// this handler declines to handle this request
 		return NGX_DECLINED;
-    }
+	}
 
 	if (r->method != NGX_HTTP_GET) {
 
@@ -375,7 +394,11 @@ ngx_int_t ngx_http_contrast_connector_post_rewrite_handler(ngx_http_request_t *r
 		return NGX_DECLINED;
 	}
 
-	ngx_int_t boom = send_dtm_to_socket(dtm, conf->socket_path, log);
+	ngx_int_t boom = send_dtm_to_socket(dtm, 
+		conf->socket_path, 
+		conf->app_name, 
+		log, 
+		pool);
 
 	free_dtm(dtm);
 
@@ -399,13 +422,14 @@ static ngx_int_t ngx_http_catch_body_filter(ngx_http_request_t *r, ngx_chain_t *
 	dd("\n\nin ngx_http_catch_body_filter...");
 
 	ngx_log_t * log = r->connection->log;
-    ngx_http_contrast_connector_conf_t * conf = ngx_http_get_module_loc_conf(r, 
+	ngx_pool_t * pool = r->pool;
+	ngx_http_contrast_connector_conf_t * conf = ngx_http_get_module_loc_conf(r, 
 			ngx_http_contrast_connector_module);
-    if (!conf->enable) {
+	if (!conf->enable) {
 		
 		// early return if module it not enabled
-        return ngx_http_next_request_body_filter(r, in);
-    }
+		return ngx_http_next_request_body_filter(r, in);
+	}
 
 	Contrast__Api__Dtm__RawRequest * dtm = build_dtm_from_request(r);
 	if (dtm == NULL) {
@@ -416,7 +440,11 @@ static ngx_int_t ngx_http_catch_body_filter(ngx_http_request_t *r, ngx_chain_t *
 	dtm->request_body = read_body(in, log);
 	dd("request_body: %s", dtm->request_body);
 
-	ngx_int_t boom = send_dtm_to_socket(dtm, conf->socket_path, log);
+	ngx_int_t boom = send_dtm_to_socket(dtm, 
+		conf->socket_path, 
+		conf->app_name, 
+		log,
+		pool);
 
 	free_dtm(dtm);
 
@@ -426,7 +454,7 @@ static ngx_int_t ngx_http_catch_body_filter(ngx_http_request_t *r, ngx_chain_t *
 	}
 
 	dd("boom was false...");
-    return ngx_http_next_request_body_filter(r, in);
+	return ngx_http_next_request_body_filter(r, in);
 }
 
 /*
@@ -443,11 +471,11 @@ static ngx_int_t ngx_http_catch_header_filter(ngx_http_request_t * r)
  */
 ngx_int_t ngx_http_catch_body_init(ngx_conf_t *cf)
 {
-    ngx_http_next_request_body_filter = ngx_http_top_request_body_filter;
-    ngx_http_top_request_body_filter = ngx_http_catch_body_filter;
+	ngx_http_next_request_body_filter = ngx_http_top_request_body_filter;
+	ngx_http_top_request_body_filter = ngx_http_catch_body_filter;
 
 	ngx_http_next_output_header_filter = ngx_http_top_header_filter;
 	ngx_http_top_header_filter = ngx_http_catch_header_filter;
 
-    return NGX_OK;
+	return NGX_OK;
 }
