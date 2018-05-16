@@ -37,7 +37,7 @@ Assuming all the steps succeed, you now have a NGINX instance with the speedrace
 
 Next, you probably want to run Speedracer considering this project is called the NGINX / Speedracer Connector.  The vagrant provision should have downloaded and installed the libmodsecurity library as well as the OWASP rule sets. The library headers need to be added to the library path. Add the following to ~/.profile
 
-    LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+LD_LIBRARY_PATH:}/usr/local/lib:/usr/local/modsecurity/lib"
+    export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+LD_LIBRARY_PATH:}/usr/local/lib:/usr/local/modsecurity/lib"
 	
 It should have also installed Go however the provisioner didn't update the profile correctly (unless this has been fixed) so edit your ~/.profile to add the following to the PATH. 
 

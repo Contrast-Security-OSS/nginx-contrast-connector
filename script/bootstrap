@@ -90,7 +90,7 @@ install_libmodsecurity() {
     pushd vendor > /dev/null 2>&1
     git clone https://github.com/SpiderLabs/ModSecurity
     pushd ModSecurity > /dev/null 2>&1
-    git checkout -b v3/master origin/v3/master
+    git checkout v3.0.2
     sh build.sh
     git submodule init
     git submodule update
