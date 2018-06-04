@@ -52,12 +52,13 @@ int64_t unix_millis();
 ngx_int_t ngx_http_catch_body_init(ngx_conf_t *cf);
 
 /*
- * utility method to copy C strings from ngx strings
+ * utility method to create C strings from ngx strings
  */
-char * ngx_str_to_char(ngx_str_t a, ngx_pool_t *p);
+char *ngx_str_to_char(const ngx_str_t *a, ngx_pool_t *p);
 
 /*
  * parse connection and params for non-request body request
  */
-ngx_int_t ngx_http_contrast_connector_post_rewrite_handler(ngx_http_request_t * r);
+ngx_int_t ngx_http_contrast_connector_preaccess_handler(
+        ngx_http_request_t * r);
 #endif

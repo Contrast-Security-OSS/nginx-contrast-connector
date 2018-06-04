@@ -1,3 +1,9 @@
+/*
+ * The module will insert an http handler into the PRE-ACCESS phase of the
+ * http module. The handler will send request/response data to the Contrast
+ * rules engine for determination on if the request/response should proceed.
+ */
+
 #include <string.h>
 #include <stdio.h>
 #include <sys/socket.h>
@@ -9,24 +15,18 @@
 #include <ngx_config.h>
 #include <ngx_core.h>
 #include <ngx_http.h>
+#include <ngx_log.h>
 
 #include <protobuf-c/protobuf-c.h>
 #include "dtm.pb-c.h"
 #include "settings.pb-c.h"
 
 #include "ngx_http_contrast_connector_common.h"
-#include "ngx_http_contrast_connector_socket.h"
-
 
 static void *ngx_http_contrast_connector_create_loc_config(ngx_conf_t *cf);
 static char *ngx_http_contrast_connector_merge_loc_config(ngx_conf_t *cf,
     void * parent, void * child);
-
 static ngx_int_t ngx_http_contrast_connector_module_init(ngx_conf_t *cf);
-static char *ngx_http_contrast_connector(ngx_conf_t *cf,
-    ngx_command_t *cmd, void *conf);
-static void ngx_http_contrast_connector_post_handler(ngx_http_request_t *r);
-static ngx_int_t ngx_http_contrast_connector_handler(ngx_http_request_t *r);
 
 
 /*
@@ -41,28 +41,27 @@ unix_millis()
 }
 
 /*
- * From: https://github.com/SpiderLabs/ModSecurity-nginx
+ * Convert an nginx str to a null terminated str.
  *
- * return: NULL on empty string, -1 on failed allocation
+ * Uses pool *p for allocation.
  */
 ngx_inline char *
-ngx_str_to_char(ngx_str_t a, ngx_pool_t *p)
+ngx_str_to_char(const ngx_str_t *a, ngx_pool_t *p)
 {
-    char * str = NULL;
-    if (a.len == 0) {
-        /* string is empty; return NULL */
-        return NULL;
+    char *str = NULL;
+    if (a->len == 0) {
+        goto fail;
     }
 
-    str = ngx_pnalloc(p, a.len + 1);
+    str = ngx_pnalloc(p, a->len + 1);
     if (str == NULL) {
-        /* string could not be allocated; return -1 */
-        return (char *) -1;
+        goto fail;
     }
 
-    /* return 0 terminated string */
-    ngx_memcpy(str, a.data, a.len);
-    str[a.len] = '\0';
+    ngx_memcpy(str, a->data, a->len);
+    str[a->len] = '\0';
+
+fail:
     return str;
 }
 
@@ -71,40 +70,40 @@ ngx_str_to_char(ngx_str_t a, ngx_pool_t *p)
  */
 static ngx_command_t ngx_http_contrast_connector_commands[] = {
     {
-            ngx_string("contrast"),
-            NGX_HTTP_LOC_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_MAIN_CONF
-                | NGX_CONF_FLAG,
-            ngx_conf_set_flag_slot,
-            NGX_HTTP_LOC_CONF_OFFSET,
-            offsetof(ngx_http_contrast_connector_conf_t, enable),
-            NULL
+        ngx_string("contrast"),
+        NGX_HTTP_LOC_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_MAIN_CONF
+            | NGX_CONF_FLAG,
+        ngx_conf_set_flag_slot,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_contrast_connector_conf_t, enable),
+        NULL
     },
     {
-            ngx_string("contrast_debug"),
-            NGX_HTTP_LOC_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_MAIN_CONF
-                | NGX_CONF_FLAG,
-            ngx_conf_set_flag_slot,
-            NGX_HTTP_LOC_CONF_OFFSET,
-            offsetof(ngx_http_contrast_connector_conf_t, debug),
-            NULL
+        ngx_string("contrast_debug"),
+        NGX_HTTP_LOC_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_MAIN_CONF
+            | NGX_CONF_FLAG,
+        ngx_conf_set_flag_slot,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_contrast_connector_conf_t, debug),
+        NULL
     },
     {
-            ngx_string("contrast_unix_socket"),
-            NGX_HTTP_LOC_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_MAIN_CONF
-                | NGX_CONF_TAKE1,
-            ngx_conf_set_str_slot,
-            NGX_HTTP_LOC_CONF_OFFSET,
-            offsetof(ngx_http_contrast_connector_conf_t, socket_path),
-            NULL
+        ngx_string("contrast_unix_socket"),
+        NGX_HTTP_LOC_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_MAIN_CONF
+            | NGX_CONF_TAKE1,
+        ngx_conf_set_str_slot,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_contrast_connector_conf_t, socket_path),
+        NULL
     },
     {
-            ngx_string("contrast_app_name"),
-            NGX_HTTP_LOC_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_MAIN_CONF
-                | NGX_CONF_TAKE1,
-            ngx_conf_set_str_slot,
-            NGX_HTTP_LOC_CONF_OFFSET,
-            offsetof(ngx_http_contrast_connector_conf_t, app_name),
-            NULL
+        ngx_string("contrast_app_name"),
+        NGX_HTTP_LOC_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_MAIN_CONF
+            | NGX_CONF_TAKE1,
+        ngx_conf_set_str_slot,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_contrast_connector_conf_t, app_name),
+        NULL
     },
     ngx_null_command
 };
@@ -168,8 +167,9 @@ static const char DEFAULT_SOCKET[] = "/tmp/contrast-security.sock";
 
 /*
  * default name for applications in contrast service
+ * XXX: Should this be required? can it be determined from the HOST field?
  */
-static const char DEFAULT_NAME[] = "unknown"; /* XXX: should this be required? */
+static const char DEFAULT_NAME[] = "unknown";
 
 
 static void *
@@ -195,9 +195,9 @@ ngx_http_contrast_connector_merge_loc_config(ngx_conf_t *cf,
     ngx_http_contrast_connector_conf_t *prev = parent;
     ngx_http_contrast_connector_conf_t *conf = child;
 
-    /* default to enable contrast protection */
-    ngx_conf_merge_off_value(conf->enable, prev->enable, true);
-    ngx_conf_merge_off_value(conf->debug, prev->debug, false);
+    /* default to enable Contrast protection */
+    ngx_conf_merge_off_value(conf->enable, prev->enable, 1);
+    ngx_conf_merge_off_value(conf->debug, prev->debug, 0);
     ngx_conf_merge_str_value(conf->socket_path, prev->socket_path,
         DEFAULT_SOCKET);
 
@@ -214,30 +214,31 @@ ngx_http_contrast_connector_merge_loc_config(ngx_conf_t *cf,
 
 
 /*
- * init module and place in the filter chain
+ * init module and place in the http phase chain
  */
-static ngx_int_t ngx_http_contrast_connector_module_init(ngx_conf_t * cf)
+static ngx_int_t
+ngx_http_contrast_connector_module_init(ngx_conf_t * cf)
 {
     ngx_http_core_main_conf_t *main_conf = ngx_http_conf_get_module_main_conf(
         cf, ngx_http_core_module);
     if (main_conf == NULL) {
-        ngx_log_error(NGX_LOG_ERROR, cf->log, 0, "Main conf was NULL");
+        ngx_log_error(NGX_LOG_ERR, cf->log, 0, "Main conf was NULL");
         return NGX_ERROR;
     }
 
-    /* Phase 1: process request after the rewrite phase */
-    ngx_http_handler_pt *h_post_rewrite = ngx_array_push(
-        &main_conf->phases[NGX_HTTP_REWRITE_PHASE].handlers);
-    if (h_post_rewrite == NULL) {
-        ngx_log_error(NGX_LOG_ERROR, cf->log, 0,
-            "Post rewrite handler was NULL");
+    /* attach url handler after the pre-access phase. */
+    ngx_http_handler_pt *h_preaccess = ngx_array_push(
+        &main_conf->phases[NGX_HTTP_PREACCESS_PHASE].handlers);
+    if (h_preaccess == NULL) {
+        ngx_log_error(NGX_LOG_ERR, cf->log, 0,
+            "Preaccess handler was NULL");
         return NGX_ERROR;
     }
-    *h_post_rewrite = ngx_http_contrast_connector_post_rewrite_handler;
+    *h_preaccess = ngx_http_contrast_connector_preaccess_handler;
 
     /* Phase 2: processing requests with request body */
     if (ngx_http_catch_body_init(cf) != NGX_OK) {
-        ngx_log_error(NGX_LOG_ERROR, cf->log, 0,
+        ngx_log_error(NGX_LOG_ERR, cf->log, 0,
             "Not able to initialize catch body filter");
         return NGX_ERROR;
     }
