@@ -15,6 +15,7 @@
 
 #define APP_LANG  "Ruby" /* XXX: temp placeholder for TS */
 #define CLIENT_ID  "NGINX"
+
 static ngx_http_request_body_filter_pt ngx_http_next_request_body_filter;
 static ngx_http_output_header_filter_pt ngx_http_next_output_header_filter;
 
@@ -96,7 +97,8 @@ read_body(ngx_chain_t *in, ngx_log_t *log)
 static Contrast__Api__Dtm__RawRequest *
 build_dtm_from_request(ngx_http_request_t *r) 
 {
-    Contrast__Api__Dtm__RawRequest * dtm = ngx_pcalloc(
+    ngx_log_t *log = r->connection->log;
+    Contrast__Api__Dtm__RawRequest *dtm = ngx_pcalloc(
         r->pool, sizeof(Contrast__Api__Dtm__RawRequest));
     contrast__api__dtm__raw_request__init(dtm);
 
@@ -105,13 +107,15 @@ build_dtm_from_request(ngx_http_request_t *r)
     dtm->request_line = ngx_pcalloc(r->pool, r->request_line.len + 1);
     if (dtm->request_line != NULL) {
         strncpy(dtm->request_line, r->request_line.data, r->request_line.len);
-        dd("request_line: %s", dtm->request_line);
+        ngx_log_debug(NGX_LOG_DEBUG_HTTP, log, 0,
+            LOG_PREFIX "request_line: %s", dtm->request_line);
     }
 
     dtm->normalized_uri = ngx_pcalloc(r->pool, r->uri.len + 1);
     if (dtm->normalized_uri != NULL) {
         strncpy(dtm->normalized_uri, r->uri.data, r->uri.len);
-        dd("normalized_uri: %s", dtm->normalized_uri);
+        ngx_log_debug(NGX_LOG_DEBUG_HTTP, log, 0,
+            LOG_PREFIX "normalized_uri: %s", dtm->normalized_uri);
     }
 
     struct address_s client_address;
@@ -120,7 +124,9 @@ build_dtm_from_request(ngx_http_request_t *r)
             dtm->client_ip = client_address.address;
             dtm->client_ip_version = client_address.version;
             dtm->client_port = client_address.port;
-            dd("-> ip=%s (ipv%d) port=%d", dtm->client_ip, dtm->client_ip_version, dtm->client_port); 
+            ngx_log_debug(NGX_LOG_DEBUG_HTTP, log, 0,
+                LOG_PREFIX "-> ip=%s (ipv%d) port=%d",
+                dtm->client_ip, dtm->client_ip_version, dtm->client_port); 
         }
     }
 
@@ -130,7 +136,9 @@ build_dtm_from_request(ngx_http_request_t *r)
             dtm->server_ip = server_address.address;
             dtm->server_ip_version = server_address.version;
             dtm->server_port = server_address.port;
-            dd("<- ip=%s (ipv%d) port=%d", dtm->server_ip, dtm->server_ip_version, dtm->server_port); 
+            ngx_log_debug(NGX_LOG_DEBUG_HTTP, log, 0,
+                LOG_PREFIX "<- ip=%s (ipv%d) port=%d",
+                dtm->server_ip, dtm->server_ip_version, dtm->server_port); 
         }
     }
 
@@ -178,14 +186,16 @@ build_dtm_from_request(ngx_http_request_t *r)
             dtm->request_headers = realloc(dtm->request_headers, 
                     sizeof(Contrast__Api__Dtm__SimplePair *) * (dtm->n_request_headers+1));
             if (dtm->request_headers == NULL) {
-                dd("[ERROR] alloc or realloc failed for headers");
+                ngx_log_error(NGX_LOG_ERR, log, 0,
+                    LOG_PREFIX "error: alloc or realloc failed for headers");
                 ngx_pfree(r->pool, pair->key);
                 ngx_pfree(r->pool, pair->value);
                 ngx_pfree(r->pool, pair);
                 dtm->n_request_headers = 0;
                 break;
             }
-            dd("[header] %s=%s", pair->key, pair->value);
+            ngx_log_debug(NGX_LOG_DEBUG_HTTP, log, 0,
+                LOG_PREFIX "[header] %s=%s", pair->key, pair->value);
             dtm->request_headers[dtm->n_request_headers] = pair;
             dtm->n_request_headers++;
         }
@@ -244,7 +254,7 @@ send_dtm_to_socket(
     char *app_name_str = ngx_str_to_char(&app_name, pool);
     if (app_name_str == NULL) {
         ngx_log_error(NGX_LOG_ERR, log, 0,
-            "failed to convert app_name to char string");
+            LOG_PREFIX "failed to convert app_name to char string");
         return deny;
     }
 
@@ -261,30 +271,30 @@ send_dtm_to_socket(
     msg.request = dtm;
     
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, log, 0,
-        "built parent message structure: %s (%s)",
+        LOG_PREFIX "built parent message structure: %s (%s)",
         msg.app_name, msg.app_language);
 
     size_t len = contrast__api__dtm__message__get_packed_size(&msg);
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, log, 0,
-        "estimated size of packed message: %ld", len);
+        LOG_PREFIX "estimated size of packed message: %ld", len);
 
     void * buf = ngx_palloc(pool, len);
     if (buf == NULL) {
         ngx_log_error(NGX_LOG_ERR, log, 0,
-            "[contrast] error: could not allocate buffer size for protobuf"
+            LOG_PREFIX "error: could not allocate buffer size for protobuf"
             "message");
         goto fail;
     }
 
     size_t packed_size = contrast__api__dtm__message__pack(&msg, buf);
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, log, 0,
-        "actual packed message size: %ld", packed_size);
+        LOG_PREFIX "actual packed message size: %ld", packed_size);
     response = write_to_service(socket_path, buf, len, log);
     ngx_pfree(pool, buf);
     
     if ((response = write_to_service(socket_path, buf, len, log)) == NULL) {
         ngx_log_error(NGX_LOG_ERR, log, 0, 
-            "[contrast] error writing dtm to analysis engine");
+            LOG_PREFIX "error writing dtm to analysis engine");
         goto fail;
     }
 
@@ -296,23 +306,23 @@ send_dtm_to_socket(
 
     if (settings == NULL) {
         ngx_log_error(NGX_LOG_ERR, log, 0,
-            "[contrast] failed to deserialize analysis engine response");
+            LOG_PREFIX "failed to deserialize analysis engine response");
         goto fail;
     }
 
     if (settings->protect_state == NULL) {
         ngx_log_error(NGX_LOG_ERR, log, 0,
-            "[contrast] error reading response protect_state");
+            LOG_PREFIX "error reading response protect_state");
         goto fail;
     }
 
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, log, 0,
-        "[contrast] security exception value: %d", 
+        LOG_PREFIX "security exception value: %d", 
         settings->protect_state->security_exception);
     
     if (settings->protect_state->security_exception) {
         ngx_log_error(NGX_LOG_WARN, log, 0,
-            "[constrast] security exception: %s uuid=%s", 
+            LOG_PREFIX "security exception: %s uuid=%s", 
             settings->protect_state->security_message,
             settings->protect_state->uuid);
         deny = 1;
@@ -347,13 +357,13 @@ ngx_http_contrast_connector_preaccess_handler(ngx_http_request_t *r)
 
     if (!conf->enable) {
         ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-            "[contrast]: skipping processing because not enabled");
+            LOG_PREFIX "skipping processing because not enabled");
         return NGX_DECLINED;
     }
 
     if (!r->main) {
         ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-            "[contrast]: skipping processing because not a main request");
+            LOG_PREFIX "skipping processing because not a main request");
         return NGX_DECLINED;
     }
     if (r->method != NGX_HTTP_GET) {
@@ -376,7 +386,7 @@ ngx_http_contrast_connector_preaccess_handler(ngx_http_request_t *r)
     Contrast__Api__Dtm__RawRequest * dtm = build_dtm_from_request(r);
     if (dtm == NULL) {
         ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-            "[contrast] failed dtm allocation");
+            LOG_PREFIX "failed dtm allocation");
         return NGX_DECLINED;
     }
 
@@ -389,10 +399,10 @@ ngx_http_contrast_connector_preaccess_handler(ngx_http_request_t *r)
     free_dtm(r->pool, dtm);
 
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-        "[contrast]: analysis result: %s", deny ? "blocked" : "allowed");
+        LOG_PREFIX "analysis result: %s", deny ? "blocked" : "allowed");
     if (deny) {
         ngx_log_error(NGX_LOG_WARN, r->connection->log, 0,
-            "[contrast] Blocked Request");
+            LOG_PREFIX "Blocked Request");
         return NGX_HTTP_FORBIDDEN;
     }
 
@@ -427,7 +437,7 @@ ngx_http_catch_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
     dtm->request_body = read_body(in, log);
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, log, 0,
-        "[contrast] request_body: %s", dtm->request_body);
+        LOG_PREFIX "request_body: %s", dtm->request_body);
 
     ngx_int_t deny = send_dtm_to_socket(dtm, 
         conf->socket_path, 
@@ -438,11 +448,11 @@ ngx_http_catch_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
     free_dtm(r->pool, dtm);
 
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-        "[contrast]: analysis result (body filter): %s",
+        LOG_PREFIX "analysis result (body filter): %s",
         deny ? "blocked" : "allowed");
     if (deny) {
         ngx_log_error(NGX_LOG_WARN, log, 0,
-            "[contrast] Blocked Request (body filter)");
+            LOG_PREFIX "Blocked Request (body filter)");
         return NGX_HTTP_FORBIDDEN;
     }
 

@@ -1,3 +1,5 @@
+/* Copyright (C) Contrast Security, Inc. */
+
 #include "settings.pb-c.h"
 #include "ngx_http_contrast_connector_common.h"
 #include "ngx_http_contrast_connector_socket.h"
@@ -24,19 +26,20 @@ ngx_str_t *
 write_to_service(
         ngx_str_t socket_path, void *data, size_t data_len, ngx_log_t *log)
 {
-	dd("write_to_service");
+	ngx_log_debug(NGX_LOG_DEBUG_HTTP, log, 0, LOG_PREFIX "write_to_service");
 	struct sockaddr_un server;
 	
 	int sock = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (sock < 0) {
-		dd("[ERROR] socket not valid");
+		ngx_log_error(NGX_LOG_ERR, log, 0, LOG_PREFIX "socket not valid");
 		return NULL;
 	}
 
 	server.sun_family = AF_UNIX;
 	strcpy(server.sun_path, socket_path.data);
 	if (connect(sock, (struct sockaddr *)&server, sizeof(struct sockaddr_un)) < 0) {
-		dd("[ERROR] cound not connect to stream socket");
+		ngx_log_error(NGX_LOG_ERR, log, 0,
+            LOG_PREFIX "cound not connect to stream socket");
 		close(sock);
 		return NULL;
 	}
@@ -44,28 +47,34 @@ write_to_service(
 	u_char msg_prefix[4] = { 0, 0, 0, 0 };
 	len_to_msg(data_len, msg_prefix);
 	if (write(sock, msg_prefix, 4) < 0) {
-		dd("[ERROR] could not write message prefix");
+		ngx_log_error(NGX_LOG_ERR, log, 0,
+            LOG_PREFIX "could not write message prefix");
 		close(sock);
 		return NULL;
 	}
 
 	if (write(sock, data, data_len) < 0) {
-		dd("[ERROR] could not write message: d: %p, sz: %lu", data, data_len);
+		ngx_log_error(NGX_LOG_ERR, log, 0,
+            LOG_PREFIX "could not write message: d: %p, sz: %lu",
+            data, data_len);
 		close(sock);
 		return NULL;
 	}
 
 	u_char response_prefix[4] = { 0, 0, 0, 0 };
 	if (read(sock, response_prefix, 4) < 4) {
-		dd("[ERROR] could not read four bytes from response prefix");
+		ngx_log_error(NGX_LOG_ERR, log, 0,
+            LOG_PREFIX "could not read four bytes from response prefix");
 		close(sock);
 		return NULL;
 	}
 
 	size_t response_len = 0;
 	msg_to_len(response_prefix, response_len);
-	if (response_len <= 0 || response_len > 1000000) {
-		dd("[WARN] idiot check on response prefix (len=%ld) failed", response_len);
+	if (!response_len || response_len > 1000000) {
+		ngx_log_error(NGX_LOG_ERR, log, 0,
+            LOG_PREFIX "response from analysis engine seems corrupt",
+            response_len);
 		close(sock);
 		return NULL;
 	}
@@ -73,7 +82,9 @@ write_to_service(
 	size_t actual_len = 0;
 	u_char * response = ngx_alloc(response_len, log);
 	if ((actual_len = read(sock, response, response_len)) < response_len) {
-		dd("[WARN] expected len did not match acutal len(%ld != %ld", actual_len, response_len);
+		ngx_log_error(NGX_LOG_ERR, log, 0,
+            LOG_PREFIX "expected len did not match acutal len(%ld != %ld)",
+            actual_len, response_len);
 		free(response);
 		close(sock);
 		return NULL;
@@ -81,7 +92,7 @@ write_to_service(
 
 	close(sock);
 
-	ngx_str_t * str = ngx_alloc(sizeof(ngx_str_t), log);
+	ngx_str_t *str = ngx_alloc(sizeof(ngx_str_t), log);
 	str->data = response;
 	str->len = actual_len;
 	return str;
