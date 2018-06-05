@@ -196,8 +196,8 @@ ngx_http_contrast_connector_merge_loc_config(ngx_conf_t *cf,
     ngx_http_contrast_connector_conf_t *prev = parent;
     ngx_http_contrast_connector_conf_t *conf = child;
 
-    /* default to enable Contrast protection */
-    ngx_conf_merge_off_value(conf->enable, prev->enable, 1);
+    /* default to disable Contrast protection */
+    ngx_conf_merge_off_value(conf->enable, prev->enable, 0);
     ngx_conf_merge_off_value(conf->debug, prev->debug, 0);
     ngx_conf_merge_str_value(conf->socket_path, prev->socket_path,
         DEFAULT_SOCKET);
