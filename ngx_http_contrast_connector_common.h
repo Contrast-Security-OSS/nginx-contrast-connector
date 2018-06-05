@@ -1,3 +1,5 @@
+/* Copyright (C) Contrast Security, Inc. */
+
 #ifndef _NGX_HTTP_CONTRAST_CONNECTOR_COMMON_H_
 #define _NGX_HTTP_CONTRAST_CONNECTOR_COMMON_H_
 

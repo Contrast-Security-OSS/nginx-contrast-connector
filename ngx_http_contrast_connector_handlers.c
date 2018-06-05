@@ -17,10 +17,17 @@
 #define CLIENT_ID  "NGINX"
 
 static ngx_http_request_body_filter_pt ngx_http_next_request_body_filter;
+
+#if 0
+/* 
+ * XXX: not used yet. need to figure out if this is required.
+ * should create tests that expose things if its a problem
+ */
 static ngx_http_output_header_filter_pt ngx_http_next_output_header_filter;
+#endif 
 
 typedef struct address_s {
-    u_char * address;
+    char *address;
     int32_t port;
     int32_t version;
 } address_t;
@@ -84,7 +91,7 @@ read_body(ngx_chain_t *in, ngx_log_t *log)
         chunk_len = chain->buf->last - chunk;
 
         body = realloc(body, body_len + chunk_len + 1);
-        strncpy(body + body_len, chunk, chunk_len);
+        memcpy(body + body_len, chunk, chunk_len);
 
         body_len += chunk_len;
         body[body_len] = '\0';
@@ -104,16 +111,21 @@ build_dtm_from_request(ngx_http_request_t *r)
 
     dtm->timestamp_ms = unix_millis();
 
+    /* XXX: need to check on these copies. NGINX documentation made a comment
+     * that ngx_str_t may not always be null terminated.  The pcalloc is 
+     * side-stepping the problem, but it may not be necessary if we handle
+     * the case explicitly
+     */
     dtm->request_line = ngx_pcalloc(r->pool, r->request_line.len + 1);
     if (dtm->request_line != NULL) {
-        strncpy(dtm->request_line, r->request_line.data, r->request_line.len);
+        strncpy(dtm->request_line, (char*)r->request_line.data, r->request_line.len);
         ngx_log_debug(NGX_LOG_DEBUG_HTTP, log, 0,
             LOG_PREFIX "request_line: %s", dtm->request_line);
     }
 
     dtm->normalized_uri = ngx_pcalloc(r->pool, r->uri.len + 1);
     if (dtm->normalized_uri != NULL) {
-        strncpy(dtm->normalized_uri, r->uri.data, r->uri.len);
+        strncpy(dtm->normalized_uri, (char*)r->uri.data, r->uri.len);
         ngx_log_debug(NGX_LOG_DEBUG_HTTP, log, 0,
             LOG_PREFIX "normalized_uri: %s", dtm->normalized_uri);
     }
@@ -151,7 +163,7 @@ build_dtm_from_request(ngx_http_request_t *r)
         ngx_table_elt_t * entry_ptr = (ngx_table_elt_t *)curr->elts;
         ngx_table_elt_t * entry = NULL;
 
-        for(ngx_int_t count = 0; ; count++) {
+        for(size_t count = 0; ; count++) {
             if (count >= curr->nelts) {
                 if (curr->next == NULL) {
                     break;
@@ -164,7 +176,7 @@ build_dtm_from_request(ngx_http_request_t *r)
 
             entry = (&entry_ptr[count]);
         
-            Contrast__Api__Dtm__SimplePair * pair = ngx_pcalloc(
+            Contrast__Api__Dtm__SimplePair *pair = ngx_pcalloc(
                     r->pool, sizeof(Contrast__Api__Dtm__SimplePair));
             contrast__api__dtm__simple_pair__init(pair);
 
@@ -173,7 +185,7 @@ build_dtm_from_request(ngx_http_request_t *r)
                 ngx_pfree(r->pool, pair);
                 continue;
             }
-            strncpy(pair->key, entry->key.data, entry->key.len);
+            strncpy(pair->key, (char*)entry->key.data, entry->key.len);
 
             pair->value = ngx_pcalloc(r->pool, entry->value.len + 1);
             if (pair->value == NULL) {
@@ -181,7 +193,7 @@ build_dtm_from_request(ngx_http_request_t *r)
                 ngx_pfree(r->pool, pair);
                 continue;
             }
-            strncpy(pair->value, entry->value.data, entry->value.len);
+            strncpy(pair->value, (char*)entry->value.data, entry->value.len);
 
             dtm->request_headers = realloc(dtm->request_headers, 
                     sizeof(Contrast__Api__Dtm__SimplePair *) * (dtm->n_request_headers+1));
@@ -224,7 +236,7 @@ free_dtm(ngx_pool_t *pool, Contrast__Api__Dtm__RawRequest *dtm)
     }
 
     if (dtm->request_headers != NULL) {
-        for (ngx_int_t i = 0; i < dtm->n_request_headers; ++i) {
+        for (size_t i = 0; i < dtm->n_request_headers; ++i) {
             ngx_pfree(pool, dtm->request_headers[i]);
         }
         /* realloc was used for this memory */
@@ -353,7 +365,6 @@ ngx_http_contrast_connector_preaccess_handler(ngx_http_request_t *r)
 {
     ngx_http_contrast_connector_conf_t * conf = ngx_http_get_module_loc_conf(
             r, ngx_http_contrast_connector_module);
-    ngx_int_t rc;
 
     if (!conf->enable) {
         ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
@@ -383,7 +394,7 @@ ngx_http_contrast_connector_preaccess_handler(ngx_http_request_t *r)
         return rc;
     }
 #endif
-    Contrast__Api__Dtm__RawRequest * dtm = build_dtm_from_request(r);
+    Contrast__Api__Dtm__RawRequest *dtm = build_dtm_from_request(r);
     if (dtm == NULL) {
         ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
             LOG_PREFIX "failed dtm allocation");
@@ -421,8 +432,8 @@ ngx_http_contrast_connector_preaccess_handler(ngx_http_request_t *r)
 static ngx_int_t
 ngx_http_catch_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 {
-    ngx_log_t * log = r->connection->log;
-    ngx_pool_t * pool = r->pool;
+    ngx_log_t *log = r->connection->log;
+    ngx_pool_t *pool = r->pool;
     ngx_http_contrast_connector_conf_t * conf = ngx_http_get_module_loc_conf(r, 
             ngx_http_contrast_connector_module);
     

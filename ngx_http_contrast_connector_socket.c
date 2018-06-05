@@ -36,7 +36,7 @@ write_to_service(
 	}
 
 	server.sun_family = AF_UNIX;
-	strcpy(server.sun_path, socket_path.data);
+	strcpy(server.sun_path, (char*)socket_path.data);
 	if (connect(sock, (struct sockaddr *)&server, sizeof(struct sockaddr_un)) < 0) {
 		ngx_log_error(NGX_LOG_ERR, log, 0,
             LOG_PREFIX "cound not connect to stream socket");

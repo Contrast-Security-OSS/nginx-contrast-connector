@@ -1,4 +1,5 @@
-/*
+/* Copyright (C) Contrast Security, Inc.
+ *
  * The module will insert an http handler into the PRE-ACCESS phase of the
  * http module. The handler will send request/response data to the Contrast
  * rules engine for determination on if the request/response should proceed.
