@@ -18,6 +18,12 @@ describe "Integration Specs" do
         expect(http.response_code).to eq(200)
       end
 
+      it "handles a large post" do
+        http = Curl.post("http://127.0.0.1:8888/sinatra/text",
+            { a: "1" * (1024 * 3), b: 2, c: { d: [1, 2, 3] }})
+        expect(http.response_code).to eq(200)
+      end
+
       it "blocks a request with an attack vector" do
         http = Curl.post("http://127.0.0.1:8888/sinatra/text", { attack: "alert(document.cookie)" })
         expect(http.response_code).to eq(403)

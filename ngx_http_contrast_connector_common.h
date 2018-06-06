@@ -10,6 +10,10 @@
 
 #define LOG_PREFIX  "[contrast]: "
 
+#define dd(...) fprintf(stderr, "contrast *** %s: ", __func__); \
+    fprintf(stderr, __VA_ARGS__); \
+    fprintf(stderr, " at %s line %d\n", __FILE__, __LINE__)
+
 /*
  * structure for context
  */

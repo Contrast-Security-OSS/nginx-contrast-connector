@@ -72,9 +72,23 @@ read_ipv6_address(ngx_connection_t *connection, address_t *addr) {
 static u_char *
 read_body(ngx_chain_t *in, ngx_log_t *log)
 {
-    if (in == NULL || in->buf->pos == in->buf->last) {
+    if (in == NULL) {
+        dd("in was null");
         return NULL;
     }
+    if (in->buf == NULL) {
+        dd("in-buf was null");
+        return NULL;
+    }
+    dd("is last_buf: %d", in->buf->last_buf);
+    dd("f name: %s", in->buf->file->name.data);
+
+#if 0
+    if (in->buf->pos == in->buf->last) {
+        dd("pos was last");
+        return NULL;
+    }
+#endif
 
     u_char *body = NULL;
     size_t body_len = 0;
@@ -87,9 +101,10 @@ read_body(ngx_chain_t *in, ngx_log_t *log)
      * Doubtful as the body is assumed to be null terminated text
      */
     for (ngx_chain_t *chain = in; chain != NULL; chain = chain->next) {
+        dd("buf: %p, mem: %d", chain->buf, chain->buf->memory);
         chunk = chain->buf->pos;
         chunk_len = chain->buf->last - chunk;
-
+        dd("chunk: %p, len: %lu", chunk, chunk_len);
         body = realloc(body, body_len + chunk_len + 1);
         memcpy(body + body_len, chunk, chunk_len);
 
@@ -244,7 +259,7 @@ free_dtm(ngx_pool_t *pool, Contrast__Api__Dtm__RawRequest *dtm)
     }
 
     if (dtm->request_body != NULL) {
-        ngx_free(dtm->request_body);
+        ngx_pfree(pool, dtm->request_body);
     }
 
     ngx_pfree(pool, dtm); 
@@ -349,22 +364,134 @@ fail:
     return deny;
 }
 
-/* WIP: convert to using nginx api for reading request body */
-#if 0
-static ngx_int_t
+
+/* 
+ * by using this body_handler, we have taken control of the nginx processing
+ * flow and its now up to us to to keep it going. Thats the reason why there
+ * is no return value in this callback. So we either need to finish the request
+ * processing by calling ngx_http_finalize_request() or some other mechanism.
+ * That 'other' mechanism is by manually advancing the phase state and
+ * re-entering the request state machine processing.
+ *
+ * If this is a request that we should allow, then we will re-enter the state
+ * machine processing. Otherwise, we finalize the request and provide an error
+ * or forbidden http response directly.
+ */
+void
 ngx_http_contrast_connector_body_handler(ngx_http_request_t *r)
 {
-    ngx_int_t rc;
+    off_t         len;
+    ngx_buf_t    *b;
+    ngx_int_t     rc;
+    ngx_chain_t  *in, out;
+    ngx_http_contrast_connector_conf_t *conf = ngx_http_get_module_loc_conf(
+            r, ngx_http_contrast_connector_module);
+    
+    dd("in body handler");
+    if (r->request_body == NULL) {
+        /* XXX: try to understand why or when this case happens */ 
+        dd("request body was null!! why!?");
+        ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
+        return;
+    }
 
+    len = 0;
+
+    for (in = r->request_body->bufs; in; in = in->next) {
+        dd("adding buffer sz[%ld] to total %ld", ngx_buf_size(in->buf), len);
+        len += ngx_buf_size(in->buf);
+    }
+    
+    Contrast__Api__Dtm__RawRequest * dtm = build_dtm_from_request(r);
+    if (dtm == NULL) {
+        ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
+        return;
+    }
+
+    dd("about to read body from body handler");
+    /* request_body memory owned by dtm and will be freed in free_dtm */
+    dtm->request_body = ngx_pcalloc(r->pool, len + 1);
+    if (dtm->request_body == NULL) {
+        dd("OMG!! request_body readout was NULL");
+        ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
+        return;
+    }
+
+    ngx_buf_t *rb_buf = r->request_body->bufs->buf;
+    dd("about to read body file");
+    dd("rb: %p", r->request_body);
+    dd("bufs: %p", r->request_body->bufs);
+    dd("in_mem: %d, buf_in_mem(): %d, in_file: %d",
+        r->request_body->bufs->buf->memory,
+        ngx_buf_in_memory(r->request_body->bufs->buf),
+        r->request_body->bufs->buf->in_file);
+    if (rb_buf->in_file) {
+        ngx_read_file(rb_buf->file, dtm->request_body, len, rb_buf->file_pos);
+        dd("file was read");
+    }
+    else if (ngx_buf_in_memory(rb_buf)) {
+        /* XXX: probably should loop this as if it was a chain */
+        ngx_memcpy(dtm->request_body, rb_buf->start, len);
+        dd("memory was read");
+    }
+
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+        LOG_PREFIX "before request_body: '%s'", dtm->request_body);
+
+    ngx_int_t deny = send_dtm_to_socket(dtm, 
+        conf->socket_path, 
+        conf->app_name, 
+        r->connection->log,
+        r->pool);
+
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+        LOG_PREFIX "after sending: request_body: '%s'", dtm->request_body);
+    free_dtm(r->pool, dtm);
+
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+        LOG_PREFIX "analysis result (body filter): %s",
+        deny ? "blocked" : "allowed");
+    if (deny) {
+        ngx_log_error(NGX_LOG_WARN, r->connection->log, 0,
+            LOG_PREFIX "Blocked Request (body filter)");
+        ngx_http_finalize_request(r, NGX_HTTP_FORBIDDEN);
+        dd("finished finalizing FORBIDDEN reponse");
+        /*
+         * I would have expected the above finalize_request() to reset the
+         * nginx state machine to handle another request however it leaves the
+         * read_event_handler in a blocking state.
+         *
+         * The finalize_request() below passes the NGX_DONE code which will
+         * close out associated connections and reset the state machine to
+         * acception more http requests.
+         */
+        ngx_http_finalize_request(r, NGX_DONE);
+        dd("returning from body_handler()");
+        return;
+    }
+
+    /*
+     * This handler isn't able to return any values to instruct the nginx core
+     * what to do next so instead we must manually advance the nginx http phase
+     * and re-enter the phase execution logic.
+     */
+    r->phase_handler++;
+    dd("re-entering phase machine again");
+    ngx_http_core_run_phases(r);
+    dd("other phases are finished!");
+    ngx_http_finalize_request(r, NGX_DONE);
+    dd("request finalized with NGX_DONE");
+    return;
 }
-#endif
 
 
 ngx_int_t
 ngx_http_contrast_connector_preaccess_handler(ngx_http_request_t *r)
 {
+    dd("in preaccess handler");
     ngx_http_contrast_connector_conf_t * conf = ngx_http_get_module_loc_conf(
             r, ngx_http_contrast_connector_module);
+    ngx_int_t rc;
 
     if (!conf->enable) {
         ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
@@ -377,23 +504,36 @@ ngx_http_contrast_connector_preaccess_handler(ngx_http_request_t *r)
             LOG_PREFIX "skipping processing because not a main request");
         return NGX_DECLINED;
     }
-    if (r->method != NGX_HTTP_GET) {
-        /* 
-         * TODO: for testing only; we should be more sophisticated about
-         * whether we should decline at this point (e.g. checking 
-         * Content-Length?)
-         */
-        return NGX_DECLINED;
-    }
-#if 0
-    rc = ngx_http_read_client_request_body(
-        r, ngx_http_contrast_connector_body_handler);
+ 
+    if (r->method == NGX_HTTP_POST) {
+        dd("handling HTTP POST for request %p", r);
+        rc = ngx_http_read_client_request_body(
+            r, ngx_http_contrast_connector_body_handler);
 
-    if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
-        ngx_log_error(NGX_LOG_ERR, log, 0, "[contrast] got bad rc: %d", rc);
-        return rc;
+        if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[contrast] got bad rc: %d", rc);
+            return rc;
+        }
+        dd("returning NGX_DONE");
+        /* we return NGX_DONE here to tell the nginx that we have fully handled
+         * the request and that it should not bother calling
+         * ngx_http_finalize_request() to move to the next phase of request
+         * processing.
+         *
+         * We do this because our body handler registered above will take care
+         * of generating the FORBIDDEN response if needed or moving the request
+         * to the next nginx phase and kicking the phase processor again.
+         *
+         * In short, by registering the body_handler above and returning DONE
+         * here, we have effectively paused nginx processing on this request 
+         * until the full body has been recieved. This is not the best for
+         * performance, but will deliver correct processing with the current
+         * design.
+         */
+        return NGX_DONE;
     }
-#endif
+
+    /* this is done for GETs */
     Contrast__Api__Dtm__RawRequest *dtm = build_dtm_from_request(r);
     if (dtm == NULL) {
         ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
@@ -417,6 +557,7 @@ ngx_http_contrast_connector_preaccess_handler(ngx_http_request_t *r)
         return NGX_HTTP_FORBIDDEN;
     }
 
+    dd("finished preaccess handler");
     return NGX_DECLINED;
 }
 
@@ -437,15 +578,21 @@ ngx_http_catch_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
     ngx_http_contrast_connector_conf_t * conf = ngx_http_get_module_loc_conf(r, 
             ngx_http_contrast_connector_module);
     
+    dd("in body filter!");
     if (!conf->enable) {
         return ngx_http_next_request_body_filter(r, in);
     }
 
+    if (in == NULL) {
+        dd("leaving early because in==NULL");
+        return ngx_http_next_request_body_filter(r, in);
+    }
     Contrast__Api__Dtm__RawRequest * dtm = build_dtm_from_request(r);
     if (dtm == NULL) {
         return NGX_DECLINED;
     }
 
+    dd("about to read body");
     dtm->request_body = read_body(in, log);
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, log, 0,
         LOG_PREFIX "request_body: %s", dtm->request_body);
@@ -486,11 +633,11 @@ ngx_http_catch_header_filter(ngx_http_request_t * r)
  */
 ngx_int_t ngx_http_catch_body_init(ngx_conf_t *cf)
 {
+#if 0
     ngx_http_next_request_body_filter = ngx_http_top_request_body_filter;
     ngx_http_top_request_body_filter = ngx_http_catch_body_filter;
 
 /* XXX: not implemented yet */
-#if 0
     ngx_http_next_output_header_filter = ngx_http_top_header_filter;
     ngx_http_top_header_filter = ngx_http_catch_header_filter;
 #endif
