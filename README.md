@@ -76,6 +76,8 @@ When you run `rake` in the project root (i.e. `/vagrant`) it will attempt startu
 * Writing tests
 * Code review
 * Other guidelines
+* Coding Style
+    http://nginx.org/en/docs/dev/development_guide.html#code_style
 
 ### Who do I talk to? ###
 
