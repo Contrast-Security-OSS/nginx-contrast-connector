@@ -304,7 +304,7 @@ send_dtm_to_socket(
     response = write_to_service(socket_path, buf, len, log);
     ngx_pfree(pool, buf);
     
-    if ((response = write_to_service(socket_path, buf, len, log)) == NULL) {
+    if (response == NULL) {
         ngx_log_error(NGX_LOG_ERR, log, 0, 
             LOG_PREFIX "error writing dtm to analysis engine");
         goto fail;
