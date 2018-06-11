@@ -1,3 +1,5 @@
+/* Copyright (C) Contrast Security, Inc. */
+
 #ifndef _NGX_HTTP_CONTRAST_CONNECTOR_COMMON_H_
 #define _NGX_HTTP_CONTRAST_CONNECTOR_COMMON_H_
 
@@ -6,19 +8,18 @@
 #include <ngx_core.h>
 #include <ngx_http.h>
 
-/* 
- * simple debugger
- */
-#if (NGX_HAVE_VARIADIC_MACROS)
-#	define dd(...) fprintf(stderr, "contrast *** %s: ", __func__); \
-		fprintf(stderr, __VA_ARGS__); \
-		fprintf(stderr, " at %s line %d\n", __FILE__, __LINE__)
-#else
-#include <stdarg.h>
-#include <stdio.h>
-static void dd(const char *fmt, ...) { /* NOOP */ }
-#endif
+/* easy debug printing used for development and debugging. */
+#define dd(fmt, ...) \
+    fprintf(stderr, "[contrast] %s:%d (%s): " fmt "\n", \
+            __FILE__, __LINE__, __func__, ## __VA_ARGS__)
 
+#define contrast_log(lvl, log, err, fmt, ...) \
+    ngx_log_error(NGX_LOG_ ## lvl, log, err, \
+            "[contrast]: " fmt, ## __VA_ARGS__)
+
+#define contrast_dbg_log(log, err, fmt, ...) \
+    ngx_log_error(NGX_LOG_DEBUG_HTTP, log, err, \
+            "[contrast]: " fmt, ## __VA_ARGS__)
 /*
  * structure for context
  */
@@ -47,17 +48,13 @@ extern ngx_module_t ngx_http_contrast_connector_module;
 int64_t unix_millis();
 
 /*
- * update request body filter chain
+ * utility method to create C strings from ngx strings
  */
-ngx_int_t ngx_http_catch_body_init(ngx_conf_t *cf);
-
-/*
- * utility method to copy C strings from ngx strings
- */
-char * ngx_str_to_char(ngx_str_t a, ngx_pool_t *p);
+char *ngx_str_to_char(const ngx_str_t *a, ngx_pool_t *p);
 
 /*
  * parse connection and params for non-request body request
  */
-ngx_int_t ngx_http_contrast_connector_post_rewrite_handler(ngx_http_request_t * r);
+ngx_int_t ngx_http_contrast_connector_preaccess_handler(
+        ngx_http_request_t * r);
 #endif
