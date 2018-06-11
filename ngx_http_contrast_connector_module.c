@@ -201,13 +201,13 @@ ngx_http_contrast_connector_merge_loc_config(ngx_conf_t *cf,
     ngx_conf_merge_off_value(conf->debug, prev->debug, 0);
     ngx_conf_merge_str_value(conf->socket_path, prev->socket_path,
         DEFAULT_SOCKET);
-
-    ngx_log_error(NGX_LOG_INFO, cf->log, 0, 
+    
+    contrast_log(INFO, cf->log, 0, 
         "APP NAME = %s %s", conf->app_name.data, prev->app_name.data); 
     ngx_conf_merge_str_value(conf->app_name, prev->app_name, DEFAULT_NAME);
 
     if (conf->debug) {
-        ngx_log_error(NGX_LOG_INFO, cf->log, 0,
+        contrast_log(INFO, cf->log, 0,
             "contrast rule-engine socket_path: %s", conf->socket_path.data);
     }
     return NGX_CONF_OK;
@@ -223,7 +223,7 @@ ngx_http_contrast_connector_module_init(ngx_conf_t * cf)
     ngx_http_core_main_conf_t *main_conf = ngx_http_conf_get_module_main_conf(
         cf, ngx_http_core_module);
     if (main_conf == NULL) {
-        ngx_log_error(NGX_LOG_ERR, cf->log, 0, "Main conf was NULL");
+        contrast_log(ERR, cf->log, 0, "Main conf was NULL");
         return NGX_ERROR;
     }
 
@@ -231,21 +231,13 @@ ngx_http_contrast_connector_module_init(ngx_conf_t * cf)
     ngx_http_handler_pt *h_preaccess = ngx_array_push(
         &main_conf->phases[NGX_HTTP_PREACCESS_PHASE].handlers);
     if (h_preaccess == NULL) {
-        ngx_log_error(NGX_LOG_ERR, cf->log, 0,
-            "Preaccess handler was NULL");
+        contrast_log(ERR, cf->log, 0, "Preaccess handler was NULL");
         return NGX_ERROR;
     }
     *h_preaccess = ngx_http_contrast_connector_preaccess_handler;
 
-    /* Phase 2: processing requests with request body */
-    if (ngx_http_catch_body_init(cf) != NGX_OK) {
-        ngx_log_error(NGX_LOG_ERR, cf->log, 0,
-            "Not able to initialize catch body filter");
-        return NGX_ERROR;
-    }
-
-    ngx_log_error(NGX_LOG_INFO, cf->log, 0,
-	"Completed initialization of contrast connector module");
+    contrast_log(INFO, cf->log, 0,
+	    "Completed initialization of contrast connector module");
     return NGX_OK;
 }
 

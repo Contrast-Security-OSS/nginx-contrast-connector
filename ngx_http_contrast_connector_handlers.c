@@ -16,16 +16,6 @@
 #define APP_LANG  "Ruby" /* XXX: temp placeholder for TS */
 #define CLIENT_ID  "NGINX"
 
-static ngx_http_request_body_filter_pt ngx_http_next_request_body_filter;
-
-#if 0
-/* 
- * XXX: not used yet. need to figure out if this is required.
- * should create tests that expose things if its a problem
- */
-static ngx_http_output_header_filter_pt ngx_http_next_output_header_filter;
-#endif 
-
 typedef struct address_s {
     char *address;
     int32_t port;
@@ -44,8 +34,7 @@ read_address(
         struct sockaddr_in * sin = (struct sockaddr_in *)sockaddr;
         if (sin != NULL) {
             addr->address = ngx_pcalloc(r->pool, INET_ADDRSTRLEN);
-            if (addr->address != NULL) {
-            
+            if (addr->address != NULL) {           
                 inet_ntop(AF_INET, &(sin->sin_addr), addr->address, INET_ADDRSTRLEN);
                 addr->port = sin->sin_port;
                 addr->version = 4;
@@ -66,62 +55,20 @@ read_ipv6_address(ngx_connection_t *connection, address_t *addr) {
     return NGX_ERROR;
 }
 
-/*
- * read body from chain; if returned value is not null it must be freed when complete
- */
-static u_char *
-read_body(ngx_chain_t *in, ngx_log_t *log)
-{
-    if (in == NULL) {
-        dd("in was null");
-        return NULL;
-    }
-    if (in->buf == NULL) {
-        dd("in-buf was null");
-        return NULL;
-    }
-    dd("is last_buf: %d", in->buf->last_buf);
-    dd("f name: %s", in->buf->file->name.data);
-
-#if 0
-    if (in->buf->pos == in->buf->last) {
-        dd("pos was last");
-        return NULL;
-    }
-#endif
-
-    u_char *body = NULL;
-    size_t body_len = 0;
-    
-    u_char *chunk = NULL;
-    size_t chunk_len = 0;
-
-    /* 
-     * XXX: can this handle binary data... as in application/octet-stream?
-     * Doubtful as the body is assumed to be null terminated text
-     */
-    for (ngx_chain_t *chain = in; chain != NULL; chain = chain->next) {
-        dd("buf: %p, mem: %d", chain->buf, chain->buf->memory);
-        chunk = chain->buf->pos;
-        chunk_len = chain->buf->last - chunk;
-        dd("chunk: %p, len: %lu", chunk, chunk_len);
-        body = realloc(body, body_len + chunk_len + 1);
-        memcpy(body + body_len, chunk, chunk_len);
-
-        body_len += chunk_len;
-        body[body_len] = '\0';
-    }
-
-    return body;
-}
-
 
 static Contrast__Api__Dtm__RawRequest *
 build_dtm_from_request(ngx_http_request_t *r) 
 {
     ngx_log_t *log = r->connection->log;
+    
     Contrast__Api__Dtm__RawRequest *dtm = ngx_pcalloc(
         r->pool, sizeof(Contrast__Api__Dtm__RawRequest));
+    
+    if (dtm == NULL) {
+        contrast_log(ERR, log, 0, "failed to alloc dtm");
+        return dtm;
+    }
+
     contrast__api__dtm__raw_request__init(dtm);
 
     dtm->timestamp_ms = unix_millis();
@@ -133,16 +80,15 @@ build_dtm_from_request(ngx_http_request_t *r)
      */
     dtm->request_line = ngx_pcalloc(r->pool, r->request_line.len + 1);
     if (dtm->request_line != NULL) {
-        strncpy(dtm->request_line, (char*)r->request_line.data, r->request_line.len);
-        ngx_log_debug(NGX_LOG_DEBUG_HTTP, log, 0,
-            LOG_PREFIX "request_line: %s", dtm->request_line);
+        strncpy(dtm->request_line, (char*)r->request_line.data,
+                r->request_line.len);
+        contrast_dbg_log(log, 0, "request_line: %s", dtm->request_line);
     }
 
     dtm->normalized_uri = ngx_pcalloc(r->pool, r->uri.len + 1);
     if (dtm->normalized_uri != NULL) {
         strncpy(dtm->normalized_uri, (char*)r->uri.data, r->uri.len);
-        ngx_log_debug(NGX_LOG_DEBUG_HTTP, log, 0,
-            LOG_PREFIX "normalized_uri: %s", dtm->normalized_uri);
+        contrast_dbg_log(log, 0, "normalized_uri: %s", dtm->normalized_uri);
     }
 
     struct address_s client_address;
@@ -151,8 +97,7 @@ build_dtm_from_request(ngx_http_request_t *r)
             dtm->client_ip = client_address.address;
             dtm->client_ip_version = client_address.version;
             dtm->client_port = client_address.port;
-            ngx_log_debug(NGX_LOG_DEBUG_HTTP, log, 0,
-                LOG_PREFIX "-> ip=%s (ipv%d) port=%d",
+            contrast_dbg_log(log, 0, "-> ip=%s (ipv%d) port=%d",
                 dtm->client_ip, dtm->client_ip_version, dtm->client_port); 
         }
     }
@@ -163,8 +108,7 @@ build_dtm_from_request(ngx_http_request_t *r)
             dtm->server_ip = server_address.address;
             dtm->server_ip_version = server_address.version;
             dtm->server_port = server_address.port;
-            ngx_log_debug(NGX_LOG_DEBUG_HTTP, log, 0,
-                LOG_PREFIX "<- ip=%s (ipv%d) port=%d",
+            contrast_dbg_log(log, 0, "<- ip=%s (ipv%d) port=%d",
                 dtm->server_ip, dtm->server_ip_version, dtm->server_port); 
         }
     }
@@ -210,19 +154,19 @@ build_dtm_from_request(ngx_http_request_t *r)
             }
             strncpy(pair->value, (char*)entry->value.data, entry->value.len);
 
-            dtm->request_headers = realloc(dtm->request_headers, 
-                    sizeof(Contrast__Api__Dtm__SimplePair *) * (dtm->n_request_headers+1));
+            dtm->request_headers = realloc(
+                    dtm->request_headers, 
+                    sizeof(Contrast__Api__Dtm__SimplePair *) * (dtm->n_request_headers + 1));
             if (dtm->request_headers == NULL) {
-                ngx_log_error(NGX_LOG_ERR, log, 0,
-                    LOG_PREFIX "error: alloc or realloc failed for headers");
+                contrast_log(ERR, log, 0,
+                        "error: alloc or realloc failed for headers");
                 ngx_pfree(r->pool, pair->key);
                 ngx_pfree(r->pool, pair->value);
                 ngx_pfree(r->pool, pair);
                 dtm->n_request_headers = 0;
                 break;
             }
-            ngx_log_debug(NGX_LOG_DEBUG_HTTP, log, 0,
-                LOG_PREFIX "[header] %s=%s", pair->key, pair->value);
+            contrast_dbg_log(log, 0, "[header] %s=%s", pair->key, pair->value);
             dtm->request_headers[dtm->n_request_headers] = pair;
             dtm->n_request_headers++;
         }
@@ -280,8 +224,8 @@ send_dtm_to_socket(
 
     char *app_name_str = ngx_str_to_char(&app_name, pool);
     if (app_name_str == NULL) {
-        ngx_log_error(NGX_LOG_ERR, log, 0,
-            LOG_PREFIX "failed to convert app_name to char string");
+        contrast_log(ERR, log, 0,
+            "failed to convert app_name to char string");
         return deny;
     }
 
@@ -297,31 +241,26 @@ send_dtm_to_socket(
     msg.event_case = CONTRAST__API__DTM__MESSAGE__EVENT_REQUEST;
     msg.request = dtm;
     
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, log, 0,
-        LOG_PREFIX "built parent message structure: %s (%s)",
+    contrast_dbg_log(log, 0, "built parent message structure: %s (%s)",
         msg.app_name, msg.app_language);
 
     size_t len = contrast__api__dtm__message__get_packed_size(&msg);
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, log, 0,
-        LOG_PREFIX "estimated size of packed message: %ld", len);
+    contrast_dbg_log(log, 0, "estimated size of packed message: %ld", len);
 
     void * buf = ngx_palloc(pool, len);
     if (buf == NULL) {
-        ngx_log_error(NGX_LOG_ERR, log, 0,
-            LOG_PREFIX "error: could not allocate buffer size for protobuf"
-            "message");
+        contrast_log(ERR, log, 0,
+                "error: could not allocate buffer size for protobuf message");
         goto fail;
     }
 
     size_t packed_size = contrast__api__dtm__message__pack(&msg, buf);
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, log, 0,
-        LOG_PREFIX "actual packed message size: %ld", packed_size);
+    contrast_dbg_log(log, 0, "actual packed message size: %ld", packed_size);
     response = write_to_service(socket_path, buf, len, log);
     ngx_pfree(pool, buf);
     
     if (response == NULL) {
-        ngx_log_error(NGX_LOG_ERR, log, 0, 
-            LOG_PREFIX "error writing dtm to analysis engine");
+        contrast_log(ERR, log, 0, "error writing dtm to analysis engine");
         goto fail;
     }
 
@@ -332,24 +271,21 @@ send_dtm_to_socket(
     ngx_free(response);
 
     if (settings == NULL) {
-        ngx_log_error(NGX_LOG_ERR, log, 0,
-            LOG_PREFIX "failed to deserialize analysis engine response");
+        contrast_log(ERR, log, 0,
+                "failed to deserialize analysis engine response");
         goto fail;
     }
 
     if (settings->protect_state == NULL) {
-        ngx_log_error(NGX_LOG_ERR, log, 0,
-            LOG_PREFIX "error reading response protect_state");
+        contrast_log(ERR, log, 0, "error reading response protect_state");
         goto fail;
     }
 
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, log, 0,
-        LOG_PREFIX "security exception value: %d", 
+    contrast_dbg_log(log, 0, "security exception value: %d", 
         settings->protect_state->security_exception);
     
     if (settings->protect_state->security_exception) {
-        ngx_log_error(NGX_LOG_WARN, log, 0,
-            LOG_PREFIX "security exception: %s uuid=%s", 
+        contrast_log(WARN, log, 0, "security exception: %s uuid=%s", 
             settings->protect_state->security_message,
             settings->protect_state->uuid);
         deny = 1;
@@ -381,24 +317,20 @@ void
 ngx_http_contrast_connector_body_handler(ngx_http_request_t *r)
 {
     off_t         len;
-    ngx_buf_t    *b;
-    ngx_int_t     rc;
-    ngx_chain_t  *in, out;
     ngx_http_contrast_connector_conf_t *conf = ngx_http_get_module_loc_conf(
             r, ngx_http_contrast_connector_module);
     
-    dd("in body handler");
     if (r->request_body == NULL) {
-        /* XXX: try to understand why or when this case happens */ 
-        dd("request body was null!! why!?");
+        /* XXX: under what circumstatnces could this ever happen? */ 
+        contrast_log(ERR, r->connection->log, 0,
+                "request body was null!! why!?");
         ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
         return;
     }
 
     len = 0;
 
-    for (in = r->request_body->bufs; in; in = in->next) {
-        dd("adding buffer sz[%ld] to total %ld", ngx_buf_size(in->buf), len);
+    for (ngx_chain_t *in = r->request_body->bufs; in; in = in->next) {
         len += ngx_buf_size(in->buf);
     }
     
@@ -408,35 +340,34 @@ ngx_http_contrast_connector_body_handler(ngx_http_request_t *r)
         return;
     }
 
-    dd("about to read body from body handler");
-    /* request_body memory owned by dtm and will be freed in free_dtm */
+    /*
+     * request_body memory owned by dtm and will be freed in free_dtm. In the
+     * future, I'd like for build_dtm_from_request to handle this or have the
+     * analysis engine take the body in chunks.
+     */
     dtm->request_body = ngx_pcalloc(r->pool, len + 1);
     if (dtm->request_body == NULL) {
-        dd("OMG!! request_body readout was NULL");
+        contrast_log(ERR, r->connection->log, 0,"failed to alloc req body");
         ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
         return;
     }
 
     ngx_buf_t *rb_buf = r->request_body->bufs->buf;
-    dd("about to read body file");
-    dd("rb: %p", r->request_body);
-    dd("bufs: %p", r->request_body->bufs);
-    dd("in_mem: %d, buf_in_mem(): %d, in_file: %d",
-        r->request_body->bufs->buf->memory,
-        ngx_buf_in_memory(r->request_body->bufs->buf),
-        r->request_body->bufs->buf->in_file);
+    
+    /* 
+     * XXX: probably should loop this as if it was a chain. I'm not clear on nginx
+     * promises with how it organizes the buffers in this case. I've only ever
+     * seen one buf in use.
+     */
     if (rb_buf->in_file) {
         ngx_read_file(rb_buf->file, dtm->request_body, len, rb_buf->file_pos);
-        dd("file was read");
     }
     else if (ngx_buf_in_memory(rb_buf)) {
-        /* XXX: probably should loop this as if it was a chain */
         ngx_memcpy(dtm->request_body, rb_buf->start, len);
-        dd("memory was read");
     }
 
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-        LOG_PREFIX "before request_body: '%s'", dtm->request_body);
+    contrast_dbg_log(r->connection->log, 0,
+            "request_body: '%s'", dtm->request_body);
 
     ngx_int_t deny = send_dtm_to_socket(dtm, 
         conf->socket_path, 
@@ -444,29 +375,26 @@ ngx_http_contrast_connector_body_handler(ngx_http_request_t *r)
         r->connection->log,
         r->pool);
 
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-        LOG_PREFIX "after sending: request_body: '%s'", dtm->request_body);
     free_dtm(r->pool, dtm);
 
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-        LOG_PREFIX "analysis result (body filter): %s",
-        deny ? "blocked" : "allowed");
+    contrast_dbg_log(r->connection->log, 0,
+            "analysis result (body filter): %s", deny ? "blocked" : "allowed");
     if (deny) {
-        ngx_log_error(NGX_LOG_WARN, r->connection->log, 0,
-            LOG_PREFIX "Blocked Request (body filter)");
+        contrast_log(WARN, r->connection->log, 0,
+                "Blocked Request (body filter)");
         ngx_http_finalize_request(r, NGX_HTTP_FORBIDDEN);
-        dd("finished finalizing FORBIDDEN reponse");
         /*
          * I would have expected the above finalize_request() to reset the
          * nginx state machine to handle another request however it leaves the
-         * read_event_handler in a blocking state.
+         * read_event_handler in a blocking state. The finalize_request()
+         * function will call itself again later with the NGX_OK rc value, but
+         * this is not enough to reset the state machine.
          *
          * The finalize_request() below passes the NGX_DONE code which will
          * close out associated connections and reset the state machine to
          * acception more http requests.
          */
         ngx_http_finalize_request(r, NGX_DONE);
-        dd("returning from body_handler()");
         return;
     }
 
@@ -476,11 +404,8 @@ ngx_http_contrast_connector_body_handler(ngx_http_request_t *r)
      * and re-enter the phase execution logic.
      */
     r->phase_handler++;
-    dd("re-entering phase machine again");
     ngx_http_core_run_phases(r);
-    dd("other phases are finished!");
     ngx_http_finalize_request(r, NGX_DONE);
-    dd("request finalized with NGX_DONE");
     return;
 }
 
@@ -488,34 +413,35 @@ ngx_http_contrast_connector_body_handler(ngx_http_request_t *r)
 ngx_int_t
 ngx_http_contrast_connector_preaccess_handler(ngx_http_request_t *r)
 {
-    dd("in preaccess handler");
+    contrast_dbg_log(r->connection->log, 0, "in preaccess handler");
     ngx_http_contrast_connector_conf_t * conf = ngx_http_get_module_loc_conf(
             r, ngx_http_contrast_connector_module);
     ngx_int_t rc;
 
     if (!conf->enable) {
-        ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-            LOG_PREFIX "skipping processing because not enabled");
+        contrast_dbg_log(r->connection->log, 0,
+                "skipping processing because not enabled");
         return NGX_DECLINED;
     }
 
     if (!r->main) {
-        ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-            LOG_PREFIX "skipping processing because not a main request");
+        contrast_dbg_log(r->connection->log, 0,
+                "skipping processing because not a main request");
         return NGX_DECLINED;
     }
  
     if (r->method == NGX_HTTP_POST) {
-        dd("handling HTTP POST for request %p", r);
+        contrast_dbg_log(r->connection->log, 0,
+                "handling HTTP POST for request %p", r);
         rc = ngx_http_read_client_request_body(
             r, ngx_http_contrast_connector_body_handler);
 
         if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[contrast] got bad rc: %d", rc);
+            contrast_log(ERR, r->connection->log, 0,"got bad rc: %d", rc);
             return rc;
         }
-        dd("returning NGX_DONE");
-        /* we return NGX_DONE here to tell the nginx that we have fully handled
+        /*
+         * we return NGX_DONE here to tell the nginx that we have fully handled
          * the request and that it should not bother calling
          * ngx_http_finalize_request() to move to the next phase of request
          * processing.
@@ -533,11 +459,10 @@ ngx_http_contrast_connector_preaccess_handler(ngx_http_request_t *r)
         return NGX_DONE;
     }
 
-    /* this is done for GETs */
+    /* this is done for GETs and everything else */
     Contrast__Api__Dtm__RawRequest *dtm = build_dtm_from_request(r);
     if (dtm == NULL) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-            LOG_PREFIX "failed dtm allocation");
+        contrast_log(ERR, r->connection->log, 0, "failed dtm allocation");
         return NGX_DECLINED;
     }
 
@@ -549,97 +474,13 @@ ngx_http_contrast_connector_preaccess_handler(ngx_http_request_t *r)
 
     free_dtm(r->pool, dtm);
 
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-        LOG_PREFIX "analysis result: %s", deny ? "blocked" : "allowed");
+    contrast_dbg_log(r->connection->log, 0,
+        "analysis result: %s", deny ? "blocked" : "allowed");
     if (deny) {
-        ngx_log_error(NGX_LOG_WARN, r->connection->log, 0,
-            LOG_PREFIX "Blocked Request");
+        contrast_log(WARN, r->connection->log, 0, "Blocked Request");
         return NGX_HTTP_FORBIDDEN;
     }
 
-    dd("finished preaccess handler");
     return NGX_DECLINED;
 }
 
-/*
- * the filter is called multiple times as needed to process chunks of the
- * request body recieved.
- *
- * XXX: We will likely need to buffer chunks in the context of the request 
- * object before passing the entire body to the rules processing engine. This
- * pattern is counter to the design of nginx so we should carefully consider
- * and measure our approach.
- */
-static ngx_int_t
-ngx_http_catch_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
-{
-    ngx_log_t *log = r->connection->log;
-    ngx_pool_t *pool = r->pool;
-    ngx_http_contrast_connector_conf_t * conf = ngx_http_get_module_loc_conf(r, 
-            ngx_http_contrast_connector_module);
-    
-    dd("in body filter!");
-    if (!conf->enable) {
-        return ngx_http_next_request_body_filter(r, in);
-    }
-
-    if (in == NULL) {
-        dd("leaving early because in==NULL");
-        return ngx_http_next_request_body_filter(r, in);
-    }
-    Contrast__Api__Dtm__RawRequest * dtm = build_dtm_from_request(r);
-    if (dtm == NULL) {
-        return NGX_DECLINED;
-    }
-
-    dd("about to read body");
-    dtm->request_body = read_body(in, log);
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, log, 0,
-        LOG_PREFIX "request_body: %s", dtm->request_body);
-
-    ngx_int_t deny = send_dtm_to_socket(dtm, 
-        conf->socket_path, 
-        conf->app_name, 
-        log,
-        pool);
-
-    free_dtm(r->pool, dtm);
-
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-        LOG_PREFIX "analysis result (body filter): %s",
-        deny ? "blocked" : "allowed");
-    if (deny) {
-        ngx_log_error(NGX_LOG_WARN, log, 0,
-            LOG_PREFIX "Blocked Request (body filter)");
-        return NGX_HTTP_FORBIDDEN;
-    }
-
-    return ngx_http_next_request_body_filter(r, in);
-}
-
-
-/* XXX: not implemented yet */
-#if 0
-static ngx_int_t
-ngx_http_catch_header_filter(ngx_http_request_t * r) 
-{
-    return ngx_http_next_output_header_filter(r);
-}
-#endif
-
-
-/*
- * update request body filter chain
- */
-ngx_int_t ngx_http_catch_body_init(ngx_conf_t *cf)
-{
-#if 0
-    ngx_http_next_request_body_filter = ngx_http_top_request_body_filter;
-    ngx_http_top_request_body_filter = ngx_http_catch_body_filter;
-
-/* XXX: not implemented yet */
-    ngx_http_next_output_header_filter = ngx_http_top_header_filter;
-    ngx_http_top_header_filter = ngx_http_catch_header_filter;
-#endif
-    return NGX_OK;
-}
