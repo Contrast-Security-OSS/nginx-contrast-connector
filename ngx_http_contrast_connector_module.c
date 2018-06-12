@@ -28,7 +28,7 @@ static void *ngx_http_contrast_connector_create_loc_config(ngx_conf_t *cf);
 static char *ngx_http_contrast_connector_merge_loc_config(ngx_conf_t *cf,
     void * parent, void * child);
 static ngx_int_t ngx_http_contrast_connector_module_init(ngx_conf_t *cf);
-
+ngx_int_t ngx_http_contrast_output_filters_init(ngx_conf_t *cf);
 
 /*
  * get the current epoch time in millis
@@ -235,6 +235,9 @@ ngx_http_contrast_connector_module_init(ngx_conf_t * cf)
         return NGX_ERROR;
     }
     *h_preaccess = ngx_http_contrast_connector_preaccess_handler;
+
+    /* insert output body filter into output chain */
+    ngx_http_contrast_output_filters_init(cf);
 
     contrast_log(INFO, cf->log, 0,
 	    "Completed initialization of contrast connector module");

@@ -268,6 +268,12 @@ void   contrast__api__dtm__activity__library_usages_entry__init
   static const Contrast__Api__Dtm__Activity__LibraryUsagesEntry init_value = CONTRAST__API__DTM__ACTIVITY__LIBRARY_USAGES_ENTRY__INIT;
   *message = init_value;
 }
+void   contrast__api__dtm__activity__dynamic_sources_entry__init
+                     (Contrast__Api__Dtm__Activity__DynamicSourcesEntry         *message)
+{
+  static const Contrast__Api__Dtm__Activity__DynamicSourcesEntry init_value = CONTRAST__API__DTM__ACTIVITY__DYNAMIC_SOURCES_ENTRY__INIT;
+  *message = init_value;
+}
 void   contrast__api__dtm__activity__init
                      (Contrast__Api__Dtm__Activity         *message)
 {
@@ -362,6 +368,57 @@ void   contrast__api__dtm__finding__free_unpacked
   if(!message)
     return;
   assert(message->base.descriptor == &contrast__api__dtm__finding__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   contrast__api__dtm__dynamic_source__properties_entry__init
+                     (Contrast__Api__Dtm__DynamicSource__PropertiesEntry         *message)
+{
+  static const Contrast__Api__Dtm__DynamicSource__PropertiesEntry init_value = CONTRAST__API__DTM__DYNAMIC_SOURCE__PROPERTIES_ENTRY__INIT;
+  *message = init_value;
+}
+void   contrast__api__dtm__dynamic_source__init
+                     (Contrast__Api__Dtm__DynamicSource         *message)
+{
+  static const Contrast__Api__Dtm__DynamicSource init_value = CONTRAST__API__DTM__DYNAMIC_SOURCE__INIT;
+  *message = init_value;
+}
+size_t contrast__api__dtm__dynamic_source__get_packed_size
+                     (const Contrast__Api__Dtm__DynamicSource *message)
+{
+  assert(message->base.descriptor == &contrast__api__dtm__dynamic_source__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t contrast__api__dtm__dynamic_source__pack
+                     (const Contrast__Api__Dtm__DynamicSource *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &contrast__api__dtm__dynamic_source__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t contrast__api__dtm__dynamic_source__pack_to_buffer
+                     (const Contrast__Api__Dtm__DynamicSource *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &contrast__api__dtm__dynamic_source__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Contrast__Api__Dtm__DynamicSource *
+       contrast__api__dtm__dynamic_source__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Contrast__Api__Dtm__DynamicSource *)
+     protobuf_c_message_unpack (&contrast__api__dtm__dynamic_source__descriptor,
+                                allocator, len, data);
+}
+void   contrast__api__dtm__dynamic_source__free_unpacked
+                     (Contrast__Api__Dtm__DynamicSource *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &contrast__api__dtm__dynamic_source__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
 void   contrast__api__dtm__possible_security_control__init
@@ -728,6 +785,51 @@ void   contrast__api__dtm__raw_request__free_unpacked
   if(!message)
     return;
   assert(message->base.descriptor == &contrast__api__dtm__raw_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   contrast__api__dtm__raw_response__init
+                     (Contrast__Api__Dtm__RawResponse         *message)
+{
+  static const Contrast__Api__Dtm__RawResponse init_value = CONTRAST__API__DTM__RAW_RESPONSE__INIT;
+  *message = init_value;
+}
+size_t contrast__api__dtm__raw_response__get_packed_size
+                     (const Contrast__Api__Dtm__RawResponse *message)
+{
+  assert(message->base.descriptor == &contrast__api__dtm__raw_response__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t contrast__api__dtm__raw_response__pack
+                     (const Contrast__Api__Dtm__RawResponse *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &contrast__api__dtm__raw_response__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t contrast__api__dtm__raw_response__pack_to_buffer
+                     (const Contrast__Api__Dtm__RawResponse *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &contrast__api__dtm__raw_response__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Contrast__Api__Dtm__RawResponse *
+       contrast__api__dtm__raw_response__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Contrast__Api__Dtm__RawResponse *)
+     protobuf_c_message_unpack (&contrast__api__dtm__raw_response__descriptor,
+                                allocator, len, data);
+}
+void   contrast__api__dtm__raw_response__free_unpacked
+                     (Contrast__Api__Dtm__RawResponse *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &contrast__api__dtm__raw_response__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
 void   contrast__api__dtm__http_request__normalized_request_params_entry__init
@@ -2488,94 +2590,94 @@ void   contrast__api__dtm__trace_event__free_unpacked
   assert(message->base.descriptor == &contrast__api__dtm__trace_event__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
-void   contrast__api__dtm__event_signature__init
-                     (Contrast__Api__Dtm__EventSignature         *message)
+void   contrast__api__dtm__trace_event_signature__init
+                     (Contrast__Api__Dtm__TraceEventSignature         *message)
 {
-  static const Contrast__Api__Dtm__EventSignature init_value = CONTRAST__API__DTM__EVENT_SIGNATURE__INIT;
+  static const Contrast__Api__Dtm__TraceEventSignature init_value = CONTRAST__API__DTM__TRACE_EVENT_SIGNATURE__INIT;
   *message = init_value;
 }
-size_t contrast__api__dtm__event_signature__get_packed_size
-                     (const Contrast__Api__Dtm__EventSignature *message)
+size_t contrast__api__dtm__trace_event_signature__get_packed_size
+                     (const Contrast__Api__Dtm__TraceEventSignature *message)
 {
-  assert(message->base.descriptor == &contrast__api__dtm__event_signature__descriptor);
+  assert(message->base.descriptor == &contrast__api__dtm__trace_event_signature__descriptor);
   return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
 }
-size_t contrast__api__dtm__event_signature__pack
-                     (const Contrast__Api__Dtm__EventSignature *message,
+size_t contrast__api__dtm__trace_event_signature__pack
+                     (const Contrast__Api__Dtm__TraceEventSignature *message,
                       uint8_t       *out)
 {
-  assert(message->base.descriptor == &contrast__api__dtm__event_signature__descriptor);
+  assert(message->base.descriptor == &contrast__api__dtm__trace_event_signature__descriptor);
   return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
 }
-size_t contrast__api__dtm__event_signature__pack_to_buffer
-                     (const Contrast__Api__Dtm__EventSignature *message,
+size_t contrast__api__dtm__trace_event_signature__pack_to_buffer
+                     (const Contrast__Api__Dtm__TraceEventSignature *message,
                       ProtobufCBuffer *buffer)
 {
-  assert(message->base.descriptor == &contrast__api__dtm__event_signature__descriptor);
+  assert(message->base.descriptor == &contrast__api__dtm__trace_event_signature__descriptor);
   return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
 }
-Contrast__Api__Dtm__EventSignature *
-       contrast__api__dtm__event_signature__unpack
+Contrast__Api__Dtm__TraceEventSignature *
+       contrast__api__dtm__trace_event_signature__unpack
                      (ProtobufCAllocator  *allocator,
                       size_t               len,
                       const uint8_t       *data)
 {
-  return (Contrast__Api__Dtm__EventSignature *)
-     protobuf_c_message_unpack (&contrast__api__dtm__event_signature__descriptor,
+  return (Contrast__Api__Dtm__TraceEventSignature *)
+     protobuf_c_message_unpack (&contrast__api__dtm__trace_event_signature__descriptor,
                                 allocator, len, data);
 }
-void   contrast__api__dtm__event_signature__free_unpacked
-                     (Contrast__Api__Dtm__EventSignature *message,
+void   contrast__api__dtm__trace_event_signature__free_unpacked
+                     (Contrast__Api__Dtm__TraceEventSignature *message,
                       ProtobufCAllocator *allocator)
 {
   if(!message)
     return;
-  assert(message->base.descriptor == &contrast__api__dtm__event_signature__descriptor);
+  assert(message->base.descriptor == &contrast__api__dtm__trace_event_signature__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
-void   contrast__api__dtm__event_sources__init
-                     (Contrast__Api__Dtm__EventSources         *message)
+void   contrast__api__dtm__trace_event_source__init
+                     (Contrast__Api__Dtm__TraceEventSource         *message)
 {
-  static const Contrast__Api__Dtm__EventSources init_value = CONTRAST__API__DTM__EVENT_SOURCES__INIT;
+  static const Contrast__Api__Dtm__TraceEventSource init_value = CONTRAST__API__DTM__TRACE_EVENT_SOURCE__INIT;
   *message = init_value;
 }
-size_t contrast__api__dtm__event_sources__get_packed_size
-                     (const Contrast__Api__Dtm__EventSources *message)
+size_t contrast__api__dtm__trace_event_source__get_packed_size
+                     (const Contrast__Api__Dtm__TraceEventSource *message)
 {
-  assert(message->base.descriptor == &contrast__api__dtm__event_sources__descriptor);
+  assert(message->base.descriptor == &contrast__api__dtm__trace_event_source__descriptor);
   return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
 }
-size_t contrast__api__dtm__event_sources__pack
-                     (const Contrast__Api__Dtm__EventSources *message,
+size_t contrast__api__dtm__trace_event_source__pack
+                     (const Contrast__Api__Dtm__TraceEventSource *message,
                       uint8_t       *out)
 {
-  assert(message->base.descriptor == &contrast__api__dtm__event_sources__descriptor);
+  assert(message->base.descriptor == &contrast__api__dtm__trace_event_source__descriptor);
   return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
 }
-size_t contrast__api__dtm__event_sources__pack_to_buffer
-                     (const Contrast__Api__Dtm__EventSources *message,
+size_t contrast__api__dtm__trace_event_source__pack_to_buffer
+                     (const Contrast__Api__Dtm__TraceEventSource *message,
                       ProtobufCBuffer *buffer)
 {
-  assert(message->base.descriptor == &contrast__api__dtm__event_sources__descriptor);
+  assert(message->base.descriptor == &contrast__api__dtm__trace_event_source__descriptor);
   return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
 }
-Contrast__Api__Dtm__EventSources *
-       contrast__api__dtm__event_sources__unpack
+Contrast__Api__Dtm__TraceEventSource *
+       contrast__api__dtm__trace_event_source__unpack
                      (ProtobufCAllocator  *allocator,
                       size_t               len,
                       const uint8_t       *data)
 {
-  return (Contrast__Api__Dtm__EventSources *)
-     protobuf_c_message_unpack (&contrast__api__dtm__event_sources__descriptor,
+  return (Contrast__Api__Dtm__TraceEventSource *)
+     protobuf_c_message_unpack (&contrast__api__dtm__trace_event_source__descriptor,
                                 allocator, len, data);
 }
-void   contrast__api__dtm__event_sources__free_unpacked
-                     (Contrast__Api__Dtm__EventSources *message,
+void   contrast__api__dtm__trace_event_source__free_unpacked
+                     (Contrast__Api__Dtm__TraceEventSource *message,
                       ProtobufCAllocator *allocator)
 {
   if(!message)
     return;
-  assert(message->base.descriptor == &contrast__api__dtm__event_sources__descriptor);
+  assert(message->base.descriptor == &contrast__api__dtm__trace_event_source__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
 void   contrast__api__dtm__trace_event_object__init
@@ -2623,49 +2725,94 @@ void   contrast__api__dtm__trace_event_object__free_unpacked
   assert(message->base.descriptor == &contrast__api__dtm__trace_event_object__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
-void   contrast__api__dtm__tag_range__init
-                     (Contrast__Api__Dtm__TagRange         *message)
+void   contrast__api__dtm__trace_taint_range__init
+                     (Contrast__Api__Dtm__TraceTaintRange         *message)
 {
-  static const Contrast__Api__Dtm__TagRange init_value = CONTRAST__API__DTM__TAG_RANGE__INIT;
+  static const Contrast__Api__Dtm__TraceTaintRange init_value = CONTRAST__API__DTM__TRACE_TAINT_RANGE__INIT;
   *message = init_value;
 }
-size_t contrast__api__dtm__tag_range__get_packed_size
-                     (const Contrast__Api__Dtm__TagRange *message)
+size_t contrast__api__dtm__trace_taint_range__get_packed_size
+                     (const Contrast__Api__Dtm__TraceTaintRange *message)
 {
-  assert(message->base.descriptor == &contrast__api__dtm__tag_range__descriptor);
+  assert(message->base.descriptor == &contrast__api__dtm__trace_taint_range__descriptor);
   return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
 }
-size_t contrast__api__dtm__tag_range__pack
-                     (const Contrast__Api__Dtm__TagRange *message,
+size_t contrast__api__dtm__trace_taint_range__pack
+                     (const Contrast__Api__Dtm__TraceTaintRange *message,
                       uint8_t       *out)
 {
-  assert(message->base.descriptor == &contrast__api__dtm__tag_range__descriptor);
+  assert(message->base.descriptor == &contrast__api__dtm__trace_taint_range__descriptor);
   return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
 }
-size_t contrast__api__dtm__tag_range__pack_to_buffer
-                     (const Contrast__Api__Dtm__TagRange *message,
+size_t contrast__api__dtm__trace_taint_range__pack_to_buffer
+                     (const Contrast__Api__Dtm__TraceTaintRange *message,
                       ProtobufCBuffer *buffer)
 {
-  assert(message->base.descriptor == &contrast__api__dtm__tag_range__descriptor);
+  assert(message->base.descriptor == &contrast__api__dtm__trace_taint_range__descriptor);
   return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
 }
-Contrast__Api__Dtm__TagRange *
-       contrast__api__dtm__tag_range__unpack
+Contrast__Api__Dtm__TraceTaintRange *
+       contrast__api__dtm__trace_taint_range__unpack
                      (ProtobufCAllocator  *allocator,
                       size_t               len,
                       const uint8_t       *data)
 {
-  return (Contrast__Api__Dtm__TagRange *)
-     protobuf_c_message_unpack (&contrast__api__dtm__tag_range__descriptor,
+  return (Contrast__Api__Dtm__TraceTaintRange *)
+     protobuf_c_message_unpack (&contrast__api__dtm__trace_taint_range__descriptor,
                                 allocator, len, data);
 }
-void   contrast__api__dtm__tag_range__free_unpacked
-                     (Contrast__Api__Dtm__TagRange *message,
+void   contrast__api__dtm__trace_taint_range__free_unpacked
+                     (Contrast__Api__Dtm__TraceTaintRange *message,
                       ProtobufCAllocator *allocator)
 {
   if(!message)
     return;
-  assert(message->base.descriptor == &contrast__api__dtm__tag_range__descriptor);
+  assert(message->base.descriptor == &contrast__api__dtm__trace_taint_range__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   contrast__api__dtm__parent_object_id__init
+                     (Contrast__Api__Dtm__ParentObjectId         *message)
+{
+  static const Contrast__Api__Dtm__ParentObjectId init_value = CONTRAST__API__DTM__PARENT_OBJECT_ID__INIT;
+  *message = init_value;
+}
+size_t contrast__api__dtm__parent_object_id__get_packed_size
+                     (const Contrast__Api__Dtm__ParentObjectId *message)
+{
+  assert(message->base.descriptor == &contrast__api__dtm__parent_object_id__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t contrast__api__dtm__parent_object_id__pack
+                     (const Contrast__Api__Dtm__ParentObjectId *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &contrast__api__dtm__parent_object_id__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t contrast__api__dtm__parent_object_id__pack_to_buffer
+                     (const Contrast__Api__Dtm__ParentObjectId *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &contrast__api__dtm__parent_object_id__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+Contrast__Api__Dtm__ParentObjectId *
+       contrast__api__dtm__parent_object_id__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (Contrast__Api__Dtm__ParentObjectId *)
+     protobuf_c_message_unpack (&contrast__api__dtm__parent_object_id__descriptor,
+                                allocator, len, data);
+}
+void   contrast__api__dtm__parent_object_id__free_unpacked
+                     (Contrast__Api__Dtm__ParentObjectId *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &contrast__api__dtm__parent_object_id__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
 void   contrast__api__dtm__trace_stack__init
@@ -2713,7 +2860,7 @@ void   contrast__api__dtm__trace_stack__free_unpacked
   assert(message->base.descriptor == &contrast__api__dtm__trace_stack__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
-static const ProtobufCFieldDescriptor contrast__api__dtm__message__field_descriptors[18] =
+static const ProtobufCFieldDescriptor contrast__api__dtm__message__field_descriptors[19] =
 {
   {
     "client_id",
@@ -2931,6 +3078,18 @@ static const ProtobufCFieldDescriptor contrast__api__dtm__message__field_descrip
     0 | PROTOBUF_C_FIELD_FLAG_ONEOF,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
+  {
+    "response",
+    23,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_MESSAGE,
+    offsetof(Contrast__Api__Dtm__Message, event_case),
+    offsetof(Contrast__Api__Dtm__Message, response),
+    &contrast__api__dtm__raw_response__descriptor,
+    NULL,
+    0 | PROTOBUF_C_FIELD_FLAG_ONEOF,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
 };
 static const unsigned contrast__api__dtm__message__field_indices_by_name[] = {
   13,   /* field[13] = activity */
@@ -2949,6 +3108,7 @@ static const unsigned contrast__api__dtm__message__field_indices_by_name[] = {
   8,   /* field[8] = ppid */
   15,   /* field[15] = prefilter */
   14,   /* field[14] = request */
+  18,   /* field[18] = response */
   9,   /* field[9] = server_activity */
   4,   /* field[4] = timestamp_ms */
 };
@@ -2956,7 +3116,7 @@ static const ProtobufCIntRange contrast__api__dtm__message__number_ranges[2 + 1]
 {
   { 1, 0 },
   { 19, 14 },
-  { 0, 18 }
+  { 0, 19 }
 };
 const ProtobufCMessageDescriptor contrast__api__dtm__message__descriptor =
 {
@@ -2966,7 +3126,7 @@ const ProtobufCMessageDescriptor contrast__api__dtm__message__descriptor =
   "Contrast__Api__Dtm__Message",
   "contrast.api.dtm",
   sizeof(Contrast__Api__Dtm__Message),
-  18,
+  19,
   contrast__api__dtm__message__field_descriptors,
   contrast__api__dtm__message__field_indices_by_name,
   2,  contrast__api__dtm__message__number_ranges,
@@ -3126,7 +3286,7 @@ const ProtobufCMessageDescriptor contrast__api__dtm__server_activity__descriptor
   (ProtobufCMessageInit) contrast__api__dtm__server_activity__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor contrast__api__dtm__agent_startup__field_descriptors[3] =
+static const ProtobufCFieldDescriptor contrast__api__dtm__agent_startup__field_descriptors[7] =
 {
   {
     "version",
@@ -3164,16 +3324,68 @@ static const ProtobufCFieldDescriptor contrast__api__dtm__agent_startup__field_d
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
+  {
+    "server_name",
+    5,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__AgentStartup, server_name),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "server_path",
+    6,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__AgentStartup, server_path),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "server_type",
+    7,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__AgentStartup, server_type),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "server_version",
+    8,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__AgentStartup, server_version),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
 };
 static const unsigned contrast__api__dtm__agent_startup__field_indices_by_name[] = {
   1,   /* field[1] = environment */
+  3,   /* field[3] = server_name */
+  4,   /* field[4] = server_path */
+  5,   /* field[5] = server_type */
+  6,   /* field[6] = server_version */
   2,   /* field[2] = tags */
   0,   /* field[0] = version */
 };
 static const ProtobufCIntRange contrast__api__dtm__agent_startup__number_ranges[1 + 1] =
 {
   { 2, 0 },
-  { 0, 3 }
+  { 0, 7 }
 };
 const ProtobufCMessageDescriptor contrast__api__dtm__agent_startup__descriptor =
 {
@@ -3183,7 +3395,7 @@ const ProtobufCMessageDescriptor contrast__api__dtm__agent_startup__descriptor =
   "Contrast__Api__Dtm__AgentStartup",
   "contrast.api.dtm",
   sizeof(Contrast__Api__Dtm__AgentStartup),
-  3,
+  7,
   contrast__api__dtm__agent_startup__field_descriptors,
   contrast__api__dtm__agent_startup__field_indices_by_name,
   1,  contrast__api__dtm__agent_startup__number_ranges,
@@ -3562,7 +3774,58 @@ const ProtobufCMessageDescriptor contrast__api__dtm__activity__library_usages_en
   (ProtobufCMessageInit) contrast__api__dtm__activity__library_usages_entry__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor contrast__api__dtm__activity__field_descriptors[10] =
+static const ProtobufCFieldDescriptor contrast__api__dtm__activity__dynamic_sources_entry__field_descriptors[2] =
+{
+  {
+    "key",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__Activity__DynamicSourcesEntry, key),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "value",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__Activity__DynamicSourcesEntry, value),
+    &contrast__api__dtm__dynamic_source__descriptor,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned contrast__api__dtm__activity__dynamic_sources_entry__field_indices_by_name[] = {
+  0,   /* field[0] = key */
+  1,   /* field[1] = value */
+};
+static const ProtobufCIntRange contrast__api__dtm__activity__dynamic_sources_entry__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 2 }
+};
+const ProtobufCMessageDescriptor contrast__api__dtm__activity__dynamic_sources_entry__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "contrast.api.dtm.Activity.DynamicSourcesEntry",
+  "DynamicSourcesEntry",
+  "Contrast__Api__Dtm__Activity__DynamicSourcesEntry",
+  "contrast.api.dtm",
+  sizeof(Contrast__Api__Dtm__Activity__DynamicSourcesEntry),
+  2,
+  contrast__api__dtm__activity__dynamic_sources_entry__field_descriptors,
+  contrast__api__dtm__activity__dynamic_sources_entry__field_indices_by_name,
+  1,  contrast__api__dtm__activity__dynamic_sources_entry__number_ranges,
+  (ProtobufCMessageInit) contrast__api__dtm__activity__dynamic_sources_entry__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor contrast__api__dtm__activity__field_descriptors[12] =
 {
   {
     "http_request",
@@ -3684,11 +3947,37 @@ static const ProtobufCFieldDescriptor contrast__api__dtm__activity__field_descri
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
+  {
+    "finding_tags",
+    17,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__Activity, finding_tags),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "dynamic_sources",
+    18,
+    PROTOBUF_C_LABEL_REPEATED,
+    PROTOBUF_C_TYPE_MESSAGE,
+    offsetof(Contrast__Api__Dtm__Activity, n_dynamic_sources),
+    offsetof(Contrast__Api__Dtm__Activity, dynamic_sources),
+    &contrast__api__dtm__activity__dynamic_sources_entry__descriptor,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
 };
 static const unsigned contrast__api__dtm__activity__field_indices_by_name[] = {
   6,   /* field[6] = architectures */
   9,   /* field[9] = controls */
   2,   /* field[2] = duration_ms */
+  11,   /* field[11] = dynamic_sources */
+  10,   /* field[10] = finding_tags */
   8,   /* field[8] = findings */
   0,   /* field[0] = http_request */
   1,   /* field[1] = http_response */
@@ -3704,7 +3993,7 @@ static const ProtobufCIntRange contrast__api__dtm__activity__number_ranges[5 + 1
   { 7, 4 },
   { 12, 7 },
   { 15, 8 },
-  { 0, 10 }
+  { 0, 12 }
 };
 const ProtobufCMessageDescriptor contrast__api__dtm__activity__descriptor =
 {
@@ -3714,7 +4003,7 @@ const ProtobufCMessageDescriptor contrast__api__dtm__activity__descriptor =
   "Contrast__Api__Dtm__Activity",
   "contrast.api.dtm",
   sizeof(Contrast__Api__Dtm__Activity),
-  10,
+  12,
   contrast__api__dtm__activity__field_descriptors,
   contrast__api__dtm__activity__field_indices_by_name,
   5,  contrast__api__dtm__activity__number_ranges,
@@ -3772,7 +4061,7 @@ const ProtobufCMessageDescriptor contrast__api__dtm__finding__properties_entry__
   (ProtobufCMessageInit) contrast__api__dtm__finding__properties_entry__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor contrast__api__dtm__finding__field_descriptors[8] =
+static const ProtobufCFieldDescriptor contrast__api__dtm__finding__field_descriptors[9] =
 {
   {
     "hash_code",
@@ -3870,6 +4159,18 @@ static const ProtobufCFieldDescriptor contrast__api__dtm__finding__field_descrip
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
+  {
+    "version",
+    10,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT64,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__Finding, version),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
 };
 static const unsigned contrast__api__dtm__finding__field_indices_by_name[] = {
   5,   /* field[5] = events */
@@ -3880,12 +4181,13 @@ static const unsigned contrast__api__dtm__finding__field_indices_by_name[] = {
   4,   /* field[4] = properties */
   2,   /* field[2] = rule_id */
   7,   /* field[7] = tags */
+  8,   /* field[8] = version */
 };
 static const ProtobufCIntRange contrast__api__dtm__finding__number_ranges[2 + 1] =
 {
   { 1, 0 },
   { 6, 4 },
-  { 0, 8 }
+  { 0, 9 }
 };
 const ProtobufCMessageDescriptor contrast__api__dtm__finding__descriptor =
 {
@@ -3895,11 +4197,165 @@ const ProtobufCMessageDescriptor contrast__api__dtm__finding__descriptor =
   "Contrast__Api__Dtm__Finding",
   "contrast.api.dtm",
   sizeof(Contrast__Api__Dtm__Finding),
-  8,
+  9,
   contrast__api__dtm__finding__field_descriptors,
   contrast__api__dtm__finding__field_indices_by_name,
   2,  contrast__api__dtm__finding__number_ranges,
   (ProtobufCMessageInit) contrast__api__dtm__finding__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor contrast__api__dtm__dynamic_source__properties_entry__field_descriptors[2] =
+{
+  {
+    "key",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__DynamicSource__PropertiesEntry, key),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "value",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__DynamicSource__PropertiesEntry, value),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned contrast__api__dtm__dynamic_source__properties_entry__field_indices_by_name[] = {
+  0,   /* field[0] = key */
+  1,   /* field[1] = value */
+};
+static const ProtobufCIntRange contrast__api__dtm__dynamic_source__properties_entry__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 2 }
+};
+const ProtobufCMessageDescriptor contrast__api__dtm__dynamic_source__properties_entry__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "contrast.api.dtm.DynamicSource.PropertiesEntry",
+  "PropertiesEntry",
+  "Contrast__Api__Dtm__DynamicSource__PropertiesEntry",
+  "contrast.api.dtm",
+  sizeof(Contrast__Api__Dtm__DynamicSource__PropertiesEntry),
+  2,
+  contrast__api__dtm__dynamic_source__properties_entry__field_descriptors,
+  contrast__api__dtm__dynamic_source__properties_entry__field_indices_by_name,
+  1,  contrast__api__dtm__dynamic_source__properties_entry__number_ranges,
+  (ProtobufCMessageInit) contrast__api__dtm__dynamic_source__properties_entry__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor contrast__api__dtm__dynamic_source__field_descriptors[6] =
+{
+  {
+    "class_name",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__DynamicSource, class_name),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "method_name",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__DynamicSource, method_name),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "instance_method",
+    3,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_BOOL,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__DynamicSource, instance_method),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "target",
+    4,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__DynamicSource, target),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "events",
+    5,
+    PROTOBUF_C_LABEL_REPEATED,
+    PROTOBUF_C_TYPE_MESSAGE,
+    offsetof(Contrast__Api__Dtm__DynamicSource, n_events),
+    offsetof(Contrast__Api__Dtm__DynamicSource, events),
+    &contrast__api__dtm__trace_event__descriptor,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "properties",
+    6,
+    PROTOBUF_C_LABEL_REPEATED,
+    PROTOBUF_C_TYPE_MESSAGE,
+    offsetof(Contrast__Api__Dtm__DynamicSource, n_properties),
+    offsetof(Contrast__Api__Dtm__DynamicSource, properties),
+    &contrast__api__dtm__dynamic_source__properties_entry__descriptor,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned contrast__api__dtm__dynamic_source__field_indices_by_name[] = {
+  0,   /* field[0] = class_name */
+  4,   /* field[4] = events */
+  2,   /* field[2] = instance_method */
+  1,   /* field[1] = method_name */
+  5,   /* field[5] = properties */
+  3,   /* field[3] = target */
+};
+static const ProtobufCIntRange contrast__api__dtm__dynamic_source__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 6 }
+};
+const ProtobufCMessageDescriptor contrast__api__dtm__dynamic_source__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "contrast.api.dtm.DynamicSource",
+  "DynamicSource",
+  "Contrast__Api__Dtm__DynamicSource",
+  "contrast.api.dtm",
+  sizeof(Contrast__Api__Dtm__DynamicSource),
+  6,
+  contrast__api__dtm__dynamic_source__field_descriptors,
+  contrast__api__dtm__dynamic_source__field_indices_by_name,
+  1,  contrast__api__dtm__dynamic_source__number_ranges,
+  (ProtobufCMessageInit) contrast__api__dtm__dynamic_source__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor contrast__api__dtm__possible_security_control__field_descriptors[3] =
@@ -4740,6 +5196,98 @@ const ProtobufCMessageDescriptor contrast__api__dtm__raw_request__descriptor =
   contrast__api__dtm__raw_request__field_indices_by_name,
   5,  contrast__api__dtm__raw_request__number_ranges,
   (ProtobufCMessageInit) contrast__api__dtm__raw_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor contrast__api__dtm__raw_response__field_descriptors[5] =
+{
+  {
+    "uuid",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__RawResponse, uuid),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "timestamp_ms",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT64,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__RawResponse, timestamp_ms),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "response_code",
+    3,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__RawResponse, response_code),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "response_headers",
+    14,
+    PROTOBUF_C_LABEL_REPEATED,
+    PROTOBUF_C_TYPE_MESSAGE,
+    offsetof(Contrast__Api__Dtm__RawResponse, n_response_headers),
+    offsetof(Contrast__Api__Dtm__RawResponse, response_headers),
+    &contrast__api__dtm__simple_pair__descriptor,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "response_body",
+    16,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__RawResponse, response_body),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned contrast__api__dtm__raw_response__field_indices_by_name[] = {
+  4,   /* field[4] = response_body */
+  2,   /* field[2] = response_code */
+  3,   /* field[3] = response_headers */
+  1,   /* field[1] = timestamp_ms */
+  0,   /* field[0] = uuid */
+};
+static const ProtobufCIntRange contrast__api__dtm__raw_response__number_ranges[3 + 1] =
+{
+  { 1, 0 },
+  { 14, 3 },
+  { 16, 4 },
+  { 0, 5 }
+};
+const ProtobufCMessageDescriptor contrast__api__dtm__raw_response__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "contrast.api.dtm.RawResponse",
+  "RawResponse",
+  "Contrast__Api__Dtm__RawResponse",
+  "contrast.api.dtm",
+  sizeof(Contrast__Api__Dtm__RawResponse),
+  5,
+  contrast__api__dtm__raw_response__field_descriptors,
+  contrast__api__dtm__raw_response__field_indices_by_name,
+  3,  contrast__api__dtm__raw_response__number_ranges,
+  (ProtobufCMessageInit) contrast__api__dtm__raw_response__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor contrast__api__dtm__http_request__normalized_request_params_entry__field_descriptors[2] =
@@ -8460,40 +9008,46 @@ const ProtobufCMessageDescriptor contrast__api__dtm__stack_trace_element__descri
   (ProtobufCMessageInit) contrast__api__dtm__stack_trace_element__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCEnumValue contrast__api__dtm__trace_event__action__enum_values_by_number[13] =
+static const ProtobufCEnumValue contrast__api__dtm__trace_event__action__enum_values_by_number[16] =
 {
   { "CREATION", "CONTRAST__API__DTM__TRACE_EVENT__ACTION__CREATION", 0 },
   { "PROPAGATION", "CONTRAST__API__DTM__TRACE_EVENT__ACTION__PROPAGATION", 1 },
-  { "A2A", "CONTRAST__API__DTM__TRACE_EVENT__ACTION__A2A", 3 },
-  { "A2R", "CONTRAST__API__DTM__TRACE_EVENT__ACTION__A2R", 4 },
-  { "O2A", "CONTRAST__API__DTM__TRACE_EVENT__ACTION__O2A", 5 },
-  { "O2P", "CONTRAST__API__DTM__TRACE_EVENT__ACTION__O2P", 6 },
-  { "O2O", "CONTRAST__API__DTM__TRACE_EVENT__ACTION__O2O", 7 },
-  { "O2R", "CONTRAST__API__DTM__TRACE_EVENT__ACTION__O2R", 8 },
-  { "P2A", "CONTRAST__API__DTM__TRACE_EVENT__ACTION__P2A", 9 },
-  { "P2P", "CONTRAST__API__DTM__TRACE_EVENT__ACTION__P2P", 10 },
-  { "P2O", "CONTRAST__API__DTM__TRACE_EVENT__ACTION__P2O", 11 },
-  { "TAG", "CONTRAST__API__DTM__TRACE_EVENT__ACTION__TAG", 12 },
-  { "TRIGGER", "CONTRAST__API__DTM__TRACE_EVENT__ACTION__TRIGGER", 13 },
+  { "TRIGGER", "CONTRAST__API__DTM__TRACE_EVENT__ACTION__TRIGGER", 2 },
+  { "TAG", "CONTRAST__API__DTM__TRACE_EVENT__ACTION__TAG", 3 },
+  { "A2A", "CONTRAST__API__DTM__TRACE_EVENT__ACTION__A2A", 4 },
+  { "A2P", "CONTRAST__API__DTM__TRACE_EVENT__ACTION__A2P", 5 },
+  { "A2O", "CONTRAST__API__DTM__TRACE_EVENT__ACTION__A2O", 6 },
+  { "A2R", "CONTRAST__API__DTM__TRACE_EVENT__ACTION__A2R", 7 },
+  { "O2A", "CONTRAST__API__DTM__TRACE_EVENT__ACTION__O2A", 8 },
+  { "O2P", "CONTRAST__API__DTM__TRACE_EVENT__ACTION__O2P", 9 },
+  { "O2O", "CONTRAST__API__DTM__TRACE_EVENT__ACTION__O2O", 10 },
+  { "O2R", "CONTRAST__API__DTM__TRACE_EVENT__ACTION__O2R", 11 },
+  { "P2A", "CONTRAST__API__DTM__TRACE_EVENT__ACTION__P2A", 12 },
+  { "P2P", "CONTRAST__API__DTM__TRACE_EVENT__ACTION__P2P", 13 },
+  { "P2O", "CONTRAST__API__DTM__TRACE_EVENT__ACTION__P2O", 14 },
+  { "P2R", "CONTRAST__API__DTM__TRACE_EVENT__ACTION__P2R", 15 },
 };
 static const ProtobufCIntRange contrast__api__dtm__trace_event__action__value_ranges[] = {
-{0, 0},{3, 2},{0, 13}
+{0, 0},{0, 16}
 };
-static const ProtobufCEnumValueIndex contrast__api__dtm__trace_event__action__enum_values_by_name[13] =
+static const ProtobufCEnumValueIndex contrast__api__dtm__trace_event__action__enum_values_by_name[16] =
 {
-  { "A2A", 2 },
-  { "A2R", 3 },
+  { "A2A", 4 },
+  { "A2O", 6 },
+  { "A2P", 5 },
+  { "A2R", 7 },
   { "CREATION", 0 },
-  { "O2A", 4 },
-  { "O2O", 6 },
-  { "O2P", 5 },
-  { "O2R", 7 },
-  { "P2A", 8 },
-  { "P2O", 10 },
-  { "P2P", 9 },
+  { "O2A", 8 },
+  { "O2O", 10 },
+  { "O2P", 9 },
+  { "O2R", 11 },
+  { "P2A", 12 },
+  { "P2O", 14 },
+  { "P2P", 13 },
+  { "P2R", 15 },
   { "PROPAGATION", 1 },
-  { "TAG", 11 },
-  { "TRIGGER", 12 },
+  { "TAG", 3 },
+  { "TRIGGER", 2 },
 };
 const ProtobufCEnumDescriptor contrast__api__dtm__trace_event__action__descriptor =
 {
@@ -8502,15 +9056,45 @@ const ProtobufCEnumDescriptor contrast__api__dtm__trace_event__action__descripto
   "Action",
   "Contrast__Api__Dtm__TraceEvent__Action",
   "contrast.api.dtm",
-  13,
+  16,
   contrast__api__dtm__trace_event__action__enum_values_by_number,
-  13,
+  16,
   contrast__api__dtm__trace_event__action__enum_values_by_name,
-  2,
+  1,
   contrast__api__dtm__trace_event__action__value_ranges,
   NULL,NULL,NULL,NULL   /* reserved[1234] */
 };
-static const ProtobufCFieldDescriptor contrast__api__dtm__trace_event__field_descriptors[14] =
+static const ProtobufCEnumValue contrast__api__dtm__trace_event__event_type__enum_values_by_number[3] =
+{
+  { "TYPE_METHOD", "CONTRAST__API__DTM__TRACE_EVENT__EVENT_TYPE__TYPE_METHOD", 0 },
+  { "TYPE_PROPAGATION", "CONTRAST__API__DTM__TRACE_EVENT__EVENT_TYPE__TYPE_PROPAGATION", 1 },
+  { "TYPE_TAG", "CONTRAST__API__DTM__TRACE_EVENT__EVENT_TYPE__TYPE_TAG", 2 },
+};
+static const ProtobufCIntRange contrast__api__dtm__trace_event__event_type__value_ranges[] = {
+{0, 0},{0, 3}
+};
+static const ProtobufCEnumValueIndex contrast__api__dtm__trace_event__event_type__enum_values_by_name[3] =
+{
+  { "TYPE_METHOD", 0 },
+  { "TYPE_PROPAGATION", 1 },
+  { "TYPE_TAG", 2 },
+};
+const ProtobufCEnumDescriptor contrast__api__dtm__trace_event__event_type__descriptor =
+{
+  PROTOBUF_C__ENUM_DESCRIPTOR_MAGIC,
+  "contrast.api.dtm.TraceEvent.EventType",
+  "EventType",
+  "Contrast__Api__Dtm__TraceEvent__EventType",
+  "contrast.api.dtm",
+  3,
+  contrast__api__dtm__trace_event__event_type__enum_values_by_number,
+  3,
+  contrast__api__dtm__trace_event__event_type__enum_values_by_name,
+  1,
+  contrast__api__dtm__trace_event__event_type__value_ranges,
+  NULL,NULL,NULL,NULL   /* reserved[1234] */
+};
+static const ProtobufCFieldDescriptor contrast__api__dtm__trace_event__field_descriptors[18] =
 {
   {
     "action",
@@ -8528,11 +9112,11 @@ static const ProtobufCFieldDescriptor contrast__api__dtm__trace_event__field_des
     "type",
     2,
     PROTOBUF_C_LABEL_NONE,
-    PROTOBUF_C_TYPE_STRING,
+    PROTOBUF_C_TYPE_ENUM,
     0,   /* quantifier_offset */
     offsetof(Contrast__Api__Dtm__TraceEvent, type),
+    &contrast__api__dtm__trace_event__event_type__descriptor,
     NULL,
-    &protobuf_c_empty_string,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
@@ -8561,25 +9145,13 @@ static const ProtobufCFieldDescriptor contrast__api__dtm__trace_event__field_des
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
   {
-    "bitset",
-    5,
-    PROTOBUF_C_LABEL_NONE,
-    PROTOBUF_C_TYPE_STRING,
-    0,   /* quantifier_offset */
-    offsetof(Contrast__Api__Dtm__TraceEvent, bitset),
-    NULL,
-    &protobuf_c_empty_string,
-    0,             /* flags */
-    0,NULL,NULL    /* reserved1,reserved2, etc */
-  },
-  {
     "signature",
     6,
     PROTOBUF_C_LABEL_NONE,
     PROTOBUF_C_TYPE_MESSAGE,
     0,   /* quantifier_offset */
     offsetof(Contrast__Api__Dtm__TraceEvent, signature),
-    &contrast__api__dtm__event_signature__descriptor,
+    &contrast__api__dtm__trace_event_signature__descriptor,
     NULL,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
@@ -8669,13 +9241,73 @@ static const ProtobufCFieldDescriptor contrast__api__dtm__trace_event__field_des
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
   {
-    "eventSources",
+    "event_sources",
     20,
     PROTOBUF_C_LABEL_REPEATED,
     PROTOBUF_C_TYPE_MESSAGE,
-    offsetof(Contrast__Api__Dtm__TraceEvent, n_eventsources),
-    offsetof(Contrast__Api__Dtm__TraceEvent, eventsources),
-    &contrast__api__dtm__event_sources__descriptor,
+    offsetof(Contrast__Api__Dtm__TraceEvent, n_event_sources),
+    offsetof(Contrast__Api__Dtm__TraceEvent, event_sources),
+    &contrast__api__dtm__trace_event_source__descriptor,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "source",
+    21,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__TraceEvent, source),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "target",
+    22,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__TraceEvent, target),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "taint_ranges",
+    23,
+    PROTOBUF_C_LABEL_REPEATED,
+    PROTOBUF_C_TYPE_MESSAGE,
+    offsetof(Contrast__Api__Dtm__TraceEvent, n_taint_ranges),
+    offsetof(Contrast__Api__Dtm__TraceEvent, taint_ranges),
+    &contrast__api__dtm__trace_taint_range__descriptor,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "object_id",
+    24,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT64,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__TraceEvent, object_id),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "parent_object_ids",
+    25,
+    PROTOBUF_C_LABEL_REPEATED,
+    PROTOBUF_C_TYPE_MESSAGE,
+    offsetof(Contrast__Api__Dtm__TraceEvent, n_parent_object_ids),
+    offsetof(Contrast__Api__Dtm__TraceEvent, parent_object_ids),
+    &contrast__api__dtm__parent_object_id__descriptor,
     NULL,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
@@ -8683,25 +9315,30 @@ static const ProtobufCFieldDescriptor contrast__api__dtm__trace_event__field_des
 };
 static const unsigned contrast__api__dtm__trace_event__field_indices_by_name[] = {
   0,   /* field[0] = action */
-  11,   /* field[11] = args */
-  4,   /* field[4] = bitset */
-  8,   /* field[8] = code */
-  7,   /* field[7] = context */
-  13,   /* field[13] = eventSources */
-  6,   /* field[6] = field_name */
-  9,   /* field[9] = object */
-  10,   /* field[10] = ret */
-  5,   /* field[5] = signature */
-  12,   /* field[12] = stack */
+  10,   /* field[10] = args */
+  7,   /* field[7] = code */
+  6,   /* field[6] = context */
+  12,   /* field[12] = event_sources */
+  5,   /* field[5] = field_name */
+  8,   /* field[8] = object */
+  16,   /* field[16] = object_id */
+  17,   /* field[17] = parent_object_ids */
+  9,   /* field[9] = ret */
+  4,   /* field[4] = signature */
+  13,   /* field[13] = source */
+  11,   /* field[11] = stack */
+  15,   /* field[15] = taint_ranges */
+  14,   /* field[14] = target */
   3,   /* field[3] = thread */
   2,   /* field[2] = timestamp_ms */
   1,   /* field[1] = type */
 };
-static const ProtobufCIntRange contrast__api__dtm__trace_event__number_ranges[2 + 1] =
+static const ProtobufCIntRange contrast__api__dtm__trace_event__number_ranges[3 + 1] =
 {
   { 1, 0 },
-  { 16, 9 },
-  { 0, 14 }
+  { 6, 4 },
+  { 16, 8 },
+  { 0, 18 }
 };
 const ProtobufCMessageDescriptor contrast__api__dtm__trace_event__descriptor =
 {
@@ -8711,58 +9348,58 @@ const ProtobufCMessageDescriptor contrast__api__dtm__trace_event__descriptor =
   "Contrast__Api__Dtm__TraceEvent",
   "contrast.api.dtm",
   sizeof(Contrast__Api__Dtm__TraceEvent),
-  14,
+  18,
   contrast__api__dtm__trace_event__field_descriptors,
   contrast__api__dtm__trace_event__field_indices_by_name,
-  2,  contrast__api__dtm__trace_event__number_ranges,
+  3,  contrast__api__dtm__trace_event__number_ranges,
   (ProtobufCMessageInit) contrast__api__dtm__trace_event__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor contrast__api__dtm__event_signature__field_descriptors[7] =
+static const ProtobufCFieldDescriptor contrast__api__dtm__trace_event_signature__field_descriptors[7] =
 {
   {
-    "returnType",
+    "return_type",
     1,
     PROTOBUF_C_LABEL_NONE,
     PROTOBUF_C_TYPE_STRING,
     0,   /* quantifier_offset */
-    offsetof(Contrast__Api__Dtm__EventSignature, returntype),
+    offsetof(Contrast__Api__Dtm__TraceEventSignature, return_type),
     NULL,
     &protobuf_c_empty_string,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
   {
-    "className",
+    "class_name",
     2,
     PROTOBUF_C_LABEL_NONE,
     PROTOBUF_C_TYPE_STRING,
     0,   /* quantifier_offset */
-    offsetof(Contrast__Api__Dtm__EventSignature, classname),
+    offsetof(Contrast__Api__Dtm__TraceEventSignature, class_name),
     NULL,
     &protobuf_c_empty_string,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
   {
-    "methodName",
+    "method_name",
     3,
     PROTOBUF_C_LABEL_NONE,
     PROTOBUF_C_TYPE_STRING,
     0,   /* quantifier_offset */
-    offsetof(Contrast__Api__Dtm__EventSignature, methodname),
+    offsetof(Contrast__Api__Dtm__TraceEventSignature, method_name),
     NULL,
     &protobuf_c_empty_string,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
   {
-    "argTypes",
+    "arg_types",
     4,
     PROTOBUF_C_LABEL_REPEATED,
     PROTOBUF_C_TYPE_STRING,
-    offsetof(Contrast__Api__Dtm__EventSignature, n_argtypes),
-    offsetof(Contrast__Api__Dtm__EventSignature, argtypes),
+    offsetof(Contrast__Api__Dtm__TraceEventSignature, n_arg_types),
+    offsetof(Contrast__Api__Dtm__TraceEventSignature, arg_types),
     NULL,
     &protobuf_c_empty_string,
     0,             /* flags */
@@ -8774,19 +9411,19 @@ static const ProtobufCFieldDescriptor contrast__api__dtm__event_signature__field
     PROTOBUF_C_LABEL_NONE,
     PROTOBUF_C_TYPE_BOOL,
     0,   /* quantifier_offset */
-    offsetof(Contrast__Api__Dtm__EventSignature, constructor),
+    offsetof(Contrast__Api__Dtm__TraceEventSignature, constructor),
     NULL,
     NULL,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
   {
-    "voidMethod",
+    "void_method",
     6,
     PROTOBUF_C_LABEL_NONE,
     PROTOBUF_C_TYPE_BOOL,
     0,   /* quantifier_offset */
-    offsetof(Contrast__Api__Dtm__EventSignature, voidmethod),
+    offsetof(Contrast__Api__Dtm__TraceEventSignature, void_method),
     NULL,
     NULL,
     0,             /* flags */
@@ -8798,43 +9435,43 @@ static const ProtobufCFieldDescriptor contrast__api__dtm__event_signature__field
     PROTOBUF_C_LABEL_NONE,
     PROTOBUF_C_TYPE_INT32,
     0,   /* quantifier_offset */
-    offsetof(Contrast__Api__Dtm__EventSignature, flags),
+    offsetof(Contrast__Api__Dtm__TraceEventSignature, flags),
     NULL,
     NULL,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
 };
-static const unsigned contrast__api__dtm__event_signature__field_indices_by_name[] = {
-  3,   /* field[3] = argTypes */
-  1,   /* field[1] = className */
+static const unsigned contrast__api__dtm__trace_event_signature__field_indices_by_name[] = {
+  3,   /* field[3] = arg_types */
+  1,   /* field[1] = class_name */
   4,   /* field[4] = constructor */
   6,   /* field[6] = flags */
-  2,   /* field[2] = methodName */
-  0,   /* field[0] = returnType */
-  5,   /* field[5] = voidMethod */
+  2,   /* field[2] = method_name */
+  0,   /* field[0] = return_type */
+  5,   /* field[5] = void_method */
 };
-static const ProtobufCIntRange contrast__api__dtm__event_signature__number_ranges[1 + 1] =
+static const ProtobufCIntRange contrast__api__dtm__trace_event_signature__number_ranges[1 + 1] =
 {
   { 1, 0 },
   { 0, 7 }
 };
-const ProtobufCMessageDescriptor contrast__api__dtm__event_signature__descriptor =
+const ProtobufCMessageDescriptor contrast__api__dtm__trace_event_signature__descriptor =
 {
   PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
-  "contrast.api.dtm.EventSignature",
-  "EventSignature",
-  "Contrast__Api__Dtm__EventSignature",
+  "contrast.api.dtm.TraceEventSignature",
+  "TraceEventSignature",
+  "Contrast__Api__Dtm__TraceEventSignature",
   "contrast.api.dtm",
-  sizeof(Contrast__Api__Dtm__EventSignature),
+  sizeof(Contrast__Api__Dtm__TraceEventSignature),
   7,
-  contrast__api__dtm__event_signature__field_descriptors,
-  contrast__api__dtm__event_signature__field_indices_by_name,
-  1,  contrast__api__dtm__event_signature__number_ranges,
-  (ProtobufCMessageInit) contrast__api__dtm__event_signature__init,
+  contrast__api__dtm__trace_event_signature__field_descriptors,
+  contrast__api__dtm__trace_event_signature__field_indices_by_name,
+  1,  contrast__api__dtm__trace_event_signature__number_ranges,
+  (ProtobufCMessageInit) contrast__api__dtm__trace_event_signature__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor contrast__api__dtm__event_sources__field_descriptors[2] =
+static const ProtobufCFieldDescriptor contrast__api__dtm__trace_event_source__field_descriptors[2] =
 {
   {
     "type",
@@ -8842,7 +9479,7 @@ static const ProtobufCFieldDescriptor contrast__api__dtm__event_sources__field_d
     PROTOBUF_C_LABEL_NONE,
     PROTOBUF_C_TYPE_STRING,
     0,   /* quantifier_offset */
-    offsetof(Contrast__Api__Dtm__EventSources, type),
+    offsetof(Contrast__Api__Dtm__TraceEventSource, type),
     NULL,
     &protobuf_c_empty_string,
     0,             /* flags */
@@ -8854,35 +9491,35 @@ static const ProtobufCFieldDescriptor contrast__api__dtm__event_sources__field_d
     PROTOBUF_C_LABEL_NONE,
     PROTOBUF_C_TYPE_STRING,
     0,   /* quantifier_offset */
-    offsetof(Contrast__Api__Dtm__EventSources, name),
+    offsetof(Contrast__Api__Dtm__TraceEventSource, name),
     NULL,
     &protobuf_c_empty_string,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
 };
-static const unsigned contrast__api__dtm__event_sources__field_indices_by_name[] = {
+static const unsigned contrast__api__dtm__trace_event_source__field_indices_by_name[] = {
   1,   /* field[1] = name */
   0,   /* field[0] = type */
 };
-static const ProtobufCIntRange contrast__api__dtm__event_sources__number_ranges[1 + 1] =
+static const ProtobufCIntRange contrast__api__dtm__trace_event_source__number_ranges[1 + 1] =
 {
   { 1, 0 },
   { 0, 2 }
 };
-const ProtobufCMessageDescriptor contrast__api__dtm__event_sources__descriptor =
+const ProtobufCMessageDescriptor contrast__api__dtm__trace_event_source__descriptor =
 {
   PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
-  "contrast.api.dtm.EventSources",
-  "EventSources",
-  "Contrast__Api__Dtm__EventSources",
+  "contrast.api.dtm.TraceEventSource",
+  "TraceEventSource",
+  "Contrast__Api__Dtm__TraceEventSource",
   "contrast.api.dtm",
-  sizeof(Contrast__Api__Dtm__EventSources),
+  sizeof(Contrast__Api__Dtm__TraceEventSource),
   2,
-  contrast__api__dtm__event_sources__field_descriptors,
-  contrast__api__dtm__event_sources__field_indices_by_name,
-  1,  contrast__api__dtm__event_sources__number_ranges,
-  (ProtobufCMessageInit) contrast__api__dtm__event_sources__init,
+  contrast__api__dtm__trace_event_source__field_descriptors,
+  contrast__api__dtm__trace_event_source__field_indices_by_name,
+  1,  contrast__api__dtm__trace_event_source__number_ranges,
+  (ProtobufCMessageInit) contrast__api__dtm__trace_event_source__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor contrast__api__dtm__trace_event_object__field_descriptors[3] =
@@ -8918,7 +9555,7 @@ static const ProtobufCFieldDescriptor contrast__api__dtm__trace_event_object__fi
     PROTOBUF_C_TYPE_MESSAGE,
     offsetof(Contrast__Api__Dtm__TraceEventObject, n_ranges),
     offsetof(Contrast__Api__Dtm__TraceEventObject, ranges),
-    &contrast__api__dtm__tag_range__descriptor,
+    &contrast__api__dtm__trace_taint_range__descriptor,
     NULL,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
@@ -8949,58 +9586,96 @@ const ProtobufCMessageDescriptor contrast__api__dtm__trace_event_object__descrip
   (ProtobufCMessageInit) contrast__api__dtm__trace_event_object__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor contrast__api__dtm__tag_range__field_descriptors[2] =
+static const ProtobufCFieldDescriptor contrast__api__dtm__trace_taint_range__field_descriptors[2] =
 {
   {
-    "start_idx",
+    "tag",
     1,
     PROTOBUF_C_LABEL_NONE,
-    PROTOBUF_C_TYPE_INT32,
+    PROTOBUF_C_TYPE_STRING,
     0,   /* quantifier_offset */
-    offsetof(Contrast__Api__Dtm__TagRange, start_idx),
+    offsetof(Contrast__Api__Dtm__TraceTaintRange, tag),
     NULL,
-    NULL,
+    &protobuf_c_empty_string,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
   {
-    "end_idx",
+    "range",
     2,
     PROTOBUF_C_LABEL_NONE,
-    PROTOBUF_C_TYPE_INT32,
+    PROTOBUF_C_TYPE_STRING,
     0,   /* quantifier_offset */
-    offsetof(Contrast__Api__Dtm__TagRange, end_idx),
+    offsetof(Contrast__Api__Dtm__TraceTaintRange, range),
     NULL,
-    NULL,
+    &protobuf_c_empty_string,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
 };
-static const unsigned contrast__api__dtm__tag_range__field_indices_by_name[] = {
-  1,   /* field[1] = end_idx */
-  0,   /* field[0] = start_idx */
+static const unsigned contrast__api__dtm__trace_taint_range__field_indices_by_name[] = {
+  1,   /* field[1] = range */
+  0,   /* field[0] = tag */
 };
-static const ProtobufCIntRange contrast__api__dtm__tag_range__number_ranges[1 + 1] =
+static const ProtobufCIntRange contrast__api__dtm__trace_taint_range__number_ranges[1 + 1] =
 {
   { 1, 0 },
   { 0, 2 }
 };
-const ProtobufCMessageDescriptor contrast__api__dtm__tag_range__descriptor =
+const ProtobufCMessageDescriptor contrast__api__dtm__trace_taint_range__descriptor =
 {
   PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
-  "contrast.api.dtm.TagRange",
-  "TagRange",
-  "Contrast__Api__Dtm__TagRange",
+  "contrast.api.dtm.TraceTaintRange",
+  "TraceTaintRange",
+  "Contrast__Api__Dtm__TraceTaintRange",
   "contrast.api.dtm",
-  sizeof(Contrast__Api__Dtm__TagRange),
+  sizeof(Contrast__Api__Dtm__TraceTaintRange),
   2,
-  contrast__api__dtm__tag_range__field_descriptors,
-  contrast__api__dtm__tag_range__field_indices_by_name,
-  1,  contrast__api__dtm__tag_range__number_ranges,
-  (ProtobufCMessageInit) contrast__api__dtm__tag_range__init,
+  contrast__api__dtm__trace_taint_range__field_descriptors,
+  contrast__api__dtm__trace_taint_range__field_indices_by_name,
+  1,  contrast__api__dtm__trace_taint_range__number_ranges,
+  (ProtobufCMessageInit) contrast__api__dtm__trace_taint_range__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor contrast__api__dtm__trace_stack__field_descriptors[6] =
+static const ProtobufCFieldDescriptor contrast__api__dtm__parent_object_id__field_descriptors[1] =
+{
+  {
+    "id",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT64,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__ParentObjectId, id),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned contrast__api__dtm__parent_object_id__field_indices_by_name[] = {
+  0,   /* field[0] = id */
+};
+static const ProtobufCIntRange contrast__api__dtm__parent_object_id__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 1 }
+};
+const ProtobufCMessageDescriptor contrast__api__dtm__parent_object_id__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "contrast.api.dtm.ParentObjectId",
+  "ParentObjectId",
+  "Contrast__Api__Dtm__ParentObjectId",
+  "contrast.api.dtm",
+  sizeof(Contrast__Api__Dtm__ParentObjectId),
+  1,
+  contrast__api__dtm__parent_object_id__field_descriptors,
+  contrast__api__dtm__parent_object_id__field_indices_by_name,
+  1,  contrast__api__dtm__parent_object_id__number_ranges,
+  (ProtobufCMessageInit) contrast__api__dtm__parent_object_id__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor contrast__api__dtm__trace_stack__field_descriptors[7] =
 {
   {
     "signature",
@@ -9015,24 +9690,36 @@ static const ProtobufCFieldDescriptor contrast__api__dtm__trace_stack__field_des
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
   {
-    "method",
+    "declaring_class",
     2,
     PROTOBUF_C_LABEL_NONE,
     PROTOBUF_C_TYPE_STRING,
     0,   /* quantifier_offset */
-    offsetof(Contrast__Api__Dtm__TraceStack, method),
+    offsetof(Contrast__Api__Dtm__TraceStack, declaring_class),
     NULL,
     &protobuf_c_empty_string,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
   {
-    "file",
+    "method_name",
     3,
     PROTOBUF_C_LABEL_NONE,
     PROTOBUF_C_TYPE_STRING,
     0,   /* quantifier_offset */
-    offsetof(Contrast__Api__Dtm__TraceStack, file),
+    offsetof(Contrast__Api__Dtm__TraceStack, method_name),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "file_name",
+    4,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(Contrast__Api__Dtm__TraceStack, file_name),
     NULL,
     &protobuf_c_empty_string,
     0,             /* flags */
@@ -9040,7 +9727,7 @@ static const ProtobufCFieldDescriptor contrast__api__dtm__trace_stack__field_des
   },
   {
     "line_number",
-    4,
+    5,
     PROTOBUF_C_LABEL_NONE,
     PROTOBUF_C_TYPE_INT32,
     0,   /* quantifier_offset */
@@ -9052,7 +9739,7 @@ static const ProtobufCFieldDescriptor contrast__api__dtm__trace_stack__field_des
   },
   {
     "type",
-    5,
+    6,
     PROTOBUF_C_LABEL_NONE,
     PROTOBUF_C_TYPE_STRING,
     0,   /* quantifier_offset */
@@ -9064,7 +9751,7 @@ static const ProtobufCFieldDescriptor contrast__api__dtm__trace_stack__field_des
   },
   {
     "eval",
-    6,
+    7,
     PROTOBUF_C_LABEL_NONE,
     PROTOBUF_C_TYPE_STRING,
     0,   /* quantifier_offset */
@@ -9076,17 +9763,18 @@ static const ProtobufCFieldDescriptor contrast__api__dtm__trace_stack__field_des
   },
 };
 static const unsigned contrast__api__dtm__trace_stack__field_indices_by_name[] = {
-  5,   /* field[5] = eval */
-  2,   /* field[2] = file */
-  3,   /* field[3] = line_number */
-  1,   /* field[1] = method */
+  1,   /* field[1] = declaring_class */
+  6,   /* field[6] = eval */
+  3,   /* field[3] = file_name */
+  4,   /* field[4] = line_number */
+  2,   /* field[2] = method_name */
   0,   /* field[0] = signature */
-  4,   /* field[4] = type */
+  5,   /* field[5] = type */
 };
 static const ProtobufCIntRange contrast__api__dtm__trace_stack__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 6 }
+  { 0, 7 }
 };
 const ProtobufCMessageDescriptor contrast__api__dtm__trace_stack__descriptor =
 {
@@ -9096,7 +9784,7 @@ const ProtobufCMessageDescriptor contrast__api__dtm__trace_stack__descriptor =
   "Contrast__Api__Dtm__TraceStack",
   "contrast.api.dtm",
   sizeof(Contrast__Api__Dtm__TraceStack),
-  6,
+  7,
   contrast__api__dtm__trace_stack__field_descriptors,
   contrast__api__dtm__trace_stack__field_indices_by_name,
   1,  contrast__api__dtm__trace_stack__number_ranges,

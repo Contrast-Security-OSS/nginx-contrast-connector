@@ -27,8 +27,11 @@ typedef struct _Contrast__Api__Dtm__ApplicationUpdate__LibrariesEntry Contrast__
 typedef struct _Contrast__Api__Dtm__Activity Contrast__Api__Dtm__Activity;
 typedef struct _Contrast__Api__Dtm__Activity__TechnologiesEntry Contrast__Api__Dtm__Activity__TechnologiesEntry;
 typedef struct _Contrast__Api__Dtm__Activity__LibraryUsagesEntry Contrast__Api__Dtm__Activity__LibraryUsagesEntry;
+typedef struct _Contrast__Api__Dtm__Activity__DynamicSourcesEntry Contrast__Api__Dtm__Activity__DynamicSourcesEntry;
 typedef struct _Contrast__Api__Dtm__Finding Contrast__Api__Dtm__Finding;
 typedef struct _Contrast__Api__Dtm__Finding__PropertiesEntry Contrast__Api__Dtm__Finding__PropertiesEntry;
+typedef struct _Contrast__Api__Dtm__DynamicSource Contrast__Api__Dtm__DynamicSource;
+typedef struct _Contrast__Api__Dtm__DynamicSource__PropertiesEntry Contrast__Api__Dtm__DynamicSource__PropertiesEntry;
 typedef struct _Contrast__Api__Dtm__PossibleSecurityControl Contrast__Api__Dtm__PossibleSecurityControl;
 typedef struct _Contrast__Api__Dtm__View Contrast__Api__Dtm__View;
 typedef struct _Contrast__Api__Dtm__Platform Contrast__Api__Dtm__Platform;
@@ -38,6 +41,7 @@ typedef struct _Contrast__Api__Dtm__LibraryUsageUpdate Contrast__Api__Dtm__Libra
 typedef struct _Contrast__Api__Dtm__LibraryUsageUpdate__ClassNamesEntry Contrast__Api__Dtm__LibraryUsageUpdate__ClassNamesEntry;
 typedef struct _Contrast__Api__Dtm__Address Contrast__Api__Dtm__Address;
 typedef struct _Contrast__Api__Dtm__RawRequest Contrast__Api__Dtm__RawRequest;
+typedef struct _Contrast__Api__Dtm__RawResponse Contrast__Api__Dtm__RawResponse;
 typedef struct _Contrast__Api__Dtm__HttpRequest Contrast__Api__Dtm__HttpRequest;
 typedef struct _Contrast__Api__Dtm__HttpRequest__NormalizedRequestParamsEntry Contrast__Api__Dtm__HttpRequest__NormalizedRequestParamsEntry;
 typedef struct _Contrast__Api__Dtm__HttpRequest__RequestHeadersEntry Contrast__Api__Dtm__HttpRequest__RequestHeadersEntry;
@@ -84,10 +88,11 @@ typedef struct _Contrast__Api__Dtm__XxeWrapper Contrast__Api__Dtm__XxeWrapper;
 typedef struct _Contrast__Api__Dtm__UserInput Contrast__Api__Dtm__UserInput;
 typedef struct _Contrast__Api__Dtm__StackTraceElement Contrast__Api__Dtm__StackTraceElement;
 typedef struct _Contrast__Api__Dtm__TraceEvent Contrast__Api__Dtm__TraceEvent;
-typedef struct _Contrast__Api__Dtm__EventSignature Contrast__Api__Dtm__EventSignature;
-typedef struct _Contrast__Api__Dtm__EventSources Contrast__Api__Dtm__EventSources;
+typedef struct _Contrast__Api__Dtm__TraceEventSignature Contrast__Api__Dtm__TraceEventSignature;
+typedef struct _Contrast__Api__Dtm__TraceEventSource Contrast__Api__Dtm__TraceEventSource;
 typedef struct _Contrast__Api__Dtm__TraceEventObject Contrast__Api__Dtm__TraceEventObject;
-typedef struct _Contrast__Api__Dtm__TagRange Contrast__Api__Dtm__TagRange;
+typedef struct _Contrast__Api__Dtm__TraceTaintRange Contrast__Api__Dtm__TraceTaintRange;
+typedef struct _Contrast__Api__Dtm__ParentObjectId Contrast__Api__Dtm__ParentObjectId;
 typedef struct _Contrast__Api__Dtm__TraceStack Contrast__Api__Dtm__TraceStack;
 
 
@@ -157,19 +162,28 @@ typedef enum _Contrast__Api__Dtm__UserInput__InputType {
 typedef enum _Contrast__Api__Dtm__TraceEvent__Action {
   CONTRAST__API__DTM__TRACE_EVENT__ACTION__CREATION = 0,
   CONTRAST__API__DTM__TRACE_EVENT__ACTION__PROPAGATION = 1,
-  CONTRAST__API__DTM__TRACE_EVENT__ACTION__A2A = 3,
-  CONTRAST__API__DTM__TRACE_EVENT__ACTION__A2R = 4,
-  CONTRAST__API__DTM__TRACE_EVENT__ACTION__O2A = 5,
-  CONTRAST__API__DTM__TRACE_EVENT__ACTION__O2P = 6,
-  CONTRAST__API__DTM__TRACE_EVENT__ACTION__O2O = 7,
-  CONTRAST__API__DTM__TRACE_EVENT__ACTION__O2R = 8,
-  CONTRAST__API__DTM__TRACE_EVENT__ACTION__P2A = 9,
-  CONTRAST__API__DTM__TRACE_EVENT__ACTION__P2P = 10,
-  CONTRAST__API__DTM__TRACE_EVENT__ACTION__P2O = 11,
-  CONTRAST__API__DTM__TRACE_EVENT__ACTION__TAG = 12,
-  CONTRAST__API__DTM__TRACE_EVENT__ACTION__TRIGGER = 13
+  CONTRAST__API__DTM__TRACE_EVENT__ACTION__TRIGGER = 2,
+  CONTRAST__API__DTM__TRACE_EVENT__ACTION__TAG = 3,
+  CONTRAST__API__DTM__TRACE_EVENT__ACTION__A2A = 4,
+  CONTRAST__API__DTM__TRACE_EVENT__ACTION__A2P = 5,
+  CONTRAST__API__DTM__TRACE_EVENT__ACTION__A2O = 6,
+  CONTRAST__API__DTM__TRACE_EVENT__ACTION__A2R = 7,
+  CONTRAST__API__DTM__TRACE_EVENT__ACTION__O2A = 8,
+  CONTRAST__API__DTM__TRACE_EVENT__ACTION__O2P = 9,
+  CONTRAST__API__DTM__TRACE_EVENT__ACTION__O2O = 10,
+  CONTRAST__API__DTM__TRACE_EVENT__ACTION__O2R = 11,
+  CONTRAST__API__DTM__TRACE_EVENT__ACTION__P2A = 12,
+  CONTRAST__API__DTM__TRACE_EVENT__ACTION__P2P = 13,
+  CONTRAST__API__DTM__TRACE_EVENT__ACTION__P2O = 14,
+  CONTRAST__API__DTM__TRACE_EVENT__ACTION__P2R = 15
     PROTOBUF_C__FORCE_ENUM_TO_BE_INT_SIZE(CONTRAST__API__DTM__TRACE_EVENT__ACTION)
 } Contrast__Api__Dtm__TraceEvent__Action;
+typedef enum _Contrast__Api__Dtm__TraceEvent__EventType {
+  CONTRAST__API__DTM__TRACE_EVENT__EVENT_TYPE__TYPE_METHOD = 0,
+  CONTRAST__API__DTM__TRACE_EVENT__EVENT_TYPE__TYPE_PROPAGATION = 1,
+  CONTRAST__API__DTM__TRACE_EVENT__EVENT_TYPE__TYPE_TAG = 2
+    PROTOBUF_C__FORCE_ENUM_TO_BE_INT_SIZE(CONTRAST__API__DTM__TRACE_EVENT__EVENT_TYPE)
+} Contrast__Api__Dtm__TraceEvent__EventType;
 
 /* --- messages --- */
 
@@ -183,7 +197,8 @@ typedef enum {
   CONTRAST__API__DTM__MESSAGE__EVENT_REQUEST = 19,
   CONTRAST__API__DTM__MESSAGE__EVENT_PREFILTER = 20,
   CONTRAST__API__DTM__MESSAGE__EVENT_INFILTER = 21,
-  CONTRAST__API__DTM__MESSAGE__EVENT_POSTFILTER = 22
+  CONTRAST__API__DTM__MESSAGE__EVENT_POSTFILTER = 22,
+  CONTRAST__API__DTM__MESSAGE__EVENT_RESPONSE = 23
     PROTOBUF_C__FORCE_ENUM_TO_BE_INT_SIZE(CONTRAST__API__DTM__MESSAGE__EVENT)
 } Contrast__Api__Dtm__Message__EventCase;
 
@@ -237,6 +252,7 @@ struct  _Contrast__Api__Dtm__Message
     Contrast__Api__Dtm__HttpRequest *prefilter;
     Contrast__Api__Dtm__AgentEvent *infilter;
     Contrast__Api__Dtm__HttpResponse *postfilter;
+    Contrast__Api__Dtm__RawResponse *response;
   };
 };
 #define CONTRAST__API__DTM__MESSAGE__INIT \
@@ -285,10 +301,14 @@ struct  _Contrast__Api__Dtm__AgentStartup
   char *version;
   char *environment;
   char *tags;
+  char *server_name;
+  char *server_path;
+  char *server_type;
+  char *server_version;
 };
 #define CONTRAST__API__DTM__AGENT_STARTUP__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&contrast__api__dtm__agent_startup__descriptor) \
-    , (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string }
+    , (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string }
 
 
 struct  _Contrast__Api__Dtm__ApplicationCreate
@@ -365,6 +385,17 @@ struct  _Contrast__Api__Dtm__Activity__LibraryUsagesEntry
     , (char *)protobuf_c_empty_string, NULL }
 
 
+struct  _Contrast__Api__Dtm__Activity__DynamicSourcesEntry
+{
+  ProtobufCMessage base;
+  char *key;
+  Contrast__Api__Dtm__DynamicSource *value;
+};
+#define CONTRAST__API__DTM__ACTIVITY__DYNAMIC_SOURCES_ENTRY__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&contrast__api__dtm__activity__dynamic_sources_entry__descriptor) \
+    , (char *)protobuf_c_empty_string, NULL }
+
+
 struct  _Contrast__Api__Dtm__Activity
 {
   ProtobufCMessage base;
@@ -399,10 +430,13 @@ struct  _Contrast__Api__Dtm__Activity
   Contrast__Api__Dtm__Finding **findings;
   size_t n_controls;
   Contrast__Api__Dtm__PossibleSecurityControl **controls;
+  char *finding_tags;
+  size_t n_dynamic_sources;
+  Contrast__Api__Dtm__Activity__DynamicSourcesEntry **dynamic_sources;
 };
 #define CONTRAST__API__DTM__ACTIVITY__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&contrast__api__dtm__activity__descriptor) \
-    , NULL, NULL, 0, 0, 0,NULL, 0,NULL, 0,NULL, 0,NULL, 0,NULL, 0,NULL }
+    , NULL, NULL, 0, 0, 0,NULL, 0,NULL, 0,NULL, 0,NULL, 0,NULL, 0,NULL, (char *)protobuf_c_empty_string, 0,NULL }
 
 
 struct  _Contrast__Api__Dtm__Finding__PropertiesEntry
@@ -441,10 +475,39 @@ struct  _Contrast__Api__Dtm__Finding
    * comma-delimited tags defined on the config
    */
   char *tags;
+  int64_t version;
 };
 #define CONTRAST__API__DTM__FINDING__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&contrast__api__dtm__finding__descriptor) \
-    , (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, 0,NULL, 0,NULL, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string }
+    , (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, 0,NULL, 0,NULL, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, 0 }
+
+
+struct  _Contrast__Api__Dtm__DynamicSource__PropertiesEntry
+{
+  ProtobufCMessage base;
+  char *key;
+  char *value;
+};
+#define CONTRAST__API__DTM__DYNAMIC_SOURCE__PROPERTIES_ENTRY__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&contrast__api__dtm__dynamic_source__properties_entry__descriptor) \
+    , (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string }
+
+
+struct  _Contrast__Api__Dtm__DynamicSource
+{
+  ProtobufCMessage base;
+  char *class_name;
+  char *method_name;
+  protobuf_c_boolean instance_method;
+  char *target;
+  size_t n_events;
+  Contrast__Api__Dtm__TraceEvent **events;
+  size_t n_properties;
+  Contrast__Api__Dtm__DynamicSource__PropertiesEntry **properties;
+};
+#define CONTRAST__API__DTM__DYNAMIC_SOURCE__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&contrast__api__dtm__dynamic_source__descriptor) \
+    , (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, 0, (char *)protobuf_c_empty_string, 0,NULL, 0,NULL }
 
 
 struct  _Contrast__Api__Dtm__PossibleSecurityControl
@@ -597,6 +660,33 @@ struct  _Contrast__Api__Dtm__RawRequest
 #define CONTRAST__API__DTM__RAW_REQUEST__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&contrast__api__dtm__raw_request__descriptor) \
     , (char *)protobuf_c_empty_string, 0, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, 0, 0, (char *)protobuf_c_empty_string, 0, 0, 0,NULL, (char *)protobuf_c_empty_string }
+
+
+struct  _Contrast__Api__Dtm__RawResponse
+{
+  ProtobufCMessage base;
+  /*
+   * this must be filled in to the same uuid as the original http request dtm
+   */
+  char *uuid;
+  int64_t timestamp_ms;
+  /*
+   * response code from proxy
+   */
+  int32_t response_code;
+  /*
+   * Request Headers
+   */
+  size_t n_response_headers;
+  Contrast__Api__Dtm__SimplePair **response_headers;
+  /*
+   * Request Body
+   */
+  char *response_body;
+};
+#define CONTRAST__API__DTM__RAW_RESPONSE__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&contrast__api__dtm__raw_response__descriptor) \
+    , (char *)protobuf_c_empty_string, 0, 0, 0,NULL, (char *)protobuf_c_empty_string }
 
 
 struct  _Contrast__Api__Dtm__HttpRequest__NormalizedRequestParamsEntry
@@ -1387,11 +1477,10 @@ struct  _Contrast__Api__Dtm__TraceEvent
 {
   ProtobufCMessage base;
   Contrast__Api__Dtm__TraceEvent__Action action;
-  char *type;
+  Contrast__Api__Dtm__TraceEvent__EventType type;
   int64_t timestamp_ms;
   char *thread;
-  char *bitset;
-  Contrast__Api__Dtm__EventSignature *signature;
+  Contrast__Api__Dtm__TraceEventSignature *signature;
   char *field_name;
   char *context;
   char *code;
@@ -1401,39 +1490,46 @@ struct  _Contrast__Api__Dtm__TraceEvent
   Contrast__Api__Dtm__TraceEventObject **args;
   size_t n_stack;
   Contrast__Api__Dtm__TraceStack **stack;
-  size_t n_eventsources;
-  Contrast__Api__Dtm__EventSources **eventsources;
+  size_t n_event_sources;
+  Contrast__Api__Dtm__TraceEventSource **event_sources;
+  char *source;
+  char *target;
+  size_t n_taint_ranges;
+  Contrast__Api__Dtm__TraceTaintRange **taint_ranges;
+  int64_t object_id;
+  size_t n_parent_object_ids;
+  Contrast__Api__Dtm__ParentObjectId **parent_object_ids;
 };
 #define CONTRAST__API__DTM__TRACE_EVENT__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&contrast__api__dtm__trace_event__descriptor) \
-    , CONTRAST__API__DTM__TRACE_EVENT__ACTION__CREATION, (char *)protobuf_c_empty_string, 0, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, NULL, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, NULL, NULL, 0,NULL, 0,NULL, 0,NULL }
+    , CONTRAST__API__DTM__TRACE_EVENT__ACTION__CREATION, CONTRAST__API__DTM__TRACE_EVENT__EVENT_TYPE__TYPE_METHOD, 0, (char *)protobuf_c_empty_string, NULL, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, NULL, NULL, 0,NULL, 0,NULL, 0,NULL, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, 0,NULL, 0, 0,NULL }
 
 
-struct  _Contrast__Api__Dtm__EventSignature
+struct  _Contrast__Api__Dtm__TraceEventSignature
 {
   ProtobufCMessage base;
-  char *returntype;
-  char *classname;
-  char *methodname;
-  size_t n_argtypes;
-  char **argtypes;
+  char *return_type;
+  char *class_name;
+  char *method_name;
+  size_t n_arg_types;
+  char **arg_types;
   protobuf_c_boolean constructor;
-  protobuf_c_boolean voidmethod;
+  protobuf_c_boolean void_method;
   int32_t flags;
 };
-#define CONTRAST__API__DTM__EVENT_SIGNATURE__INIT \
- { PROTOBUF_C_MESSAGE_INIT (&contrast__api__dtm__event_signature__descriptor) \
+#define CONTRAST__API__DTM__TRACE_EVENT_SIGNATURE__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&contrast__api__dtm__trace_event_signature__descriptor) \
     , (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, 0,NULL, 0, 0, 0 }
 
 
-struct  _Contrast__Api__Dtm__EventSources
+struct  _Contrast__Api__Dtm__TraceEventSource
 {
   ProtobufCMessage base;
   char *type;
   char *name;
 };
-#define CONTRAST__API__DTM__EVENT_SOURCES__INIT \
- { PROTOBUF_C_MESSAGE_INIT (&contrast__api__dtm__event_sources__descriptor) \
+#define CONTRAST__API__DTM__TRACE_EVENT_SOURCE__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&contrast__api__dtm__trace_event_source__descriptor) \
     , (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string }
 
 
@@ -1443,37 +1539,48 @@ struct  _Contrast__Api__Dtm__TraceEventObject
   protobuf_c_boolean tracked;
   char *value;
   size_t n_ranges;
-  Contrast__Api__Dtm__TagRange **ranges;
+  Contrast__Api__Dtm__TraceTaintRange **ranges;
 };
 #define CONTRAST__API__DTM__TRACE_EVENT_OBJECT__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&contrast__api__dtm__trace_event_object__descriptor) \
     , 0, (char *)protobuf_c_empty_string, 0,NULL }
 
 
-struct  _Contrast__Api__Dtm__TagRange
+struct  _Contrast__Api__Dtm__TraceTaintRange
 {
   ProtobufCMessage base;
-  int32_t start_idx;
-  int32_t end_idx;
+  char *tag;
+  char *range;
 };
-#define CONTRAST__API__DTM__TAG_RANGE__INIT \
- { PROTOBUF_C_MESSAGE_INIT (&contrast__api__dtm__tag_range__descriptor) \
-    , 0, 0 }
+#define CONTRAST__API__DTM__TRACE_TAINT_RANGE__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&contrast__api__dtm__trace_taint_range__descriptor) \
+    , (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string }
+
+
+struct  _Contrast__Api__Dtm__ParentObjectId
+{
+  ProtobufCMessage base;
+  int64_t id;
+};
+#define CONTRAST__API__DTM__PARENT_OBJECT_ID__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&contrast__api__dtm__parent_object_id__descriptor) \
+    , 0 }
 
 
 struct  _Contrast__Api__Dtm__TraceStack
 {
   ProtobufCMessage base;
   char *signature;
-  char *method;
-  char *file;
+  char *declaring_class;
+  char *method_name;
+  char *file_name;
   int32_t line_number;
   char *type;
   char *eval;
 };
 #define CONTRAST__API__DTM__TRACE_STACK__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&contrast__api__dtm__trace_stack__descriptor) \
-    , (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, 0, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string }
+    , (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, 0, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string }
 
 
 /* Contrast__Api__Dtm__Message methods */
@@ -1589,6 +1696,9 @@ void   contrast__api__dtm__activity__technologies_entry__init
 /* Contrast__Api__Dtm__Activity__LibraryUsagesEntry methods */
 void   contrast__api__dtm__activity__library_usages_entry__init
                      (Contrast__Api__Dtm__Activity__LibraryUsagesEntry         *message);
+/* Contrast__Api__Dtm__Activity__DynamicSourcesEntry methods */
+void   contrast__api__dtm__activity__dynamic_sources_entry__init
+                     (Contrast__Api__Dtm__Activity__DynamicSourcesEntry         *message);
 /* Contrast__Api__Dtm__Activity methods */
 void   contrast__api__dtm__activity__init
                      (Contrast__Api__Dtm__Activity         *message);
@@ -1629,6 +1739,28 @@ Contrast__Api__Dtm__Finding *
                       const uint8_t       *data);
 void   contrast__api__dtm__finding__free_unpacked
                      (Contrast__Api__Dtm__Finding *message,
+                      ProtobufCAllocator *allocator);
+/* Contrast__Api__Dtm__DynamicSource__PropertiesEntry methods */
+void   contrast__api__dtm__dynamic_source__properties_entry__init
+                     (Contrast__Api__Dtm__DynamicSource__PropertiesEntry         *message);
+/* Contrast__Api__Dtm__DynamicSource methods */
+void   contrast__api__dtm__dynamic_source__init
+                     (Contrast__Api__Dtm__DynamicSource         *message);
+size_t contrast__api__dtm__dynamic_source__get_packed_size
+                     (const Contrast__Api__Dtm__DynamicSource   *message);
+size_t contrast__api__dtm__dynamic_source__pack
+                     (const Contrast__Api__Dtm__DynamicSource   *message,
+                      uint8_t             *out);
+size_t contrast__api__dtm__dynamic_source__pack_to_buffer
+                     (const Contrast__Api__Dtm__DynamicSource   *message,
+                      ProtobufCBuffer     *buffer);
+Contrast__Api__Dtm__DynamicSource *
+       contrast__api__dtm__dynamic_source__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   contrast__api__dtm__dynamic_source__free_unpacked
+                     (Contrast__Api__Dtm__DynamicSource *message,
                       ProtobufCAllocator *allocator);
 /* Contrast__Api__Dtm__PossibleSecurityControl methods */
 void   contrast__api__dtm__possible_security_control__init
@@ -1784,6 +1916,25 @@ Contrast__Api__Dtm__RawRequest *
                       const uint8_t       *data);
 void   contrast__api__dtm__raw_request__free_unpacked
                      (Contrast__Api__Dtm__RawRequest *message,
+                      ProtobufCAllocator *allocator);
+/* Contrast__Api__Dtm__RawResponse methods */
+void   contrast__api__dtm__raw_response__init
+                     (Contrast__Api__Dtm__RawResponse         *message);
+size_t contrast__api__dtm__raw_response__get_packed_size
+                     (const Contrast__Api__Dtm__RawResponse   *message);
+size_t contrast__api__dtm__raw_response__pack
+                     (const Contrast__Api__Dtm__RawResponse   *message,
+                      uint8_t             *out);
+size_t contrast__api__dtm__raw_response__pack_to_buffer
+                     (const Contrast__Api__Dtm__RawResponse   *message,
+                      ProtobufCBuffer     *buffer);
+Contrast__Api__Dtm__RawResponse *
+       contrast__api__dtm__raw_response__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   contrast__api__dtm__raw_response__free_unpacked
+                     (Contrast__Api__Dtm__RawResponse *message,
                       ProtobufCAllocator *allocator);
 /* Contrast__Api__Dtm__HttpRequest__NormalizedRequestParamsEntry methods */
 void   contrast__api__dtm__http_request__normalized_request_params_entry__init
@@ -2531,43 +2682,43 @@ Contrast__Api__Dtm__TraceEvent *
 void   contrast__api__dtm__trace_event__free_unpacked
                      (Contrast__Api__Dtm__TraceEvent *message,
                       ProtobufCAllocator *allocator);
-/* Contrast__Api__Dtm__EventSignature methods */
-void   contrast__api__dtm__event_signature__init
-                     (Contrast__Api__Dtm__EventSignature         *message);
-size_t contrast__api__dtm__event_signature__get_packed_size
-                     (const Contrast__Api__Dtm__EventSignature   *message);
-size_t contrast__api__dtm__event_signature__pack
-                     (const Contrast__Api__Dtm__EventSignature   *message,
+/* Contrast__Api__Dtm__TraceEventSignature methods */
+void   contrast__api__dtm__trace_event_signature__init
+                     (Contrast__Api__Dtm__TraceEventSignature         *message);
+size_t contrast__api__dtm__trace_event_signature__get_packed_size
+                     (const Contrast__Api__Dtm__TraceEventSignature   *message);
+size_t contrast__api__dtm__trace_event_signature__pack
+                     (const Contrast__Api__Dtm__TraceEventSignature   *message,
                       uint8_t             *out);
-size_t contrast__api__dtm__event_signature__pack_to_buffer
-                     (const Contrast__Api__Dtm__EventSignature   *message,
+size_t contrast__api__dtm__trace_event_signature__pack_to_buffer
+                     (const Contrast__Api__Dtm__TraceEventSignature   *message,
                       ProtobufCBuffer     *buffer);
-Contrast__Api__Dtm__EventSignature *
-       contrast__api__dtm__event_signature__unpack
+Contrast__Api__Dtm__TraceEventSignature *
+       contrast__api__dtm__trace_event_signature__unpack
                      (ProtobufCAllocator  *allocator,
                       size_t               len,
                       const uint8_t       *data);
-void   contrast__api__dtm__event_signature__free_unpacked
-                     (Contrast__Api__Dtm__EventSignature *message,
+void   contrast__api__dtm__trace_event_signature__free_unpacked
+                     (Contrast__Api__Dtm__TraceEventSignature *message,
                       ProtobufCAllocator *allocator);
-/* Contrast__Api__Dtm__EventSources methods */
-void   contrast__api__dtm__event_sources__init
-                     (Contrast__Api__Dtm__EventSources         *message);
-size_t contrast__api__dtm__event_sources__get_packed_size
-                     (const Contrast__Api__Dtm__EventSources   *message);
-size_t contrast__api__dtm__event_sources__pack
-                     (const Contrast__Api__Dtm__EventSources   *message,
+/* Contrast__Api__Dtm__TraceEventSource methods */
+void   contrast__api__dtm__trace_event_source__init
+                     (Contrast__Api__Dtm__TraceEventSource         *message);
+size_t contrast__api__dtm__trace_event_source__get_packed_size
+                     (const Contrast__Api__Dtm__TraceEventSource   *message);
+size_t contrast__api__dtm__trace_event_source__pack
+                     (const Contrast__Api__Dtm__TraceEventSource   *message,
                       uint8_t             *out);
-size_t contrast__api__dtm__event_sources__pack_to_buffer
-                     (const Contrast__Api__Dtm__EventSources   *message,
+size_t contrast__api__dtm__trace_event_source__pack_to_buffer
+                     (const Contrast__Api__Dtm__TraceEventSource   *message,
                       ProtobufCBuffer     *buffer);
-Contrast__Api__Dtm__EventSources *
-       contrast__api__dtm__event_sources__unpack
+Contrast__Api__Dtm__TraceEventSource *
+       contrast__api__dtm__trace_event_source__unpack
                      (ProtobufCAllocator  *allocator,
                       size_t               len,
                       const uint8_t       *data);
-void   contrast__api__dtm__event_sources__free_unpacked
-                     (Contrast__Api__Dtm__EventSources *message,
+void   contrast__api__dtm__trace_event_source__free_unpacked
+                     (Contrast__Api__Dtm__TraceEventSource *message,
                       ProtobufCAllocator *allocator);
 /* Contrast__Api__Dtm__TraceEventObject methods */
 void   contrast__api__dtm__trace_event_object__init
@@ -2588,24 +2739,43 @@ Contrast__Api__Dtm__TraceEventObject *
 void   contrast__api__dtm__trace_event_object__free_unpacked
                      (Contrast__Api__Dtm__TraceEventObject *message,
                       ProtobufCAllocator *allocator);
-/* Contrast__Api__Dtm__TagRange methods */
-void   contrast__api__dtm__tag_range__init
-                     (Contrast__Api__Dtm__TagRange         *message);
-size_t contrast__api__dtm__tag_range__get_packed_size
-                     (const Contrast__Api__Dtm__TagRange   *message);
-size_t contrast__api__dtm__tag_range__pack
-                     (const Contrast__Api__Dtm__TagRange   *message,
+/* Contrast__Api__Dtm__TraceTaintRange methods */
+void   contrast__api__dtm__trace_taint_range__init
+                     (Contrast__Api__Dtm__TraceTaintRange         *message);
+size_t contrast__api__dtm__trace_taint_range__get_packed_size
+                     (const Contrast__Api__Dtm__TraceTaintRange   *message);
+size_t contrast__api__dtm__trace_taint_range__pack
+                     (const Contrast__Api__Dtm__TraceTaintRange   *message,
                       uint8_t             *out);
-size_t contrast__api__dtm__tag_range__pack_to_buffer
-                     (const Contrast__Api__Dtm__TagRange   *message,
+size_t contrast__api__dtm__trace_taint_range__pack_to_buffer
+                     (const Contrast__Api__Dtm__TraceTaintRange   *message,
                       ProtobufCBuffer     *buffer);
-Contrast__Api__Dtm__TagRange *
-       contrast__api__dtm__tag_range__unpack
+Contrast__Api__Dtm__TraceTaintRange *
+       contrast__api__dtm__trace_taint_range__unpack
                      (ProtobufCAllocator  *allocator,
                       size_t               len,
                       const uint8_t       *data);
-void   contrast__api__dtm__tag_range__free_unpacked
-                     (Contrast__Api__Dtm__TagRange *message,
+void   contrast__api__dtm__trace_taint_range__free_unpacked
+                     (Contrast__Api__Dtm__TraceTaintRange *message,
+                      ProtobufCAllocator *allocator);
+/* Contrast__Api__Dtm__ParentObjectId methods */
+void   contrast__api__dtm__parent_object_id__init
+                     (Contrast__Api__Dtm__ParentObjectId         *message);
+size_t contrast__api__dtm__parent_object_id__get_packed_size
+                     (const Contrast__Api__Dtm__ParentObjectId   *message);
+size_t contrast__api__dtm__parent_object_id__pack
+                     (const Contrast__Api__Dtm__ParentObjectId   *message,
+                      uint8_t             *out);
+size_t contrast__api__dtm__parent_object_id__pack_to_buffer
+                     (const Contrast__Api__Dtm__ParentObjectId   *message,
+                      ProtobufCBuffer     *buffer);
+Contrast__Api__Dtm__ParentObjectId *
+       contrast__api__dtm__parent_object_id__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   contrast__api__dtm__parent_object_id__free_unpacked
+                     (Contrast__Api__Dtm__ParentObjectId *message,
                       ProtobufCAllocator *allocator);
 /* Contrast__Api__Dtm__TraceStack methods */
 void   contrast__api__dtm__trace_stack__init
@@ -2661,6 +2831,9 @@ typedef void (*Contrast__Api__Dtm__Activity__TechnologiesEntry_Closure)
 typedef void (*Contrast__Api__Dtm__Activity__LibraryUsagesEntry_Closure)
                  (const Contrast__Api__Dtm__Activity__LibraryUsagesEntry *message,
                   void *closure_data);
+typedef void (*Contrast__Api__Dtm__Activity__DynamicSourcesEntry_Closure)
+                 (const Contrast__Api__Dtm__Activity__DynamicSourcesEntry *message,
+                  void *closure_data);
 typedef void (*Contrast__Api__Dtm__Activity_Closure)
                  (const Contrast__Api__Dtm__Activity *message,
                   void *closure_data);
@@ -2669,6 +2842,12 @@ typedef void (*Contrast__Api__Dtm__Finding__PropertiesEntry_Closure)
                   void *closure_data);
 typedef void (*Contrast__Api__Dtm__Finding_Closure)
                  (const Contrast__Api__Dtm__Finding *message,
+                  void *closure_data);
+typedef void (*Contrast__Api__Dtm__DynamicSource__PropertiesEntry_Closure)
+                 (const Contrast__Api__Dtm__DynamicSource__PropertiesEntry *message,
+                  void *closure_data);
+typedef void (*Contrast__Api__Dtm__DynamicSource_Closure)
+                 (const Contrast__Api__Dtm__DynamicSource *message,
                   void *closure_data);
 typedef void (*Contrast__Api__Dtm__PossibleSecurityControl_Closure)
                  (const Contrast__Api__Dtm__PossibleSecurityControl *message,
@@ -2696,6 +2875,9 @@ typedef void (*Contrast__Api__Dtm__Address_Closure)
                   void *closure_data);
 typedef void (*Contrast__Api__Dtm__RawRequest_Closure)
                  (const Contrast__Api__Dtm__RawRequest *message,
+                  void *closure_data);
+typedef void (*Contrast__Api__Dtm__RawResponse_Closure)
+                 (const Contrast__Api__Dtm__RawResponse *message,
                   void *closure_data);
 typedef void (*Contrast__Api__Dtm__HttpRequest__NormalizedRequestParamsEntry_Closure)
                  (const Contrast__Api__Dtm__HttpRequest__NormalizedRequestParamsEntry *message,
@@ -2835,17 +3017,20 @@ typedef void (*Contrast__Api__Dtm__StackTraceElement_Closure)
 typedef void (*Contrast__Api__Dtm__TraceEvent_Closure)
                  (const Contrast__Api__Dtm__TraceEvent *message,
                   void *closure_data);
-typedef void (*Contrast__Api__Dtm__EventSignature_Closure)
-                 (const Contrast__Api__Dtm__EventSignature *message,
+typedef void (*Contrast__Api__Dtm__TraceEventSignature_Closure)
+                 (const Contrast__Api__Dtm__TraceEventSignature *message,
                   void *closure_data);
-typedef void (*Contrast__Api__Dtm__EventSources_Closure)
-                 (const Contrast__Api__Dtm__EventSources *message,
+typedef void (*Contrast__Api__Dtm__TraceEventSource_Closure)
+                 (const Contrast__Api__Dtm__TraceEventSource *message,
                   void *closure_data);
 typedef void (*Contrast__Api__Dtm__TraceEventObject_Closure)
                  (const Contrast__Api__Dtm__TraceEventObject *message,
                   void *closure_data);
-typedef void (*Contrast__Api__Dtm__TagRange_Closure)
-                 (const Contrast__Api__Dtm__TagRange *message,
+typedef void (*Contrast__Api__Dtm__TraceTaintRange_Closure)
+                 (const Contrast__Api__Dtm__TraceTaintRange *message,
+                  void *closure_data);
+typedef void (*Contrast__Api__Dtm__ParentObjectId_Closure)
+                 (const Contrast__Api__Dtm__ParentObjectId *message,
                   void *closure_data);
 typedef void (*Contrast__Api__Dtm__TraceStack_Closure)
                  (const Contrast__Api__Dtm__TraceStack *message,
@@ -2868,8 +3053,11 @@ extern const ProtobufCMessageDescriptor contrast__api__dtm__application_update__
 extern const ProtobufCMessageDescriptor contrast__api__dtm__activity__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__dtm__activity__technologies_entry__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__dtm__activity__library_usages_entry__descriptor;
+extern const ProtobufCMessageDescriptor contrast__api__dtm__activity__dynamic_sources_entry__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__dtm__finding__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__dtm__finding__properties_entry__descriptor;
+extern const ProtobufCMessageDescriptor contrast__api__dtm__dynamic_source__descriptor;
+extern const ProtobufCMessageDescriptor contrast__api__dtm__dynamic_source__properties_entry__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__dtm__possible_security_control__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__dtm__view__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__dtm__platform__descriptor;
@@ -2879,6 +3067,7 @@ extern const ProtobufCMessageDescriptor contrast__api__dtm__library_usage_update
 extern const ProtobufCMessageDescriptor contrast__api__dtm__library_usage_update__class_names_entry__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__dtm__address__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__dtm__raw_request__descriptor;
+extern const ProtobufCMessageDescriptor contrast__api__dtm__raw_response__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__dtm__http_request__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__dtm__http_request__normalized_request_params_entry__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__dtm__http_request__request_headers_entry__descriptor;
@@ -2930,10 +3119,12 @@ extern const ProtobufCEnumDescriptor    contrast__api__dtm__user_input__input_ty
 extern const ProtobufCMessageDescriptor contrast__api__dtm__stack_trace_element__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__dtm__trace_event__descriptor;
 extern const ProtobufCEnumDescriptor    contrast__api__dtm__trace_event__action__descriptor;
-extern const ProtobufCMessageDescriptor contrast__api__dtm__event_signature__descriptor;
-extern const ProtobufCMessageDescriptor contrast__api__dtm__event_sources__descriptor;
+extern const ProtobufCEnumDescriptor    contrast__api__dtm__trace_event__event_type__descriptor;
+extern const ProtobufCMessageDescriptor contrast__api__dtm__trace_event_signature__descriptor;
+extern const ProtobufCMessageDescriptor contrast__api__dtm__trace_event_source__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__dtm__trace_event_object__descriptor;
-extern const ProtobufCMessageDescriptor contrast__api__dtm__tag_range__descriptor;
+extern const ProtobufCMessageDescriptor contrast__api__dtm__trace_taint_range__descriptor;
+extern const ProtobufCMessageDescriptor contrast__api__dtm__parent_object_id__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__dtm__trace_stack__descriptor;
 
 PROTOBUF_C__END_DECLS
