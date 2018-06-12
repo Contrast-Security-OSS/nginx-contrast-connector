@@ -8,8 +8,18 @@
 #include <ngx_core.h>
 #include <ngx_http.h>
 
-#define LOG_PREFIX  "[contrast]: "
+/* easy debug printing used for development and debugging. */
+#define dd(fmt, ...) \
+    fprintf(stderr, "[contrast] %s:%d (%s): " fmt "\n", \
+            __FILE__, __LINE__, __func__, ## __VA_ARGS__)
 
+#define contrast_log(lvl, log, err, fmt, ...) \
+    ngx_log_error(NGX_LOG_ ## lvl, log, err, \
+            "[contrast]: " fmt, ## __VA_ARGS__)
+
+#define contrast_dbg_log(log, err, fmt, ...) \
+    ngx_log_error(NGX_LOG_DEBUG_HTTP, log, err, \
+            "[contrast]: " fmt, ## __VA_ARGS__)
 /*
  * structure for context
  */
@@ -36,11 +46,6 @@ extern ngx_module_t ngx_http_contrast_connector_module;
  * utility method to get unix millis
  */
 int64_t unix_millis();
-
-/*
- * update request body filter chain
- */
-ngx_int_t ngx_http_catch_body_init(ngx_conf_t *cf);
 
 /*
  * utility method to create C strings from ngx strings
