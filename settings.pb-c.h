@@ -24,8 +24,11 @@ typedef struct _Contrast__Api__Settings__AccumulatorSettings Contrast__Api__Sett
 typedef struct _Contrast__Api__Settings__AccumulatorSettings__AccumulatorsEntry Contrast__Api__Settings__AccumulatorSettings__AccumulatorsEntry;
 typedef struct _Contrast__Api__Settings__InventoryFeatures Contrast__Api__Settings__InventoryFeatures;
 typedef struct _Contrast__Api__Settings__AssessFeatures Contrast__Api__Settings__AssessFeatures;
+typedef struct _Contrast__Api__Settings__AssessFeatures__DynamicSourcesMapEntry Contrast__Api__Settings__AssessFeatures__DynamicSourcesMapEntry;
 typedef struct _Contrast__Api__Settings__CustomRuleFeature Contrast__Api__Settings__CustomRuleFeature;
 typedef struct _Contrast__Api__Settings__Sampling Contrast__Api__Settings__Sampling;
+typedef struct _Contrast__Api__Settings__DynamicSource Contrast__Api__Settings__DynamicSource;
+typedef struct _Contrast__Api__Settings__DynamicSource__PropertiesEntry Contrast__Api__Settings__DynamicSource__PropertiesEntry;
 typedef struct _Contrast__Api__Settings__DefendFeatures Contrast__Api__Settings__DefendFeatures;
 typedef struct _Contrast__Api__Settings__Syslog Contrast__Api__Settings__Syslog;
 typedef struct _Contrast__Api__Settings__BotBlocker Contrast__Api__Settings__BotBlocker;
@@ -155,13 +158,23 @@ struct  _Contrast__Api__Settings__ApplicationState
   char *app_name;
   char *app_language;
   char *app_path;
+  char *app_group;
+  char *app_tags;
+  char *app_version;
   Contrast__Api__Settings__ServerFeatures *server_features;
   Contrast__Api__Settings__ApplicationSettings *application_settings;
   Contrast__Api__Settings__AccumulatorSettings *accumulator_settings;
+  char *server_name;
+  char *server_path;
+  char *server_type;
+  char *server_tags;
+  char *server_environment;
+  char *server_version;
+  char *agent_version;
 };
 #define CONTRAST__API__SETTINGS__APPLICATION_STATE__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&contrast__api__settings__application_state__descriptor) \
-    , 0, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, NULL, NULL, NULL }
+    , 0, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, NULL, NULL, NULL, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string }
 
 
 struct  _Contrast__Api__Settings__AgentSettings
@@ -263,6 +276,17 @@ struct  _Contrast__Api__Settings__InventoryFeatures
     , 0, 0, 0, 0, 0 }
 
 
+struct  _Contrast__Api__Settings__AssessFeatures__DynamicSourcesMapEntry
+{
+  ProtobufCMessage base;
+  char *key;
+  Contrast__Api__Settings__DynamicSource *value;
+};
+#define CONTRAST__API__SETTINGS__ASSESS_FEATURES__DYNAMIC_SOURCES_MAP_ENTRY__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&contrast__api__settings__assess_features__dynamic_sources_map_entry__descriptor) \
+    , (char *)protobuf_c_empty_string, NULL }
+
+
 struct  _Contrast__Api__Settings__AssessFeatures
 {
   ProtobufCMessage base;
@@ -283,10 +307,12 @@ struct  _Contrast__Api__Settings__AssessFeatures
   size_t n_disabled_rules;
   char **disabled_rules;
   Contrast__Api__Settings__Sampling *sampling;
+  size_t n_dynamic_sources_map;
+  Contrast__Api__Settings__AssessFeatures__DynamicSourcesMapEntry **dynamic_sources_map;
 };
 #define CONTRAST__API__SETTINGS__ASSESS_FEATURES__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&contrast__api__settings__assess_features__descriptor) \
-    , 0, 0, 0, 0, 0, 0, 0, CONTRAST__API__SETTINGS__ASSESS_FEATURES__SAVE_STACKTRACE__UNDEFINED, 0, 0, 0,NULL, 0,NULL, 0,NULL, NULL }
+    , 0, 0, 0, 0, 0, 0, 0, CONTRAST__API__SETTINGS__ASSESS_FEATURES__SAVE_STACKTRACE__UNDEFINED, 0, 0, 0,NULL, 0,NULL, 0,NULL, NULL, 0,NULL }
 
 
 struct  _Contrast__Api__Settings__CustomRuleFeature
@@ -307,14 +333,40 @@ struct  _Contrast__Api__Settings__Sampling
 {
   ProtobufCMessage base;
   protobuf_c_boolean enabled;
-  int32_t baseline_count;
-  int32_t window_secs;
+  int32_t baseline;
+  int32_t window_ms;
   int32_t request_frequency;
   int32_t response_frequency;
 };
 #define CONTRAST__API__SETTINGS__SAMPLING__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&contrast__api__settings__sampling__descriptor) \
     , 0, 0, 0, 0, 0 }
+
+
+struct  _Contrast__Api__Settings__DynamicSource__PropertiesEntry
+{
+  ProtobufCMessage base;
+  char *key;
+  char *value;
+};
+#define CONTRAST__API__SETTINGS__DYNAMIC_SOURCE__PROPERTIES_ENTRY__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&contrast__api__settings__dynamic_source__properties_entry__descriptor) \
+    , (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string }
+
+
+struct  _Contrast__Api__Settings__DynamicSource
+{
+  ProtobufCMessage base;
+  char *class_name;
+  char *method_name;
+  protobuf_c_boolean instance_method;
+  char *target;
+  size_t n_properties;
+  Contrast__Api__Settings__DynamicSource__PropertiesEntry **properties;
+};
+#define CONTRAST__API__SETTINGS__DYNAMIC_SOURCE__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&contrast__api__settings__dynamic_source__descriptor) \
+    , (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, 0, (char *)protobuf_c_empty_string, 0,NULL }
 
 
 struct  _Contrast__Api__Settings__DefendFeatures
@@ -434,6 +486,9 @@ struct  _Contrast__Api__Settings__Exclusion
   Contrast__Api__Settings__Exclusion__ExclusionType type;
   char *name;
   Contrast__Api__Settings__Exclusion__MatchStrategy match_strategy;
+  /*
+   * modes is now deprecated; please use assess and protect bool's
+   */
   size_t n_modes;
   char **modes;
   size_t n_protection_rules;
@@ -446,10 +501,12 @@ struct  _Contrast__Api__Settings__Exclusion
   char **blacklist;
   Contrast__Api__Settings__Exclusion__InputType input_type;
   char *input_name;
+  protobuf_c_boolean assess;
+  protobuf_c_boolean protect;
 };
 #define CONTRAST__API__SETTINGS__EXCLUSION__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&contrast__api__settings__exclusion__descriptor) \
-    , CONTRAST__API__SETTINGS__EXCLUSION__EXCLUSION_TYPE__URL, (char *)protobuf_c_empty_string, CONTRAST__API__SETTINGS__EXCLUSION__MATCH_STRATEGY__ALL, 0,NULL, 0,NULL, 0,NULL, 0,NULL, 0,NULL, CONTRAST__API__SETTINGS__EXCLUSION__INPUT_TYPE__UNDEFINED, (char *)protobuf_c_empty_string }
+    , CONTRAST__API__SETTINGS__EXCLUSION__EXCLUSION_TYPE__URL, (char *)protobuf_c_empty_string, CONTRAST__API__SETTINGS__EXCLUSION__MATCH_STRATEGY__ALL, 0,NULL, 0,NULL, 0,NULL, 0,NULL, 0,NULL, CONTRAST__API__SETTINGS__EXCLUSION__INPUT_TYPE__UNDEFINED, (char *)protobuf_c_empty_string, 0, 0 }
 
 
 struct  _Contrast__Api__Settings__VirtualPatch
@@ -459,8 +516,7 @@ struct  _Contrast__Api__Settings__VirtualPatch
   char *uuid;
   char *key;
   /*
-   * TODO: can we simply use the InputType of the VirtualPatchCondition
-   *       to determine usage? Let's clean this up if possible.
+   * deprecated
    */
   size_t n_headers;
   Contrast__Api__Settings__VirtualPatchCondition **headers;
@@ -468,10 +524,15 @@ struct  _Contrast__Api__Settings__VirtualPatch
   Contrast__Api__Settings__VirtualPatchCondition **parameters;
   size_t n_urls;
   Contrast__Api__Settings__VirtualPatchCondition **urls;
+  /*
+   * TODO: update ruby and python agents to use this collection
+   */
+  size_t n_conditions;
+  Contrast__Api__Settings__VirtualPatchCondition **conditions;
 };
 #define CONTRAST__API__SETTINGS__VIRTUAL_PATCH__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&contrast__api__settings__virtual_patch__descriptor) \
-    , (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, 0,NULL, 0,NULL, 0,NULL }
+    , (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, 0,NULL, 0,NULL, 0,NULL, 0,NULL }
 
 
 struct  _Contrast__Api__Settings__VirtualPatchCondition
@@ -663,6 +724,9 @@ Contrast__Api__Settings__InventoryFeatures *
 void   contrast__api__settings__inventory_features__free_unpacked
                      (Contrast__Api__Settings__InventoryFeatures *message,
                       ProtobufCAllocator *allocator);
+/* Contrast__Api__Settings__AssessFeatures__DynamicSourcesMapEntry methods */
+void   contrast__api__settings__assess_features__dynamic_sources_map_entry__init
+                     (Contrast__Api__Settings__AssessFeatures__DynamicSourcesMapEntry         *message);
 /* Contrast__Api__Settings__AssessFeatures methods */
 void   contrast__api__settings__assess_features__init
                      (Contrast__Api__Settings__AssessFeatures         *message);
@@ -719,6 +783,28 @@ Contrast__Api__Settings__Sampling *
                       const uint8_t       *data);
 void   contrast__api__settings__sampling__free_unpacked
                      (Contrast__Api__Settings__Sampling *message,
+                      ProtobufCAllocator *allocator);
+/* Contrast__Api__Settings__DynamicSource__PropertiesEntry methods */
+void   contrast__api__settings__dynamic_source__properties_entry__init
+                     (Contrast__Api__Settings__DynamicSource__PropertiesEntry         *message);
+/* Contrast__Api__Settings__DynamicSource methods */
+void   contrast__api__settings__dynamic_source__init
+                     (Contrast__Api__Settings__DynamicSource         *message);
+size_t contrast__api__settings__dynamic_source__get_packed_size
+                     (const Contrast__Api__Settings__DynamicSource   *message);
+size_t contrast__api__settings__dynamic_source__pack
+                     (const Contrast__Api__Settings__DynamicSource   *message,
+                      uint8_t             *out);
+size_t contrast__api__settings__dynamic_source__pack_to_buffer
+                     (const Contrast__Api__Settings__DynamicSource   *message,
+                      ProtobufCBuffer     *buffer);
+Contrast__Api__Settings__DynamicSource *
+       contrast__api__settings__dynamic_source__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   contrast__api__settings__dynamic_source__free_unpacked
+                     (Contrast__Api__Settings__DynamicSource *message,
                       ProtobufCAllocator *allocator);
 /* Contrast__Api__Settings__DefendFeatures methods */
 void   contrast__api__settings__defend_features__init
@@ -993,6 +1079,9 @@ typedef void (*Contrast__Api__Settings__AccumulatorSettings_Closure)
 typedef void (*Contrast__Api__Settings__InventoryFeatures_Closure)
                  (const Contrast__Api__Settings__InventoryFeatures *message,
                   void *closure_data);
+typedef void (*Contrast__Api__Settings__AssessFeatures__DynamicSourcesMapEntry_Closure)
+                 (const Contrast__Api__Settings__AssessFeatures__DynamicSourcesMapEntry *message,
+                  void *closure_data);
 typedef void (*Contrast__Api__Settings__AssessFeatures_Closure)
                  (const Contrast__Api__Settings__AssessFeatures *message,
                   void *closure_data);
@@ -1001,6 +1090,12 @@ typedef void (*Contrast__Api__Settings__CustomRuleFeature_Closure)
                   void *closure_data);
 typedef void (*Contrast__Api__Settings__Sampling_Closure)
                  (const Contrast__Api__Settings__Sampling *message,
+                  void *closure_data);
+typedef void (*Contrast__Api__Settings__DynamicSource__PropertiesEntry_Closure)
+                 (const Contrast__Api__Settings__DynamicSource__PropertiesEntry *message,
+                  void *closure_data);
+typedef void (*Contrast__Api__Settings__DynamicSource_Closure)
+                 (const Contrast__Api__Settings__DynamicSource *message,
                   void *closure_data);
 typedef void (*Contrast__Api__Settings__DefendFeatures_Closure)
                  (const Contrast__Api__Settings__DefendFeatures *message,
@@ -1057,9 +1152,12 @@ extern const ProtobufCMessageDescriptor contrast__api__settings__accumulator_set
 extern const ProtobufCMessageDescriptor contrast__api__settings__accumulator_settings__accumulators_entry__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__settings__inventory_features__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__settings__assess_features__descriptor;
+extern const ProtobufCMessageDescriptor contrast__api__settings__assess_features__dynamic_sources_map_entry__descriptor;
 extern const ProtobufCEnumDescriptor    contrast__api__settings__assess_features__save_stacktrace__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__settings__custom_rule_feature__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__settings__sampling__descriptor;
+extern const ProtobufCMessageDescriptor contrast__api__settings__dynamic_source__descriptor;
+extern const ProtobufCMessageDescriptor contrast__api__settings__dynamic_source__properties_entry__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__settings__defend_features__descriptor;
 extern const ProtobufCMessageDescriptor contrast__api__settings__syslog__descriptor;
 extern const ProtobufCEnumDescriptor    contrast__api__settings__syslog__connection_type__descriptor;

@@ -34,6 +34,7 @@ typedef struct {
      * with the buf chain in the request object pool.
      */
     ngx_contrast_uuid_t uuid;
+    ngx_int_t complete;
     ngx_pool_t *out_pool;
     ngx_chain_t *output_chain;
     size_t content_len;

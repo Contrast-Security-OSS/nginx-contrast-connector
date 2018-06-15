@@ -136,18 +136,38 @@ create_response_dtm(ngx_pool_t *pool, ngx_http_request_t *r)
      * the case explicitly
      */
 
+    dd("response hdr content-type: %s", r->headers_out.content_type.data);
     dtm->n_response_headers = 0;
     build_http_headers_in_dtm(
             pool, &(r->headers_out.headers),
             &(dtm->response_headers), &dtm->n_response_headers, log);
     
+
+    Contrast__Api__Dtm__SimplePair *pair = ngx_pcalloc(
+            pool, sizeof(Contrast__Api__Dtm__SimplePair));
+    contrast__api__dtm__simple_pair__init(pair);
+
+    ngx_str_t content_type_str = ngx_string("Content-Type");
+    dd("str.data: '%s', str.len: %d", content_type_str.data, content_type_str.len);
+    pair->key = ngx_str_to_char(&content_type_str, pool);
+    pair->value = ngx_str_to_char(&r->headers_out.content_type, pool);
+
+    dd("ct key: %s", pair->key);
+    dd("ct val: %s", pair->value);
+
+    dtm->response_headers = realloc(dtm->response_headers,
+        sizeof(Contrast__Api__Dtm__SimplePair *) * (dtm->n_response_headers + 1));
+    dtm->response_headers[dtm->n_response_headers] = pair;
+    dtm->n_response_headers++;
+
     if (ctx->output_chain == NULL || ctx->content_len == 0)
     {
         goto exit;
     }
 
-    dtm->response_body = ngx_pnalloc(pool, ctx->content_len);
+    dtm->response_body = ngx_pnalloc(pool, ctx->content_len + 1);
     chain_to_buffer(ctx->output_chain, dtm->response_body, ctx->content_len);
+    dtm->response_body[ctx->content_len] = '\0';
 
 exit:
 
@@ -238,6 +258,7 @@ build_http_headers_in_dtm(
 {
     ngx_list_t list = *hdrs;
     *hdrcnt = 0;
+    dd("list nalloc: %d", list.nalloc);
     if (list.nalloc <= 0) {
         return;
     }
@@ -246,9 +267,12 @@ build_http_headers_in_dtm(
     ngx_table_elt_t * entry_ptr = (ngx_table_elt_t *)curr->elts;
     ngx_table_elt_t * entry = NULL;
 
+    dd("list part nelts: %d", curr->nelts);
+
     for(size_t count = 0; ; count++) {
         if (count >= curr->nelts) {
             if (curr->next == NULL) {
+                dd("hdr loop done");
                 break;
             }
 
@@ -263,21 +287,20 @@ build_http_headers_in_dtm(
                 pool, sizeof(Contrast__Api__Dtm__SimplePair));
         contrast__api__dtm__simple_pair__init(pair);
 
-        pair->key = ngx_pcalloc(pool, entry->key.len + 1);
+        pair->key = ngx_str_to_char(&entry->key, pool);
         if (pair->key == NULL) {
+            contrast_log(ERR, log, 0, "error: alloc failed for key");
             ngx_pfree(pool, pair);
             continue;
         }
-        strncpy(pair->key, (char*)entry->key.data, entry->key.len);
-
-        pair->value = ngx_pcalloc(pool, entry->value.len + 1);
+        
+        pair->value = ngx_str_to_char(&entry->value, pool);
         if (pair->value == NULL) {
+            contrast_log(ERR, log, 0, "error: alloc failed for val");
             ngx_pfree(pool, pair->key);
             ngx_pfree(pool, pair);
             continue;
         }
-        strncpy(pair->value, (char*)entry->value.data, entry->value.len);
-
         *hdr_array = realloc(
                 *hdr_array, 
                 sizeof(Contrast__Api__Dtm__SimplePair *) * (*hdrcnt + 1));
@@ -303,13 +326,17 @@ build_http_headers_in_dtm(
 static void
 free_response_dtm(ngx_pool_t *pool, Contrast__Api__Dtm__RawResponse *dtm) 
 {
+    dd("free response dtm");
     if (dtm->uuid != NULL) {
         ngx_pfree(pool, dtm->uuid);
     }
 
     if (dtm->response_headers != NULL) {
+        dd("free headers");
         for (size_t i = 0; i < dtm->n_response_headers; ++i) {
+            dd("free: i=%d, k: %s, v= %s", i, dtm->response_headers[i]->key, dtm->response_headers[i]->value);
             ngx_pfree(pool, dtm->response_headers[i]);
+
         }
         /* realloc was used for this memory */
         ngx_free(dtm->response_headers);
@@ -420,12 +447,15 @@ send_response_dtm_to_socket(
         NULL, response->len, response->data);
     ngx_free(response->data);
     ngx_free(response);
-
     if (settings == NULL) {
         contrast_log(ERR, log, 0,
                 "failed to deserialize analysis engine response");
         goto fail;
     }
+    
+    dd("SR answer dtm: svr-feat: %p, app-sett: %p, accum-sett: %p, prot-stat: %p",
+            settings->server_features, settings->application_settings, settings->accumulator_settings,
+            settings->protect_state);
 
     if (settings->protect_state == NULL) {
         contrast_log(ERR, log, 0, "error reading response protect_state");
@@ -802,21 +832,63 @@ ngx_http_contrast_output_filters_init(ngx_conf_t *cf)
 static ngx_int_t
 ngx_http_contrast_header_filter(ngx_http_request_t *r)
 {
+    ngx_http_contrast_connector_conf_t *cf = NULL;
+    ngx_http_contrast_ctx_t *ctx = NULL;
+
     contrast_log(ERR, r->connection->log, 0, "in header filter");
+    cf = ngx_http_get_module_loc_conf(r, ngx_http_contrast_connector_module);
+    ctx = ngx_http_get_module_ctx(r, ngx_http_contrast_connector_module);
     /* 
      * XXX: possible code needed...
      * if the output body filter changes the response body (because of error or
      * blocking it), then this header filter will need to set content_length_n
      * to -1.
      */
-    return ngx_http_next_header_filter(r);
+   
+   
+    if (r != r->main || !cf->enable) {
+        return ngx_http_next_header_filter(r);
+    }
+    if (ctx && ctx->complete) {
+        contrast_dbg_log(r->connection->log, 0,
+                "request object already processed, hdr pass thru");
+        return ngx_http_next_header_filter(r);
+    }
+
+  
+    /* 
+     * Tell nginx to buffer the header data in memory. By not calling the next
+     * filter yet, we are forcing the buffering to occur. Setting the flag
+     * below causes nginx to _not_ call the output after this filter.  I'm not
+     * sure if this is necessary... it may only apply to following header
+     * chunks arriving after this one.
+     */
+    r->filter_need_in_memory = 1;
+    return NGX_OK;
 }
 
 
+/* 
+ * we come into this filter function will all of the headers buffered in
+ * memory. Before we pass control to the next body filter, we need to be sure
+ * to call the next header filter so all of the header is written to the
+ * client before the outgoing body. That occurs when simply passing the 
+ * response though. If the response is going to be denied, then we finalize the
+ * request at this stage right away with an error code which will cause nginx
+ * to serve its error page to the client.
+ *
+ * Note that this filter function will be called on the actual client response
+ * and also on any error response that we generate. To stop any recursive
+ * cycles of us processing our own error response and taking action, we use the
+ * context flag, ctx->complete, to let ourselves know that we have already
+ * taken action on this request object and we should pass through to normal
+ * nginx filters.
+ */
 static ngx_int_t
 ngx_http_contrast_output_body_filter(ngx_http_request_t *r,  ngx_chain_t *in)
 {
     ngx_int_t last_buf = 0;
+    ngx_int_t rc = NGX_OK;
     ngx_http_contrast_ctx_t *ctx = NULL;
     ngx_http_contrast_connector_conf_t *cf = NULL;
     ngx_log_t *log = r->connection->log;
@@ -824,7 +896,7 @@ ngx_http_contrast_output_body_filter(ngx_http_request_t *r,  ngx_chain_t *in)
     contrast_log(ERR, r->connection->log, 0, "output body filter entered");
     cf = ngx_http_get_module_loc_conf(r, ngx_http_contrast_connector_module);
     ctx = ngx_http_get_module_ctx(r, ngx_http_contrast_connector_module);
-    
+
     /*
      * XXX: These checks could be compressed to one line, but I want to see
      * them separately for now
@@ -837,6 +909,10 @@ ngx_http_contrast_output_body_filter(ngx_http_request_t *r,  ngx_chain_t *in)
         return ngx_http_next_output_body_filter(r, in);
     } else if (ctx == NULL) {
         contrast_dbg_log(log, 0, "bodyfilter, ctx is NULL");
+        return ngx_http_next_output_body_filter(r, in);
+    } else if (ctx->complete) {
+        contrast_dbg_log(log, 0,
+                "this request object has already been decided on, pass thru");
         return ngx_http_next_output_body_filter(r, in);
     }
 
@@ -891,27 +967,56 @@ ngx_http_contrast_output_body_filter(ngx_http_request_t *r,  ngx_chain_t *in)
     }
 
     dd("checking last buf");
-    if (last_buf)
-    {
-        dd("FULL BUF gotten, now DTM it for analysis");
-        Contrast__Api__Dtm__RawResponse *http_resp_dtm = create_response_dtm(
-                r->pool, r);
-        dd("pretend to send http-resp dtm");
-        ngx_int_t deny = send_response_dtm_to_socket(
-            http_resp_dtm, cf->socket_path, 
-            cf->app_name, 
-            r->connection->log, 
-            r->pool);
-
-        free_response_dtm(r->pool, http_resp_dtm);
-
-        contrast_dbg_log(r->connection->log, 0, "calling next body filter");
-        return ngx_http_next_output_body_filter(r, ctx->output_chain);
-    } else {
+    if (!last_buf) {
         contrast_dbg_log(r->connection->log, 0, "body filter returning NGX_AGAIN");
         return NGX_AGAIN;
     }
+
+    dd("FULL BUF gotten, now DTM it for analysis");
+
+    /* 
+     * this request/response object is now in memory a ready for processing.
+     * Regardless of what we decide about the object, allow nginx to perform
+     * normal processing on it from this point forward.
+     */
+    ctx->complete = 1;
+    Contrast__Api__Dtm__RawResponse *http_resp_dtm = create_response_dtm(
+            r->pool, r);
+    ngx_int_t deny = send_response_dtm_to_socket(
+        http_resp_dtm, cf->socket_path, 
+        cf->app_name, 
+        r->connection->log, 
+        r->pool);
+
+    free_response_dtm(r->pool, http_resp_dtm);
+
+    dd("response check from SR is %d", deny);
+    if (deny)
+    {
+        dd("attempting to send 403 response");
+        return ngx_http_filter_finalize_request(
+                r, &ngx_http_contrast_connector_module,
+                NGX_HTTP_FORBIDDEN);
+    }
+ 
+    /* 
+     * XXX: modsecurity clears this flag. Appears to short-circuit the
+     * http_header_filter in nginx when set, as if a signal that the work it
+     * was about to do was already done. Not sure why we need it cleared here.
+     */
+    r->header_sent = 0;
+
+    /* sends out the buffered header */
+    rc = ngx_http_next_header_filter(r);
+
+    if (rc == NGX_ERROR || rc > NGX_OK)
+    {
+        dd("error sending out header");
+        ngx_http_filter_finalize_request(r, &ngx_http_contrast_connector_module, rc);
+    }
+
+    contrast_dbg_log(r->connection->log, 0, "calling next body filter");
+    /* send out the buffered body */
+    return ngx_http_next_output_body_filter(r, ctx->output_chain);
 }
-
-
 
