@@ -9,6 +9,7 @@ NGINX_DIR=nginx
 NGINX_VERSION=1.13.9
 
 clean() {
+  echo "XXX: The cleaner probably just removed some important files in vendor. This should be fixed"
   rm -rf build vendor
 }
 
@@ -39,26 +40,6 @@ install_protobuf() {
     popd > /dev/null 2>&1
   else
     printf "Protobuf library already installed\n"
-  fi
-}
-
-install_protobuf_c() {
-  if [ ! -d "vendor/protobuf-c" ]; then
-    export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+LD_LIBRARY_PATH:}:/usr/local/lib"
-    pushd vendor > /dev/null 2>&1
-    #git clone https://github.com/palmergs/protobuf-c.git
-    git clone https://github.com/protobuf-c/protobuf-c.git
-    pushd protobuf-c > /dev/null 2>&1
-    git checkout v1.3.0
-    #git checkout adding-std
-    ./autogen.sh
-    ./configure 
-    make
-    sudo make install
-    popd > /dev/null 2>&1
-    popd > /dev/null 2>&1
-  else
-    printf "Protobuf-c library already installed\n"
   fi
 }
 
@@ -147,9 +128,9 @@ if [[ "$#" -eq 1 ]]; then
     echo "clean is the only option"
   fi
 else
+  git submodule update --init --recursive
   setup_local_directories
   install_protobuf
-  install_protobuf_c
   install_nginx
   install_libmodsecurity
   install_owasp

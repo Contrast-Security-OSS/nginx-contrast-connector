@@ -1,6 +1,8 @@
 # NGINX / Speedracer Connector #
 
-This is a statically compiled module that allows NGINX to communicate with Speedracer using UNIX sockets and protobuf messages.
+This is an NGINX module that can be compiled statially or dynamically that
+allows NGINX to communicate with Speedracer using UNIX sockets and protobuf
+messages.
 
 ### What is this repository for? ###
 
