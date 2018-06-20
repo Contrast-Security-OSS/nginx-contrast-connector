@@ -35,6 +35,7 @@ static void build_http_headers_in_dtm(
         ngx_pool_t *pool, ngx_list_t *hdrs,
         Contrast__Api__Dtm__SimplePair ***hdr_array, size_t *hdrcnt,
         ngx_log_t *log);
+static void read_chain_buf(void *dst, ngx_buf_t *buf, off_t max_sz);
 
 /*
  * populate addr with information about a IPv4 address.
@@ -60,6 +61,32 @@ read_address(
     return NGX_ERROR;
 }
 
+static void
+read_chain_buf(void *dst, ngx_buf_t *buf, off_t max_sz)
+{
+    off_t size = ngx_buf_size(buf);
+    
+    if (size > max_sz)
+    {
+        dd("something wrong in buf copy");
+        return;
+    }
+
+    if (buf->in_file) {
+        ngx_read_file(buf->file, dst, size, buf->file_pos);
+    }
+    else if (ngx_buf_in_memory(buf)) {
+        /* 
+         * XXX: when running as a dynamic module, the 'start' field is nil!
+         * This doesn't seem to jive with the nginx dev guide. Anyways, be 
+         * sure to always use the 'pos' field when dealing with memory bufs.
+         */
+        dd("reading buf from memory (%p, %p, %lu)", dst, buf->pos, size);
+        ngx_memcpy(dst, buf->pos, size);
+    }
+
+    return;
+}
 
 void chain_to_buffer(ngx_chain_t *in, void *out, off_t max_sz)
 {
@@ -77,13 +104,7 @@ void chain_to_buffer(ngx_chain_t *in, void *out, off_t max_sz)
             return;
         }
 
-        if (buf->in_file) {
-            ngx_read_file(buf->file, pos, size, buf->file_pos);
-        }
-        else if (ngx_buf_in_memory(buf)) {
-            ngx_memcpy(pos, buf->start, size);
-        }
-
+        read_chain_buf(pos, buf, size);
         pos += size;
     }
     return;
@@ -631,12 +652,7 @@ ngx_http_contrast_connector_body_handler(ngx_http_request_t *r)
      * promises with how it organizes the buffers in this case. I've only ever
      * seen one buf in use.
      */
-    if (rb_buf->in_file) {
-        ngx_read_file(rb_buf->file, dtm->request_body, len, rb_buf->file_pos);
-    }
-    else if (ngx_buf_in_memory(rb_buf)) {
-        ngx_memcpy(dtm->request_body, rb_buf->start, len);
-    }
+    read_chain_buf(dtm->request_body, rb_buf, len);
 
     contrast_dbg_log(r->connection->log, 0,
             "request_body: '%s'", dtm->request_body);
@@ -920,6 +936,7 @@ ngx_http_contrast_output_body_filter(ngx_http_request_t *r,  ngx_chain_t *in)
         ngx_chain_t *new_cl = NULL;
         ngx_buf_t *buf = cl->buf;
         off_t size = ngx_buf_size(buf);
+        dd("cl m:%d, f:%d", ngx_buf_in_memory(buf), buf->in_file); 
         ctx->content_len += size;
         contrast_dbg_log(r->connection->log, 0, "buf sz: %d", size);
         new_cl = ngx_pcalloc(ctx->out_pool, sizeof(ngx_chain_t));
@@ -933,9 +950,15 @@ ngx_http_contrast_output_body_filter(ngx_http_request_t *r,  ngx_chain_t *in)
         }
         new_cl->next = NULL;
         if (size) {
+            dd("creating tmp buf");
             new_cl->buf = ngx_create_temp_buf(ctx->out_pool, size);
             /* XXX: check alloc status */
-            ngx_memcpy(new_cl->buf->pos, cl->buf->pos, size);
+            if (new_cl->buf == NULL) {
+                dd("failed to alloc tmp buf");
+            }
+            dd("about to memcpy(%p, %p, %lu)", new_cl->buf->pos, cl->buf->pos, size);
+            read_chain_buf(new_cl->buf->pos, cl->buf, size);
+            dd("mem cpy done");
             new_cl->buf->last = new_cl->buf->end;
         } else {
             new_cl->buf = ngx_calloc_buf(ctx->out_pool);

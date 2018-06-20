@@ -18,9 +18,14 @@ namespace :nginx do
     `build/nginx/sbin/nginx -s stop`
   end
 
-  desc "Recompiles NGINX"
+  desc "Recompiles NGINX and creates a contrast DSO"
   task :compile do
-    sh "script/compile"
+    sh "script/compile dso"
+  end
+  
+  desc "Recompiles NGINX statically linking contrast module"
+  task :compile_static do
+    sh "script/compile static"
   end
 end
 
