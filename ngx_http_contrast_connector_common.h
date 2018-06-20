@@ -20,21 +20,35 @@
 #define contrast_dbg_log(log, err, fmt, ...) \
     ngx_log_error(NGX_LOG_DEBUG_HTTP, log, err, \
             "[contrast]: " fmt, ## __VA_ARGS__)
+
+typedef struct { 
+    char uuid[32 + 1];
+} ngx_contrast_uuid_t;
 /*
  * structure for context
  */
 typedef struct {
-  unsigned done:1;
-} ngx_http_contrast_connector_ctx_t;
+    /* 
+     * separate pool for buffered outgoing data. Having a separate pool makes
+     * using the ngx buf/chain functions easier as they won't get confused
+     * with the buf chain in the request object pool.
+     */
+    ngx_contrast_uuid_t uuid;
+    ngx_int_t complete;
+    ngx_pool_t *out_pool;
+    ngx_chain_t *output_chain;
+    size_t content_len;
+    ngx_chain_t *prev_cl;
+} ngx_http_contrast_ctx_t;
 
 /*
  * structure for configuration
  */
 typedef struct {
-  ngx_flag_t enable;
-  ngx_flag_t debug;
-  ngx_str_t socket_path;
-  ngx_str_t app_name;
+    ngx_flag_t enable;
+    ngx_flag_t debug;
+    ngx_str_t socket_path;
+    ngx_str_t app_name;
 } ngx_http_contrast_connector_conf_t;
 
 /*
@@ -57,4 +71,6 @@ char *ngx_str_to_char(const ngx_str_t *a, ngx_pool_t *p);
  */
 ngx_int_t ngx_http_contrast_connector_preaccess_handler(
         ngx_http_request_t * r);
+
+
 #endif

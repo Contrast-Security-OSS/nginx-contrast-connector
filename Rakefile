@@ -27,7 +27,7 @@ end
 namespace :sinatra do
   desc "Starts Sinatra"
   task :start do
-    `nohup ruby sinatra_app.rb > build/nginx/logs/sinatra.log 2>&1 &`
+    `nohup ruby sinatra_app.rb -o 0.0.0.0 > build/nginx/logs/sinatra.log 2>&1 &`
     puts `echo $!`
     sleep 1
   end
