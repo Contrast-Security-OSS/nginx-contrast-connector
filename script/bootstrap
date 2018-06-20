@@ -24,24 +24,6 @@ setup_local_directories() {
   fi
 }
 
-install_protobuf() {
-  if [ ! -d "vendor/protobuf" ]; then
-    pushd vendor > /dev/null 2>&1
-    git clone https://github.com/google/protobuf.git
-    pushd protobuf > /dev/null 2>&1
-    git checkout v3.5.2
-    git submodule update --init --recursive
-    ./autogen.sh
-    ./configure 
-    make
-    sudo make install
-    sudo ldconfig
-    popd > /dev/null 2>&1
-    popd > /dev/null 2>&1
-  else
-    printf "Protobuf library already installed\n"
-  fi
-}
 
 install_nginx() {
   if [ ! -d "vendor/nginx-$NGINX_VERSION" ]; then
