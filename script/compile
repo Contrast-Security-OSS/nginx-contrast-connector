@@ -1,7 +1,17 @@
 #!/bin/bash
 
-pushd "vendor"
-pushd "nginx-1.13.9"
+echo "building protobuf-c"
+pushd submodules/protobuf-c
+./autogen.sh
+./configure CFLAGS="-fPIC" --prefix=`pwd`/../../build/protobuf-c
+make
+make install
+# note that the nginx module 'conf' file references the static protobuf-c
+# library
+popd
+
+echo "building nginx"
+pushd vendor/nginx-1.13.9
 
 module_type="--add-dynamic-module"
 if [ "$1" = "static" ]; then
@@ -10,14 +20,15 @@ fi
 
 # NOTE: per protobuf-c link against the libprotobuf-c support library
 # https://github.com/protobuf-c/protobuf-c#Synposis
-CFLAGS="-g -O0 -Wall -Wextra -Wno-unused-parameter " ./configure \
+CFLAGS="-g -O2 -Wall -Wextra -Wno-unused-parameter " ./configure \
     --with-debug \
     --prefix=$(pwd)/../../build/nginx \
     --conf-path=conf/nginx.conf \
     --error-log-path=logs/error.log \
     --http-log-path=logs/access.log \
-    "$module_type"=../../ 
+    "$module_type"=../..
 make -j4
 make install
+
 popd
-popd
+
