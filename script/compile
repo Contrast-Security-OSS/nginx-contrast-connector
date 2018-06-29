@@ -3,7 +3,7 @@
 echo "building protobuf-c"
 pushd submodules/protobuf-c
 ./autogen.sh
-./configure CFLAGS="-fPIC" --prefix=`pwd`/../../build/protobuf-c
+./configure CFLAGS="-fPIC" --disable-protoc --disable-shared --prefix=`pwd`/../../build/protobuf-c
 make
 make install
 # note that the nginx module 'conf' file references the static protobuf-c
@@ -20,7 +20,7 @@ fi
 
 # NOTE: per protobuf-c link against the libprotobuf-c support library
 # https://github.com/protobuf-c/protobuf-c#Synposis
-CFLAGS="-g -O2 -Wall -Wextra -Wno-unused-parameter " ./configure \
+CFLAGS="-g -O2 -Wall -Ibuild/protobuf-c/include -Wextra -Wno-unused-parameter " ./configure \
     --with-debug \
     --prefix=$(pwd)/../../build/nginx \
     --conf-path=conf/nginx.conf \
