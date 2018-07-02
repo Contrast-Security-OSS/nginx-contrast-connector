@@ -1,0 +1,24 @@
+# This is a sample build configuration for Other.
+# Check our guides at https://confluence.atlassian.com/x/5Q4SMw for more examples.
+# Only use spaces to indent your .yml configuration.
+# -----
+# You can specify a custom docker image from Docker Hub as your build environment.
+image: atlassian/default-image:2
+
+pipelines:
+  default:
+    - step:
+        script:
+          - echo "Everything is awesome!"
+  branches:
+    CONTRAST-25048-docker-testing:
+     - step:
+        name: Deploy Agent Image to Artifactory
+        caches:
+          - docker
+        services:
+          - docker
+        script:
+          - echo $CONTRAST_ARTIFACTORY_PASSWORD | docker login -u $CONTRAST_ARTIFACTORY_USER --password-stdin contrastsecurity-docker-local.jfrog.io 
+          - ./bitbucket_scripts/update.sh
+
