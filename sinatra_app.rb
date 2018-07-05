@@ -30,6 +30,16 @@ post '/text' do
   erb :text
 end
 
+post '/login' do
+  puts "REQUEST=#{ request.params }"
+  if request.params['user'] == 'alice' && request.params['pass'] == '$ecur3'
+    redirect '/sinatra/simple'
+  else
+    status 401
+    body 'that is an incorrect password'
+  end
+end
+
 __END__
 
 @@ simple
