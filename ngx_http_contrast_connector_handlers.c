@@ -91,7 +91,7 @@ read_chain_buf(void *dst, ngx_buf_t *buf, off_t max_sz)
 void chain_to_buffer(ngx_chain_t *in, void *out, off_t max_sz)
 {
     off_t total_sz = 0;
-    void *pos = out;
+    u_char *pos = out;
     for (ngx_chain_t *cl = in; cl; cl = cl->next)
     {
         ngx_buf_t *buf = cl->buf;
@@ -115,10 +115,12 @@ void chain_to_buffer(ngx_chain_t *in, void *out, off_t max_sz)
  * populate addr with information about a IPv6 address.
  * address is dynamically allocated and must be freed. 
  */
+#if 0
 static ngx_int_t
 read_ipv6_address(ngx_connection_t *connection, address_t *addr) {
     return NGX_ERROR;
 }
+#endif
 
 static Contrast__Api__Dtm__RawResponse *
 create_response_dtm(ngx_pool_t *pool, ngx_http_request_t *r)
@@ -150,7 +152,7 @@ create_response_dtm(ngx_pool_t *pool, ngx_http_request_t *r)
     dd("dtm response uuid '%s'", ctx->uuid.uuid);
 
     dtm->response_code = r->headers_out.status;
-    dd("access code is %d", r->headers_out.status);
+    dd("access code is %lu", r->headers_out.status);
     /* XXX: need to check on these copies. NGINX documentation made a comment
      * that ngx_str_t may not always be null terminated.  The pcalloc is 
      * side-stepping the problem, but it may not be necessary if we handle
@@ -169,7 +171,7 @@ create_response_dtm(ngx_pool_t *pool, ngx_http_request_t *r)
     contrast__api__dtm__simple_pair__init(pair);
 
     ngx_str_t content_type_str = ngx_string("Content-Type");
-    dd("str.data: '%s', str.len: %d", content_type_str.data, content_type_str.len);
+    dd("str.data: '%s', str.len: %lu", content_type_str.data, content_type_str.len);
     pair->key = ngx_str_to_char(&content_type_str, pool);
     pair->value = ngx_str_to_char(&r->headers_out.content_type, pool);
 
@@ -279,7 +281,7 @@ build_http_headers_in_dtm(
 {
     ngx_list_t list = *hdrs;
     *hdrcnt = 0;
-    dd("list nalloc: %d", list.nalloc);
+    dd("list nalloc: %lu", list.nalloc);
     if (list.nalloc <= 0) {
         return;
     }
@@ -288,7 +290,7 @@ build_http_headers_in_dtm(
     ngx_table_elt_t * entry_ptr = (ngx_table_elt_t *)curr->elts;
     ngx_table_elt_t * entry = NULL;
 
-    dd("list part nelts: %d", curr->nelts);
+    dd("list part nelts: %lu", curr->nelts);
 
     for(size_t count = 0; ; count++) {
         if (count >= curr->nelts) {
@@ -355,7 +357,7 @@ free_response_dtm(ngx_pool_t *pool, Contrast__Api__Dtm__RawResponse *dtm)
     if (dtm->response_headers != NULL) {
         dd("free headers");
         for (size_t i = 0; i < dtm->n_response_headers; ++i) {
-            dd("free: i=%d, k: %s, v= %s", i, dtm->response_headers[i]->key, dtm->response_headers[i]->value);
+            dd("free: i=%lu, k: %s, v= %s", i, dtm->response_headers[i]->key, dtm->response_headers[i]->value);
             ngx_pfree(pool, dtm->response_headers[i]);
 
         }
@@ -420,6 +422,7 @@ send_response_dtm_to_socket(
     static int32_t message_count = 0;
     ngx_int_t deny = 0;
     ngx_str_t *response = NULL;
+    Contrast__Api__Settings__AgentSettings *settings = NULL;
 
     char *app_name_str = ngx_str_to_char(&app_name, pool);
     if (app_name_str == NULL) {
@@ -463,7 +466,6 @@ send_response_dtm_to_socket(
         goto fail;
     }
 
-    Contrast__Api__Settings__AgentSettings *settings = NULL;
     settings = contrast__api__settings__agent_settings__unpack(
         NULL, response->len, response->data);
     ngx_free(response->data);
@@ -514,6 +516,7 @@ send_dtm_to_socket(
     static int32_t message_count = 0;
     ngx_int_t deny = 0;
     ngx_str_t *response = NULL;
+    Contrast__Api__Settings__AgentSettings *settings = NULL;
 
     char *app_name_str = ngx_str_to_char(&app_name, pool);
     if (app_name_str == NULL) {
@@ -557,7 +560,6 @@ send_dtm_to_socket(
         goto fail;
     }
 
-    Contrast__Api__Settings__AgentSettings *settings = NULL;
     settings = contrast__api__settings__agent_settings__unpack(
         NULL, response->len, response->data);
     ngx_free(response->data);
@@ -797,7 +799,7 @@ ngx_http_contrast_create_ctx(ngx_http_request_t *r)
     }
 
     /* this may be ngx version dependent... at least 0.11. */
-    ngx_sprintf(ctx->uuid.uuid, "%08xD%08xD%08xD%08xD",
+    ngx_sprintf((u_char*)ctx->uuid.uuid, "%08xD%08xD%08xD%08xD",
             (uint32_t) ngx_random(), (uint32_t) ngx_random(),
             (uint32_t) ngx_random(), (uint32_t) ngx_random());
 
@@ -1013,7 +1015,7 @@ ngx_http_contrast_output_body_filter(ngx_http_request_t *r,  ngx_chain_t *in)
 
     free_response_dtm(r->pool, http_resp_dtm);
 
-    dd("response check from SR is %d", deny);
+    dd("response check from SR is %ld", deny);
     if (deny)
     {
         dd("attempting to send 403 response");
