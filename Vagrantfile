@@ -9,6 +9,10 @@ Vagrant.configure("2") do |config|
   # The most common configuration options are documented and commented below.
   # For a complete reference, please see the online documentation at
   # https://docs.vagrantup.com.
+  config.vm.provider "virtualbox" do |v|
+    v.memory = 4096
+    v.cpus = 4
+  end
 
   # These definitions will build a VM suitable for creating a deb package.
   ['trusty', 'xenial', 'artful', 'bionic'].each do |release|
@@ -29,7 +33,7 @@ Vagrant.configure("2") do |config|
       # the path on the host to the actual folder. The second argument is
       # the path on the guest to mount the folder. And the optional third
       # argument is a set of non-required options.
-      ubuntu.vm.synced_folder "../../projects/go-speedracer-go", "/go/src/contrast/speedracer"
+      ubuntu.vm.synced_folder "../../projects", "/projects"
 
       # Enable provisioning with a shell script. Additional provisioners such as
       # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
@@ -39,7 +43,7 @@ Vagrant.configure("2") do |config|
         # install base development libraries
         apt-get update
         apt-get -y upgrade
-        apt-get -y install gcc g++ make unzip autoconf libtool
+        apt-get -y install devscripts build-essential gcc g++ make unzip autoconf libtool
     
         exit
 

@@ -48,41 +48,6 @@ install_nginx() {
 }
 
 # NOTE: this is not used by the connector but is required for speedracer
-install_libmodsecurity() {
-  if [ ! -d "vendor/ModSecurity" ]; then
-    pushd vendor > /dev/null 2>&1
-    git clone https://github.com/SpiderLabs/ModSecurity
-    pushd ModSecurity > /dev/null 2>&1
-    git checkout v3.0.2
-    sh build.sh
-    git submodule init
-    git submodule update
-    ./configure
-    make
-    sudo make install
-    popd > /dev/null 2>&1
-    popd > /dev/null 2>&1
-  else
-    printf "LibModSecurity already installed\n"
-  fi
-}
-
-# NOTE: this is not used by the connector but is required for speedracer
-install_owasp() {
-  if [ ! -d "vendor/owasp-modsecurity-crs" ]; then
-    pushd vendor > /dev/null 2>&1
-    git clone https://github.com/SpiderLabs/owasp-modsecurity-crs.git
-    cp crs-setup.conf owasp-modsecurity-crs/.
-    cp modsecurity.conf owasp-modsecurity-crs/.
-    sudo touch /var/log/modsec_audit.log
-    sudo chown ubuntu /var/log/modsec_audit.log
-    popd > /dev/null 2>&1
-  else
-    printf "OWASP ModSecurity rules already installed\n"
-  fi
-}
-
-# NOTE: this is not used by the connector but is required for speedracer
 install_go() {
   if [ ! -d "/usr/local/go" ]; then
     pushd vendor > /dev/null 2>&1
@@ -112,9 +77,6 @@ if [[ "$#" -eq 1 ]]; then
 else
   git submodule update --init --recursive
   setup_local_directories
-  install_protobuf
   install_nginx
-  install_libmodsecurity
-  install_owasp
   install_go
 fi
