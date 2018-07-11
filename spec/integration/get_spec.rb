@@ -2,17 +2,7 @@ require "spec_helper"
 
 describe "Integration Specs" do
 
-  before(:all) do
-    `build/nginx/sbin/nginx`
-    sleep 1
-  end
-
-  after(:all) do
-    `build/nginx/sbin/nginx -s stop`
-  end
-  
   describe "SQLi" do
-
 
     describe "GET" do
       it "allows a request without an attack vector" do
