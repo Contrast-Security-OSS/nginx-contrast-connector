@@ -1,18 +1,8 @@
 require "spec_helper"
 
 describe "Integration Specs" do
-
-  before(:all) do
-    `build/nginx/sbin/nginx`
-    sleep 1
-  end
-
-  after(:all) do
-    `build/nginx/sbin/nginx -s stop`
-  end
   
   describe "Fail2Ban" do
-
 
     describe "POST" do
       it "allows a successful login" do
