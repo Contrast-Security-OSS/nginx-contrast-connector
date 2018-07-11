@@ -21,7 +21,7 @@ describe "Integration Specs" do
             user: "alice", 
             pass: "$ecur3" 
           })
-          puts "RESPONSE CODE = #{ http.response_code }"
+          expect(http.response_code).to eq(301)
         end
       end
 
@@ -31,6 +31,8 @@ describe "Integration Specs" do
             user: "bob", 
             pass: "test" 
           })
+
+          # not actually enforcing the rule here, yet. Just verifying that the response code changes
           puts "RESPONSE CODE = #{ http.response_code }"
         end
       end
