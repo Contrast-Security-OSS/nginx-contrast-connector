@@ -1,0 +1,395 @@
+#!/usr/bin/env bash
+#
+# Contrast Security (c) 2018
+# This script is heavily derived from build_module.sh from NGINX.
+# build_module.sh (c) NGINX, Inc. [v0.12 30-Aug-2017] Liam Crilly <liam.crilly@nginx.com>
+# http://hg.nginx.org/pkg-oss/file/tip
+#
+# This script supports apt(8) and yum(8) package managers. Installs the minimum
+# necessary prerequisite packages to build 3rd party modules for NGINX and
+# NGINX Plus.
+# Obtains the source for the Contrast module and NGINX OSS and prepares them
+# for pkg-oss tool. Obtains pkg-oss tool, creates packaging metadata files and
+# copies in module source such that the system's package building tools will
+# "just work".
+#
+# The NGINX demonstration script shows how to use the NGINX pkg-oss tool for
+# creating distributable packages. This is a copy with modification for our
+# specific purposes
+#
+# It will produce an installable package with the correct dependency on the
+# NGINX version used for the build so that upgrades will not lead to mismatch
+# between NGINX and the module.
+
+
+#
+# Check command line parameters
+#
+ME=`basename $0`
+if [ $# -eq 0 ]; then
+	echo "USAGE: $ME [options] <URL | path to module source>"
+	echo ""
+	echo " URL may be Github clone or download link, otherwise 'tarball' is assumed."
+	echo " Options:"
+	echo " -n | --nickname <word>         # Used for packaging, lower case alphanumeric only"
+	echo " -s | --skip-depends            # Skip dependecies check/install"
+	echo " -y | --non-interactive         # Automatically install dependencies and overwrite files"
+	echo " -f | --force-dynamic           # Attempt to convert static configuration to dynamic module"
+	echo " -r <NGINX Plus release number> # Build against the corresponding OSS version for this release"
+	echo " -v [NGINX OSS version number]  # Build against this OSS version [current mainline] (default)"
+	echo " -o <package output directory>  # Create package(s) in this directory"
+	echo ""
+	exit 1
+fi
+
+#
+# Process command line options
+#
+CHECK_DEPENDS=1
+SAY_YES=""
+COPY_CMD="cp -i"
+DO_DYNAMIC_CONVERT=0
+MODULE_NAME=""
+BUILD_PLATFORM=OSS
+OUTPUT_DIR=""
+while [ $# -gt 1 ]; do
+	case "$1" in
+		"-s" | "--skip-depends")
+			CHECK_DEPENDS=0
+			shift
+			;;
+		"-y" | "--non-interactive")
+			SAY_YES="-y"
+			COPY_CMD="cp -f"
+			shift
+			;;
+		"-f" | "--force-dynamic")
+			DO_DYNAMIC_CONVERT=1
+			shift
+			;;
+		"-n" | "--nickname" )
+			MODULE_NAME=$2
+			shift; shift
+			;;
+		"-r")
+			BUILD_PLATFORM=Plus
+			if [ `echo -n $2 | tr -d '[0-9p]' | wc -c` -gt 0 ]; then
+				echo "$ME: ERROR: NGINX Plus release must be in the format NN[pN] - quitting"
+				exit 1
+			elif [ "`echo "10^$2" | tr '^' '\n' | sort -nr | head -1`" == "10" ]; then
+				echo "$ME: ERROR: NGINX Plus release must be at least 11 to support dynamic modules - quitting"
+				exit 1
+			fi
+			PLUS_REL=$2
+			shift; shift
+			;;
+		"-v")
+			BUILD_PLATFORM=OSS
+			if [ `echo -n .$2 | tr -d '[0-9\.]' | wc -c` -eq 0 ]; then
+				OSS_VER=$2
+				shift
+			fi
+			if [ `echo "1.11.4^$OSS_VER" | tr '^' '\n' | tr '.' ',' | sort -nr | head -1` == "1,11,4" ]; then
+				echo "$ME: ERROR: NGINX version must be at least 1.11.5 to support dynamic modules - quitting"
+				exit 1
+			fi
+			shift
+			;;
+		"-o")
+			if [ ! -d $2 ]; then
+				echo "$ME: ERROR: Output directory $2 does not exist - quitting"
+				exit 1
+			fi
+			OUTPUT_DIR=$2
+			shift; shift
+			;;
+		*)
+			echo "$ME: ERROR: Invalid command line option ($1) - quitting"
+			exit 1
+			;;
+	esac
+done
+
+#
+# Locate/select package manager and configure
+#
+if [ `whereis yum | grep -c "^yum: /"` -eq 1 ]; then
+	PKG_MGR=yum
+	PKG_FMT=rpm
+	NGINX_PACKAGES="pcre-devel zlib-devel openssl-devel"
+	DEVEL_PACKAGES="rpm-build"
+	case `rpm --eval '%{dist}'` in
+		.el7*)
+			DEVEL_PACKAGES="$DEVEL_PACKAGES redhat-lsb-core"
+			;;
+	esac
+	PACKAGING_ROOT=${HOME}/rpmbuild/
+	PACKAGING_DIR=rpm/SPECS
+	PACKAGE_SOURCES_DIR=../SOURCES
+	PACKAGE_OUTPUT_DIR=RPMS
+elif [ `whereis apt-get | grep -c "^apt-get: /"` -eq 1 ]; then
+	PKG_MGR=apt-get
+	PKG_FMT=deb
+	NGINX_PACKAGES="libpcre3-dev zlib1g-dev libssl-dev"
+	DEVEL_PACKAGES="devscripts debhelper dpkg-dev quilt lsb-release"
+	PACKAGING_ROOT=${HOME}/debuild/
+	PACKAGING_DIR=debian
+	PACKAGE_SOURCES_DIR=extra
+	PACKAGE_OUTPUT_DIR="*/debian"
+else
+	echo "$ME: ERROR: Could not locate a supported package manager - quitting"
+	exit 1
+fi
+
+if [ $CHECK_DEPENDS = 1 ]; then
+	echo "$ME: INFO: testing sudo"
+	sudo pwd > /dev/null
+	if [ $? -ne 0 ]; then
+	        echo "ERROR: sudo failed. If you do not have sudo credentials then try using the '--skip-depends' option. Quitting."
+	        exit 1
+	fi
+
+	echo "$ME: INFO: checking for dependent packages"
+	CORE_PACKAGES="gcc make unzip wget"
+	if [ "$BUILD_PLATFORM" = "OSS" ]; then
+		CORE_PACKAGES="$CORE_PACKAGES mercurial"
+	fi
+	if [ "${1##*.}" == "git" ]; then
+		CORE_PACKAGES="$CORE_PACKAGES git"
+	fi
+	sudo $PKG_MGR install $SAY_YES $CORE_PACKAGES $NGINX_PACKAGES $DEVEL_PACKAGES
+fi
+
+#
+# Ask for a nickname if we did't get one on the command line
+#
+if [ "$MODULE_NAME" = "" ]; then
+	#
+	# Construct a reasonable nickname from the module source location
+	#
+	MODULE_NAME=`basename $1 | tr '[:blank:][:punct:]' '\n' | tr '[A-Z]' '[a-z]' | grep -ve nginx -e ngx -e http -e stream -e module -e plus -e tar -e zip -e gz -e git | tr -d '\n'`
+	if [ -z "$SAY_YES" ]; then
+		read -p "$ME: INPUT: Enter module nickname [$MODULE_NAME]: "
+		if [ "$REPLY" != "" ]; then
+			MODULE_NAME=$REPLY
+		fi
+	else
+		echo "$ME: INFO: using \"$MODULE_NAME\" as module nickname"
+	fi
+fi
+
+#
+# Sanitize module nickname (this is a debbuild requirement, probably needs to check for more characters)
+#
+while true; do
+	MODULE_NAME_CLEAN=`echo $MODULE_NAME | tr '[A-Z]' '[a-z]' | tr -d '[/_\-\.\t ]'`
+	if [ "$MODULE_NAME_CLEAN" != "$MODULE_NAME" ] || [ -z $MODULE_NAME ]; then
+		echo "$ME: WARNING: Removed illegal characters from module nickname - using \"$MODULE_NAME_CLEAN\""
+		if [ -z $SAY_YES ]; then
+			read -p "$ME: INPUT: Confirm module nickname [$MODULE_NAME_CLEAN]: " MODULE_NAME
+			if [ "$MODULE_NAME" = "" ]; then
+				MODULE_NAME=$MODULE_NAME_CLEAN
+			fi
+		else
+			MODULE_NAME=$MODULE_NAME_CLEAN
+			break
+		fi
+	else
+		break
+	fi
+done
+
+#
+# Create temporary build area, with working copy of module source
+#
+BUILD_DIR=/tmp/$ME.$$
+MODULE_DIR=$BUILD_DIR/$MODULE_NAME
+echo "$ME: INFO: Creating $BUILD_DIR build area"
+mkdir $BUILD_DIR
+
+if [ -d $1 ]; then
+	mkdir -v $MODULE_DIR
+	echo "$ME: INFO: Building $MODULE_NAME from $MODULE_DIR"
+	cp -a $1/* $MODULE_DIR
+else
+	#
+	# Module sources string is not a local directory so assume it is a URL.
+	# Obtain the sources in the best way for the suffix provided.
+	#
+	case "${1##*.}" in
+		"git")
+			echo "$ME: INFO: Cloning module source"
+			git clone --recursive $1 $MODULE_DIR
+			;;
+		"zip")
+			echo "$ME: INFO Downloading module source"
+			wget -O $BUILD_DIR/module.zip $1
+			ARCHIVE_DIR=`zipinfo -1 $BUILD_DIR/module.zip | head --lines=1 | cut -f1 -d/`
+			unzip $BUILD_DIR/module.zip -d $BUILD_DIR
+			mv $BUILD_DIR/$ARCHIVE_DIR $MODULE_DIR
+			;;
+		*)
+			echo "$ME: INFO Downloading module source"
+			# Assume tarball of some kind
+			wget -O $BUILD_DIR/module.tgz $1
+			ARCHIVE_DIR=`tar tfz $BUILD_DIR/module.tgz | head --lines=1 | cut -f1 -d/`
+			cd $BUILD_DIR
+			tar xfz module.tgz
+			mv $ARCHIVE_DIR $MODULE_DIR
+			cd -
+			;;
+	esac
+fi
+
+#
+# Check the module sources look OK
+#
+if [ ! -f $MODULE_DIR/config ]; then
+	echo "$ME: ERROR: Cannot locate module config file - quitting"
+	exit 1
+fi
+
+#
+# Get the internal module name(s) from the module config so we can write
+# the .so files into the postinstall banner.
+#
+touch $BUILD_DIR/postinstall.txt
+for MODULE_SO_NAME in $(grep ngx_module_name= $MODULE_DIR/config | cut -f2 -d= | cut -f2 -d\"); do
+	if [ "`echo $MODULE_SO_NAME | cut -c1`" = "$" ]; then
+		# Dereference variable
+		SOURCE_VAR=`echo $MODULE_SO_NAME | cut -f2 -d\$`
+		MODULE_SO_NAME=`grep $SOURCE_VAR= $MODULE_DIR/config | cut -f2 -d= | cut -f2 -d\"`
+	fi
+	# Only write load_module line when no backslash present (can't cope with multi-line values)
+	echo $MODULE_SO_NAME | grep -c '\\' > /dev/null
+	if [ $? -eq 1 ]; then
+		echo "    load_module modules/$MODULE_SO_NAME.so;" >> $BUILD_DIR/postinstall.txt
+	fi
+done
+if [ ! -s $BUILD_DIR/postinstall.txt ]; then
+	# Didn't find any .so names so this is a final attempt to extract from config file
+	MODULE_SO_NAME=`grep ngx_addon_name= $MODULE_DIR/config | cut -f2 -d= | cut -f2 -d\"`
+	echo "    load_module modules/$MODULE_SO_NAME.so;" >> $BUILD_DIR/postinstall.txt
+fi
+
+#
+# Get NGINX OSS packaging tool
+#
+echo "$ME: INFO: Downloading NGINX packaging tool"
+cd $BUILD_DIR
+if [ "$BUILD_PLATFORM" = "OSS" ]; then
+	if [ "$OSS_VER" != "" ]; then
+		MERCURIAL_TAG="-r $OSS_VER-1"
+	fi
+	hg clone $MERCURIAL_TAG http://hg.nginx.org/pkg-oss
+	cd pkg-oss/$PACKAGING_DIR
+else
+	wget -O - http://hg.nginx.org/pkg-oss/archive/target-plus-r$PLUS_REL.tar.gz  | tar xfz -
+	cd pkg-oss-target-plus-r$PLUS_REL/$PACKAGING_DIR
+fi
+if [ $? -ne 0 ]; then
+	echo "$ME: ERROR: Unable to obtain NGINX packaging tool - quitting"
+	exit 1
+fi
+
+#
+# Archive the module source for use with packaging tool using the base OSS version
+#
+VERSION=`grep "^BASE_VERSION=" Makefile | cut -f2 -d= | tr -d "[:blank:]"`
+echo "$ME: INFO: Archiving module source for $VERSION"
+cd $BUILD_DIR
+mv $MODULE_NAME $MODULE_NAME-$VERSION
+tar cf - $MODULE_NAME-$VERSION | gzip -1 > $OLDPWD/$PACKAGE_SOURCES_DIR/$MODULE_NAME-$VERSION.tar.gz
+cd -
+
+echo "$ME: INFO: Creating changelog"
+if [ "$PKG_MGR" = "yum" ]; then
+	echo "* `date '+%a %b %d %Y'` Build Script <support@contrastsecurity.com>" > nginx-module-$MODULE_NAME.changelog.in
+	echo "- initial version of $MODULE_NAME module" >> nginx-module-$MODULE_NAME.changelog.in
+else
+	cat << __EOF__ > nginx-module-$MODULE_NAME.changelog.in
+nginx-module-$MODULE_NAME (${VERSION}-1~%%CODENAME%%) %%CODENAME%%; urgency=low
+
+  * initial release of $MODULE_NAME webserver agent module for nginx
+
+ -- Build Script <support@contrastsecurity.com>  `date -R`
+__EOF__
+fi
+
+echo "$ME: INFO: Creating module Makefile"
+cat << __EOF__ > Makefile.module-$MODULE_NAME
+MODULES=$MODULE_NAME
+
+MODULE_PACKAGE_VENDOR=				Contrast Security, Inc <support@contrastsecurity.com>
+MODULE_PACKAGE_URL=					https://www.contrastsecurity.com
+
+MODULE_SUMMARY_$MODULE_NAME=		$MODULE_NAME webserver agent dynamic module
+MODULE_VERSION_$MODULE_NAME=		$VERSION
+MODULE_RELEASE_$MODULE_NAME=		1
+MODULE_CONFARGS_$MODULE_NAME=		--add-dynamic-module=\$(MODSRC_PREFIX)$MODULE_NAME-$VERSION
+MODULE_SOURCES_$MODULE_NAME=		$MODULE_NAME-$VERSION.tar.gz
+
+define MODULE_PREBUILD_$MODULE_NAME
+	cd debian/build-nginx/\$(MODSRC_PREFIX)$MODULE_NAME-$VERSION; make deps
+endef
+export MODULE_PREBUILD_$MODULE_NAME
+
+define MODULE_POST_$MODULE_NAME
+cat <<BANNER
+----------------------------------------------------------------------
+
+The \$(MODULE_SUMMARY_$MODULE_NAME) for nginx has been installed.
+To enable this module, add the following to /etc/nginx/nginx.conf
+and reload nginx:
+
+`uniq $BUILD_DIR/postinstall.txt`
+
+----------------------------------------------------------------------
+BANNER
+endef
+export MODULE_POST_$MODULE_NAME
+
+__EOF__
+
+#
+# Build!
+#
+echo "$ME: INFO: Building"
+if [ -d $PACKAGING_ROOT -a "$SAY_YES" = "-y" ]; then
+	rm -fr $PACKAGING_ROOT
+fi
+echo "preping nginx build env"
+make prepare-build-env
+if [ $? -ne 0 ]; then
+	echo "$ME: ERROR: Unable to prepare build environment - quitting"
+	exit 1
+fi
+
+if [ "$PKG_MGR" = "yum" ]; then
+	cd ~/rpmbuild/SPECS
+else
+	cd ~/debuild/nginx-$VERSION/debian
+fi
+
+
+if [ "$BUILD_PLATFORM" = "Plus" ]; then
+	MODULE_TARGET=plus make module-$MODULE_NAME
+else
+	make module-$MODULE_NAME
+fi
+if [ $? -ne 0 ]; then
+	echo "$ME: ERROR: Build failed"
+else
+	echo ""
+	echo "$ME: INFO: Module binaries created"
+	find $PACKAGING_ROOT -type f -name "*.so" -print
+
+	echo "$ME: INFO: Module packages created"
+	if [ "$OUTPUT_DIR" = "" ]; then
+		find $PACKAGING_ROOT$PACKAGE_OUTPUT_DIR -type f -name "*.$PKG_FMT" -print
+	else
+		find $PACKAGING_ROOT$PACKAGE_OUTPUT_DIR -type f -name "*.$PKG_FMT" -exec $COPY_CMD -v {} $OUTPUT_DIR \;
+	fi
+	echo "$ME: INFO: Removing $BUILD_DIR"
+	rm -fr $BUILD_DIR
+fi

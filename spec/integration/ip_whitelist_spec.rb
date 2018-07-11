@@ -1,15 +1,6 @@
 require "spec_helper"
 
 describe "Integration Specs" do
-
-  before(:all) do
-    `build/nginx/sbin/nginx`
-    sleep 1
-  end
-
-  after(:all) do
-    `build/nginx/sbin/nginx -s stop`
-  end
   
   describe "IP Whitelist" do
     it "allows from 124.124.124.124 (if setup in Teamserver)" do

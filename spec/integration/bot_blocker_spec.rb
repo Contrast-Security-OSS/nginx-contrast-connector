@@ -2,15 +2,6 @@ require "spec_helper"
 
 describe "Integration Specs" do
 
-  before(:all) do
-    `build/nginx/sbin/nginx`
-    sleep 1
-  end
-
-  after(:all) do
-    `build/nginx/sbin/nginx -s stop`
-  end
-  
   describe "BotBlocker" do
     it "allows a request without a user agent" do
       http = Curl.get("http://127.0.0.1:8888") do |curl|

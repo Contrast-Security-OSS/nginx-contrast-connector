@@ -23,7 +23,8 @@ This repository attempts to build all the compiled libraries necessary including
 The current connector is designed to be setup and tested in a 
 [Vagrant](https://www.vagrantup.com/)/[VirtualBox](https://www.virtualbox.org/) virtual machine.
 
-* `vagrant up`
+* `vagrant status` # to see the list of available VMs
+* `vagrant up ubuntu-xenial`
 * `vagrant ssh`
 * install RVM rb-env to get access to a modern ruby (https://rvm.io/)
 * `cd /vagrant`
@@ -56,6 +57,13 @@ The speedracer project should be mounted in the vagrant environment at `/go/src/
 * `dep ensure`
     * NOTE: `dep` has a bug that prevents it working under virtual machines (?) which may require installing dependencies individually.
 
+### Building an ubuntu package
+* `vagrant up <ubuntu flavor>`
+* `vagrant ssh <ubuntu flavor>`
+* `cd /vagrant`
+* `./build_module.sh -n contrast -v <nginx version> /vagrant`
+
+The module will be left in /home/vagrant/debuild/nginx-<version>/debian/debuild-module-contrast/
 	
 ### How do I test? ###
 
