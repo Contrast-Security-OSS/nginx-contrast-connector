@@ -11,7 +11,7 @@ pipelines:
         script:
           - echo "Everything is awesome!"
   branches:
-    CONTRAST-25048-docker-testing:
+    develop:
      - step:
         name: Deploy Agent Image to Artifactory
         caches:
