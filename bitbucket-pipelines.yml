@@ -19,6 +19,8 @@ pipelines:
         services:
           - docker
         script:
+          - git clone git@bitbucket.org:contrastsecurity/contrast-modsecurity.git 
+          - git clone git@bitbucket.org:contrastsecurity/nginx-speedracer-connector.git
+          - git clone https://github.com/SpiderLabs/owasp-modsecurity-crs.git
           - echo $CONTRAST_ARTIFACTORY_PASSWORD | docker login -u $CONTRAST_ARTIFACTORY_USER --password-stdin contrastsecurity-docker-local.jfrog.io 
           - ./bitbucket_scripts/update.sh
-
