@@ -13,7 +13,7 @@
 #include "ngx_http_contrast_connector_socket.h"
 
 
-#define APP_LANG  "Ruby" /* XXX: temp placeholder for TS */
+#define APP_LANG  "Proxy" 
 #define CLIENT_ID  "NGINX"
 
 typedef struct address_s {
