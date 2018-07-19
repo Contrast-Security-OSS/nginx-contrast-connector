@@ -7,6 +7,10 @@ RUN mkdir -p /app/bin && mkdir -p /app/src/contrast/
 ENV GOROOT="/usr/local/go"
 ENV GOPATH="/app/"
 ENV PATH="${PATH}:${GOROOT}/bin:${GOPATH}/bin"
+
+COPY contrast-modsecurity contrast-modsecurity
+COPY nginx-speedracer-connector nginx-speedracer-connector
+COPY owasp-modsecurity-crs owasp-modsecurity-crs
  
 # Install ModSecurity Deps, NGINX, Docker
 RUN apt-get update && apt-get install -y \ 
@@ -68,10 +72,7 @@ RUN /bin/bash -l -c ". /etc/profile.d/rvm.sh && rvm install 2.3.4"
 # Install Golang Dep
 RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 
-# Clone ModSecurity Dep & NGINX Connector & OWASP Rules
-RUN git clone git@bitbucket.org:contrastsecurity/contrast-modsecurity.git && \
-git clone git@bitbucket.org:contrastsecurity/nginx-speedracer-connector.git && \
-git clone https://github.com/SpiderLabs/owasp-modsecurity-crs.git
+
 
 # Build ModSecurity Package + Setup SpeedRacer Deps
 RUN cd contrast-modsecurity && ./deb/build-pkg.sh && cd deb && apt install ./modsecurity_3.0.2-1_amd64.deb && \
