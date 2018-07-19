@@ -14,8 +14,6 @@ pipelines:
     develop:
      - step:
         name: Deploy Agent Image to Artifactory
-        caches:
-          - docker
         services:
           - docker
         script:
