@@ -11,9 +11,9 @@ pipelines:
         script:
           - echo "Everything is awesome!"
   branches:
-    develop:
+    something-fishy:
      - step:
-        name: Deploy Agent Image to Artifactory
+        name: Deploy Base Image
         caches:
           - docker
         services:
@@ -23,4 +23,6 @@ pipelines:
           - git clone git@bitbucket.org:contrastsecurity/nginx-speedracer-connector.git
           - git clone https://github.com/SpiderLabs/owasp-modsecurity-crs.git
           - echo $CONTRAST_ARTIFACTORY_PASSWORD | docker login -u $CONTRAST_ARTIFACTORY_USER --password-stdin contrastsecurity-docker-local.jfrog.io 
-          - ./bitbucket_scripts/update.sh
+          - cp bitbucket_scripts/Dockerfile .
+          - docker build --no-cache -t contrastsecurity-docker-local.jfrog.io/universal-agent-base .
+          - docker push contrastsecurity-docker-local.jfrog.io/universal-agent-base
