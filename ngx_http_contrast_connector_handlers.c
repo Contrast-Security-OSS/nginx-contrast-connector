@@ -15,6 +15,7 @@
 /* Language key to report to Teamsever */
 #define APP_LANG  "Proxy" 
 
+/* Identifier for internal tracking in service */
 #define CLIENT_ID  "NGINX"
 
 typedef struct address_s {
