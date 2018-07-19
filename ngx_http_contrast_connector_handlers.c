@@ -12,8 +12,9 @@
 #include "ngx_http_contrast_connector_common.h"
 #include "ngx_http_contrast_connector_socket.h"
 
-
+/* Language key to report to Teamsever */
 #define APP_LANG  "Proxy" 
+
 #define CLIENT_ID  "NGINX"
 
 typedef struct address_s {
