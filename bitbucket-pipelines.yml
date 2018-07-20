@@ -11,7 +11,7 @@ pipelines:
         script:
           - echo "Everything is awesome!"
   branches:
-    something-fishy:
+    develop:
      - step:
         name: Deploy Base Image
         caches:
