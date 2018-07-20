@@ -24,5 +24,5 @@ pipelines:
           - git clone https://github.com/SpiderLabs/owasp-modsecurity-crs.git
           - echo $CONTRAST_ARTIFACTORY_PASSWORD | docker login -u $CONTRAST_ARTIFACTORY_USER --password-stdin contrastsecurity-docker-local.jfrog.io 
           - cp bitbucket_scripts/Dockerfile .
-          - docker build --no-cache -t contrastsecurity-docker-local.jfrog.io/universal-agent-base .
+          - docker build -t contrastsecurity-docker-local.jfrog.io/universal-agent-base .
           - docker push contrastsecurity-docker-local.jfrog.io/universal-agent-base
