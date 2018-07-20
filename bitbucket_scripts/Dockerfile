@@ -59,7 +59,7 @@ sudo add-apt-repository \
    stable" && curl -O https://nginx.org/keys/nginx_signing.key && sudo apt-key add nginx_signing.key && echo 'deb http://nginx.org/packages/ubuntu/ xenial nginx' >> /etc/apt/sources.list && \
    echo 'deb-src http://nginx.org/packages/ubuntu/ xenial nginx' >> /etc/apt/sources.list  
 
-RUN apt-get update && apt-get install -y nginx docker-ce
+RUN apt-get update && apt-get install -y nginx
 
 # Install Go
 RUN wget https://dl.google.com/go/go1.10.1.linux-amd64.tar.gz && tar -C /usr/local -xzf go1.10.1.linux-amd64.tar.gz
@@ -73,15 +73,14 @@ RUN /bin/bash -l -c ". /etc/profile.d/rvm.sh && rvm install 2.3.4"
 RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 
 
-
 # Build ModSecurity Package + Setup SpeedRacer Deps
 RUN cd contrast-modsecurity && ./deb/build-pkg.sh && cd deb && apt install ./modsecurity_3.0.2-1_amd64.deb && \
 cd /app/contrast-modsecurity/deb/modsecurity-3.0.2/src && mkdir -p /usr/local/modsecurity/lib/ && \
 cp .libs/* /usr/local/modsecurity/lib/
 
 # Install NGINX Connector
-RUN cd nginx-speedracer-connector && git submodule update --init --recursive && \
-./build_module.sh -y -f -n contrast -v 1.14.0 /app/nginx-speedracer-connector && \
+RUN cd nginx-speedracer-connector && git submodule update --init --recursive \
+&& ./build_module.sh -y -f -n contrast -v 1.14.0 /app/nginx-speedracer-connector && \
 cd ~/debuild && dpkg -i nginx-module-contrast_1.14.0-1~xenial_amd64.deb && \
 cd /etc/nginx && mkdir -p /etc/nginx/logs/ && \
 mv /app/nginx-speedracer-connector/nginx.conf nginx.conf && \
