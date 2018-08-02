@@ -1,22 +1,21 @@
 # NGINX / Speedracer Connector #
 
 This is an NGINX module that can be compiled statially or dynamically that
-allows NGINX to communicate with Speedracer using UNIX sockets and protobuf
-messages.
+allows NGINX to communicate with Speedracer using tcp or UNIX sockets with
+protobuf messages.
 
 ### What is this repository for? ###
 
-This repository is a build environment heavily influenced by the tutorial code from Aaron Bedra
-[here](https://github.com/abedra/nginx-auth-token-module) and the libmodsecurity connector from SpiderLabs
+This repository is a build environment heavily influenced by the tutorial code
+from Aaron Bedra [here](https://github.com/abedra/nginx-auth-token-module) and
+the libmodsecurity connector from SpiderLabs
 [here](https://github.com/SpiderLabs/ModSecurity-nginx).
 
-This repository attempts to build all the compiled libraries necessary including:
+This repository attempts to build all the compiled libraries necessary
+including:
 
-* libmodsecurity (c++)
-* OWASP libmodesecurty rule set (text)
 * NGINX (c++)
 * NGINX connector (c) 
-* Speedracer (go)
 
 ### How do I get set up? ###
 
