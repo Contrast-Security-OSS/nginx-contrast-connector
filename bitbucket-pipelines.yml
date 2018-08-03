@@ -6,7 +6,6 @@ definitions:
       - git submodule update --init --recursive
       - mkdir pkgs
       - ./build_module.sh -y -o `pwd`/pkgs -n contrast -v 1.14.0 .
-      - ./build_module.sh -y -o `pwd`/pkgs -n contrast -v 1.15.2 .
       - ./build_module.sh -y -o `pwd`/pkgs -n contrast -v 1.12.2 .
 
     build_steps_rpm: &build_all_rpm
@@ -14,7 +13,6 @@ definitions:
       - git submodule update --init --recursive
       - mkdir pkgs
       - ./build_module.sh -y -o `pwd`/pkgs -n contrast -v 1.14.0 .
-      - ./build_module.sh -y -o `pwd`/pkgs -n contrast -v 1.15.2 .
       - ./build_module.sh -y -o `pwd`/pkgs -n contrast -v 1.12.2 .
 
 pipelines:
