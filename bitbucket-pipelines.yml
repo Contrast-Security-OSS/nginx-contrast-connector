@@ -7,9 +7,21 @@ image: atlassian/default-image:2
 
 pipelines:
   default:
-    - step:
-        script:
-          - echo "Everything is awesome!"
+    - parallel:
+      - step:
+          name: ubuntu-18 nginx-1.14.0 pkg
+          image: contrast/installer-build:ubuntu-18
+          script:
+            - apt-get install autoconf automake libtool -y
+            - git submodule update --init --recursive
+            - ./build_module.sh -y -n contrast -v 1.14.0 .
+      - step:
+          name: centos7 nginx-1.14.0 pkg
+          image: contrast/installer-build:centos-7
+          script:
+            - yum install autoconf automake libtool -y 
+            - git submodule update --init --recursive
+            - ./build_module.sh -y -n contrast -v 1.14.0 .
   branches:
     develop:
      - step:
