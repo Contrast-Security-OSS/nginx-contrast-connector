@@ -50,6 +50,7 @@ pipelines:
         image: contrast/installer-build:ubuntu-18
         script:
             - ls -lah pkgs
+            - bitbucket_scripts/deploy.sh pkgs
     
   branches:
     develop:
