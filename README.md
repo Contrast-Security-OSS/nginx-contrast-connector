@@ -60,7 +60,7 @@ The speedracer project should be mounted in the vagrant environment at `/go/src/
 * `vagrant up <ubuntu flavor>`
 * `vagrant ssh <ubuntu flavor>`
 * `cd /vagrant`
-* `./build_module.sh -n contrast -v <nginx version> /vagrant`
+* `./build_module.sh -n contrast -v <nginx version> .`
 
 The module will be left in /home/vagrant/debuild/nginx-<version>/debian/debuild-module-contrast/
 	
