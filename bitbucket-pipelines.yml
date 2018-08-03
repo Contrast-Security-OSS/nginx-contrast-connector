@@ -1,102 +1,42 @@
-# This is a sample build configuration for Other.
-# Check our guides at https://confluence.atlassian.com/x/5Q4SMw for more examples.
-# Only use spaces to indent your .yml configuration.
-# -----
-# You can specify a custom docker image from Docker Hub as your build environment.
 image: atlassian/default-image:2
+
+definitions:
+    build_steps_deb: &build_all_deb
+      - apt-get install autoconf automake libtool -y
+      - git submodule update --init --recursive
+      - mkdir pkgs
+      - ./build_module.sh -y -o `pwd`/pkgs -n contrast -v 1.14.0 .
+      - ./build_module.sh -y -o `pwd`/pkgs -n contrast -v 1.15.2 .
+      - ./build_module.sh -y -o `pwd`/pkgs -n contrast -v 1.12.2 .
+
+    build_steps_rpm: &build_all_rpm
+      - yum install autoconf automake libtool -y
+      - git submodule update --init --recursive
+      - mkdir pkgs
+      - ./build_module.sh -y -o `pwd`/pkgs -n contrast -v 1.14.0 .
+      - ./build_module.sh -y -o `pwd`/pkgs -n contrast -v 1.15.2 .
+      - ./build_module.sh -y -o `pwd`/pkgs -n contrast -v 1.12.2 .
 
 pipelines:
   default:
     - parallel:
-      # nginx 1.14.0 module
       - step:
           name: ubuntu-18 nginx-1.14.0 pkg
           image: contrast/installer-build:ubuntu-18
-          script:
-            - apt-get install autoconf automake libtool -y
-            - git submodule update --init --recursive
-            - ./build_module.sh -y -n contrast -v 1.14.0 .
+          script: *build_all_deb
       - step:
           name: ubuntu-16 nginx-1.14.0 pkg
           image: contrast/installer-build:ubuntu-16
-          script:
-            - apt-get install autoconf automake libtool -y
-            - git submodule update --init --recursive
-            - ./build_module.sh -y -n contrast -v 1.14.0 .
+          script: *build_all_deb
       - step:
           name: ubuntu-14 nginx-1.14.0 pkg
           image: contrast/installer-build:ubuntu-14
-          script:
-            - apt-get install autoconf automake libtool -y
-            - git submodule update --init --recursive
-            - ./build_module.sh -y -n contrast -v 1.14.0 .
+          script: *build_all_deb
       - step:
           name: centos7 nginx-1.14.0 pkg
           image: contrast/installer-build:centos-7
-          script:
-            - yum install autoconf automake libtool -y 
-            - git submodule update --init --recursive
-            - ./build_module.sh -y -n contrast -v 1.14.0 .
+          script: *build_all_rpm
 
-      # nginx 1.15.2 module
-      - step:
-          name: ubuntu-18 nginx-1.15.2 pkg
-          image: contrast/installer-build:ubuntu-18
-          script:
-            - apt-get install autoconf automake libtool -y
-            - git submodule update --init --recursive
-            - ./build_module.sh -y -n contrast -v 1.15.2 .
-      - step:
-          name: ubuntu-16 nginx-1.15.2 pkg
-          image: contrast/installer-build:ubuntu-16
-          script:
-            - apt-get install autoconf automake libtool -y
-            - git submodule update --init --recursive
-            - ./build_module.sh -y -n contrast -v 1.15.2 .
-      - step:
-          name: ubuntu-14 nginx-1.15.2 pkg
-          image: contrast/installer-build:ubuntu-14
-          script:
-            - apt-get install autoconf automake libtool -y
-            - git submodule update --init --recursive
-            - ./build_module.sh -y -n contrast -v 1.15.2 .
-      - step:
-          name: centos7 nginx-1.15.2 pkg
-          image: contrast/installer-build:centos-7
-          script:
-            - yum install autoconf automake libtool -y 
-            - git submodule update --init --recursive
-            - ./build_module.sh -y -n contrast -v 1.15.2 .
-
-      # nginx 1.12.2 module
-      - step:
-          name: ubuntu-18 nginx-1.12.2 pkg
-          image: contrast/installer-build:ubuntu-18
-          script:
-            - apt-get install autoconf automake libtool -y
-            - git submodule update --init --recursive
-            - ./build_module.sh -y -n contrast -v 1.12.2 .
-      - step:
-          name: ubuntu-16 nginx-1.12.2 pkg
-          image: contrast/installer-build:ubuntu-16
-          script:
-            - apt-get install autoconf automake libtool -y
-            - git submodule update --init --recursive
-            - ./build_module.sh -y -n contrast -v 1.12.2 .
-      - step:
-          name: ubuntu-14 nginx-1.12.2 pkg
-          image: contrast/installer-build:ubuntu-14
-          script:
-            - apt-get install autoconf automake libtool -y
-            - git submodule update --init --recursive
-            - ./build_module.sh -y -n contrast -v 1.12.2 .
-      - step:
-          name: centos7 nginx-1.12.2 pkg
-          image: contrast/installer-build:centos-7
-          script:
-            - yum install autoconf automake libtool -y 
-            - git submodule update --init --recursive
-            - ./build_module.sh -y -n contrast -v 1.12.2 .
   branches:
     develop:
      - step:
