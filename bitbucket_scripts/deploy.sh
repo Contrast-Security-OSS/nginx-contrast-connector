@@ -33,9 +33,12 @@ function push_to_repo {
 }
 
 
-# for p in ${pkgdir}/*.rpm; do
-#     push_to_repo "rpm-staging" "$distro/" $p
-# done
+for p in ${pkgdir}/*.rpm; do
+    pkgname=`basename $p`
+    distro=`echo $pkgname | sed 's/.*\(el[[:digit:]]d\).*.rpm/\1/'`
+    push_to_repo "rpm-staging" "$distro/" $p
+done
+
 for p in ${pkgdir}/*.deb; do
     pkgname=`basename $p`
     arch=`echo "$pkgname" | sed 's/.*_\(.*\).deb$/\1/'`
