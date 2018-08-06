@@ -249,6 +249,13 @@ if [ ! -f $MODULE_DIR/config ]; then
 	exit 1
 fi
 
+if [ ! -f $MODULE_DIR/VERSION ]; then
+	echo "$ME: ERROR: Cannot locate module VERSION file - quitting"
+	exit 1
+fi
+
+MOD_VERSION=`cat $MODULE_DIR/VERSION`
+
 #
 # Get the internal module name(s) from the module config so we can write
 # the .so files into the postinstall banner.
@@ -295,8 +302,9 @@ fi
 #
 # Archive the module source for use with packaging tool using the base OSS version
 #
-VERSION=`grep "^BASE_VERSION=" Makefile | cut -f2 -d= | tr -d "[:blank:]"`
-echo "$ME: INFO: Archiving module source for $VERSION"
+NGINX_VERSION=`grep "^BASE_VERSION=" Makefile | cut -f2 -d= | tr -d "[:blank:]"`
+VERSION=$NGINX_VERSION+$MOD_VERSION
+echo "$ME: INFO: Archiving module source [$VERSION]"
 cd $BUILD_DIR
 mv $MODULE_NAME $MODULE_NAME-$VERSION
 tar cf - $MODULE_NAME-$VERSION | gzip -1 > $OLDPWD/$PACKAGE_SOURCES_DIR/$MODULE_NAME-$VERSION.tar.gz
@@ -310,7 +318,7 @@ else
 	cat << __EOF__ > nginx-module-$MODULE_NAME.changelog.in
 nginx-module-$MODULE_NAME (${VERSION}-1~%%CODENAME%%) %%CODENAME%%; urgency=low
 
-  * initial release of $MODULE_NAME webserver agent module for nginx
+  * Release of $MODULE_NAME webserver agent module for nginx $NGINX_VERSION
 
  -- Build Script <support@contrastsecurity.com>  `date -R`
 __EOF__
@@ -368,7 +376,7 @@ fi
 if [ "$PKG_MGR" = "yum" ]; then
 	cd ~/rpmbuild/SPECS
 else
-	cd ~/debuild/nginx-$VERSION/debian
+	cd ~/debuild/nginx-$NGINX_VERSION/debian
 fi
 
 

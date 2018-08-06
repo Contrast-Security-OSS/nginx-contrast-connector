@@ -5,6 +5,7 @@ definitions:
       - apt-get install autoconf automake libtool -y
       - git submodule update --init --recursive
       - mkdir pkgs
+      - make VERSION
       - ./build_module.sh -y -o `pwd`/pkgs -n contrast -v 1.14.0 .
       - ./build_module.sh -y -o `pwd`/pkgs -n contrast -v 1.12.2 .
 
@@ -12,6 +13,7 @@ definitions:
       - yum install autoconf automake libtool -y
       - git submodule update --init --recursive
       - mkdir pkgs
+      - make VERSION
       - ./build_module.sh -y -o `pwd`/pkgs -n contrast -v 1.14.0 .
       - ./build_module.sh -y -o `pwd`/pkgs -n contrast -v 1.12.2 .
 
