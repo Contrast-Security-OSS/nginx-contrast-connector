@@ -26,6 +26,7 @@
 # Check command line parameters
 #
 ME=`basename $0`
+THIS_DIR=`readlink -f ${BASH_SOURCE%/*}`
 if [ $# -eq 0 ]; then
 	echo "USAGE: $ME [options] <URL | path to module source>"
 	echo ""
@@ -331,6 +332,7 @@ MODULES=$MODULE_NAME
 MODULE_PACKAGE_VENDOR=				Contrast Security, Inc <support@contrastsecurity.com>
 MODULE_PACKAGE_URL=					https://www.contrastsecurity.com
 
+MODULE_PACKAGE_NAME_$MODULE_NAME=   contrast-webserver-agent-nginx
 MODULE_SUMMARY_$MODULE_NAME=		$MODULE_NAME webserver agent dynamic module
 MODULE_VERSION_$MODULE_NAME=		$VERSION
 MODULE_RELEASE_$MODULE_NAME=		1
@@ -373,10 +375,15 @@ if [ $? -ne 0 ]; then
 	exit 1
 fi
 
+echo "$ME: INFO: finished preping build env"
 if [ "$PKG_MGR" = "yum" ]; then
 	cd ~/rpmbuild/SPECS
+    patch -p1 < $THIS_DIR/nginx-oss-pkg/rpm/fix-pkgname.patch
 else
 	cd ~/debuild/nginx-$NGINX_VERSION/debian
+    patch -p1 < $THIS_DIR/nginx-oss-pkg/debian/nginx.makefile.patch
+    patch -p1 < $THIS_DIR/nginx-oss-pkg/debian/nginx.control.patch
+    patch -p1 < $THIS_DIR/nginx-oss-pkg/debian/nginx.rules.patch
 fi
 
 
