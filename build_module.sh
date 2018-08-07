@@ -303,7 +303,7 @@ fi
 # Archive the module source for use with packaging tool using the base OSS version
 #
 NGINX_VERSION=`grep "^BASE_VERSION=" Makefile | cut -f2 -d= | tr -d "[:blank:]"`
-VERSION=$NGINX_VERSION+$MOD_VERSION
+VERSION=$MOD_VERSION
 echo "$ME: INFO: Archiving module source [$VERSION]"
 cd $BUILD_DIR
 mv $MODULE_NAME $MODULE_NAME-$VERSION
