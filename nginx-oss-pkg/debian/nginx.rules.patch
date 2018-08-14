@@ -1,0 +1,20 @@
+--- a/nginx-module.rules.in	2018-08-07 21:56:45.440486000 +0000
++++ b/nginx-module.rules.in	2018-08-07 19:56:38.000000000 +0000
+@@ -8,7 +8,7 @@
+ 
+ BUILDDIR_nginx = $(CURDIR)/debian/build-nginx
+ BUILDDIR_nginx_debug = $(CURDIR)/debian/build-nginx-debug
+-INSTALLDIR = $(CURDIR)/debian/nginx%%TARGET_SUFFIX%%-module-%%MODULE%%
++INSTALLDIR = $(CURDIR)/debian/%%MODULE_PACKAGE_NAME%%
+ BASEDIR = $(CURDIR)
+ 
+ ifneq (,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
+@@ -65,7 +65,7 @@
+ 
+ build-dbg.%: install
+ 	dh_testdir
+-	dh_strip --dbg-package=nginx%%TARGET_SUFFIX%%-module-%%MODULE%%-dbg
++	dh_strip --dbg-package=%%MODULE_PACKAGE_NAME%%-dbg
+ 
+ build-dbg: build-dbg.nginx
+ 	dh_testdir
