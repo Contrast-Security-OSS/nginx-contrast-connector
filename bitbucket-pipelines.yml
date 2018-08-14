@@ -1,15 +1,55 @@
-# This is a sample build configuration for Other.
-# Check our guides at https://confluence.atlassian.com/x/5Q4SMw for more examples.
-# Only use spaces to indent your .yml configuration.
-# -----
-# You can specify a custom docker image from Docker Hub as your build environment.
 image: atlassian/default-image:2
+
+definitions:
+    build_steps_deb: &build_all_deb
+      - apt-get install autoconf automake libtool -y
+      - git submodule update --init --recursive
+      - mkdir pkgs
+      - make VERSION
+      - ./build_module.sh -y -o `pwd`/pkgs -n contrast -v 1.14.0 .
+
+    build_steps_rpm: &build_all_rpm
+      - yum install autoconf automake libtool -y
+      - git submodule update --init --recursive
+      - mkdir pkgs
+      - make VERSION
+      - ./build_module.sh -y -o `pwd`/pkgs -n contrast -v 1.14.0 .
 
 pipelines:
   default:
+    - parallel:
+      - step:
+          name: ubuntu-18 nginx-1.14.0 pkg
+          image: contrast/installer-build:ubuntu-18
+          script: *build_all_deb
+          artifacts:
+              - pkgs/*
+      - step:
+          name: ubuntu-16 nginx-1.14.0 pkg
+          image: contrast/installer-build:ubuntu-16
+          script: *build_all_deb
+          artifacts:
+              - pkgs/*
+      - step:
+          name: ubuntu-14 nginx-1.14.0 pkg
+          image: contrast/installer-build:ubuntu-14
+          script: *build_all_deb
+          artifacts:
+              - pkgs/*
+      - step:
+          name: centos7 nginx-1.14.0 pkg
+          image: contrast/installer-build:centos-7
+          script: *build_all_rpm
+          artifacts:
+              - pkgs/*
+
     - step:
+        name: deploy pkgs to staging
+        image: contrast/installer-build:ubuntu-18
         script:
-          - echo "Everything is awesome!"
+            - ls -lah pkgs
+            - bitbucket_scripts/deploy.sh pkgs
+    
   branches:
     develop:
      - step:
