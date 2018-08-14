@@ -1,0 +1,11 @@
+--- a/Makefile	2018-08-07 23:08:17.084895622 +0000
++++ b/Makefile	2018-08-07 23:07:10.000000000 +0000
+@@ -355,7 +355,7 @@
+ 	else \
+ 		changelog_file=nginx-module.changelog.in ; \
+ 	fi ; \
+-	pkgname=$(shell echo $@ | cut -d '.' -f 1) ; \
++	pkgname=$(MODULE_PACKAGE_NAME_$(call modname, $@)) ; \
+ 	if [ "$(MODULE_TARGET)" = "plus" ]; then \
+ 		pkgname=`echo $${pkgname} | sed -e "s#^nginx-#nginx-plus-#"` ; \
+ 	fi ; \

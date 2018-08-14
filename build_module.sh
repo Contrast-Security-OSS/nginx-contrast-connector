@@ -26,6 +26,7 @@
 # Check command line parameters
 #
 ME=`basename $0`
+THIS_DIR=`readlink -f ${BASH_SOURCE%/*}`
 if [ $# -eq 0 ]; then
 	echo "USAGE: $ME [options] <URL | path to module source>"
 	echo ""
@@ -249,6 +250,13 @@ if [ ! -f $MODULE_DIR/config ]; then
 	exit 1
 fi
 
+if [ ! -f $MODULE_DIR/VERSION ]; then
+	echo "$ME: ERROR: Cannot locate module VERSION file - quitting"
+	exit 1
+fi
+
+MOD_VERSION=`cat $MODULE_DIR/VERSION`
+
 #
 # Get the internal module name(s) from the module config so we can write
 # the .so files into the postinstall banner.
@@ -295,8 +303,9 @@ fi
 #
 # Archive the module source for use with packaging tool using the base OSS version
 #
-VERSION=`grep "^BASE_VERSION=" Makefile | cut -f2 -d= | tr -d "[:blank:]"`
-echo "$ME: INFO: Archiving module source for $VERSION"
+NGINX_VERSION=`grep "^BASE_VERSION=" Makefile | cut -f2 -d= | tr -d "[:blank:]"`
+VERSION=$MOD_VERSION
+echo "$ME: INFO: Archiving module source [$VERSION]"
 cd $BUILD_DIR
 mv $MODULE_NAME $MODULE_NAME-$VERSION
 tar cf - $MODULE_NAME-$VERSION | gzip -1 > $OLDPWD/$PACKAGE_SOURCES_DIR/$MODULE_NAME-$VERSION.tar.gz
@@ -310,7 +319,7 @@ else
 	cat << __EOF__ > nginx-module-$MODULE_NAME.changelog.in
 nginx-module-$MODULE_NAME (${VERSION}-1~%%CODENAME%%) %%CODENAME%%; urgency=low
 
-  * initial release of $MODULE_NAME webserver agent module for nginx
+  * Release of $MODULE_NAME webserver agent module for nginx $NGINX_VERSION
 
  -- Build Script <support@contrastsecurity.com>  `date -R`
 __EOF__
@@ -323,6 +332,7 @@ MODULES=$MODULE_NAME
 MODULE_PACKAGE_VENDOR=				Contrast Security, Inc <support@contrastsecurity.com>
 MODULE_PACKAGE_URL=					https://www.contrastsecurity.com
 
+MODULE_PACKAGE_NAME_$MODULE_NAME=   contrast-webserver-agent-nginx
 MODULE_SUMMARY_$MODULE_NAME=		$MODULE_NAME webserver agent dynamic module
 MODULE_VERSION_$MODULE_NAME=		$VERSION
 MODULE_RELEASE_$MODULE_NAME=		1
@@ -365,10 +375,15 @@ if [ $? -ne 0 ]; then
 	exit 1
 fi
 
+echo "$ME: INFO: finished preping build env"
 if [ "$PKG_MGR" = "yum" ]; then
 	cd ~/rpmbuild/SPECS
+    patch -p1 < $THIS_DIR/nginx-oss-pkg/rpm/fix-pkgname.patch
 else
-	cd ~/debuild/nginx-$VERSION/debian
+	cd ~/debuild/nginx-$NGINX_VERSION/debian
+    patch -p1 < $THIS_DIR/nginx-oss-pkg/debian/nginx.makefile.patch
+    patch -p1 < $THIS_DIR/nginx-oss-pkg/debian/nginx.control.patch
+    patch -p1 < $THIS_DIR/nginx-oss-pkg/debian/nginx.rules.patch
 fi
 
 
