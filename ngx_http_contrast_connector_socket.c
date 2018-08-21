@@ -1,23 +1,31 @@
 /* Copyright (C) Contrast Security, Inc. */
 
-#include "settings.pb-c.h"
 #include "ngx_http_contrast_connector_common.h"
 #include "ngx_http_contrast_connector_socket.h"
+#include <arpa/inet.h>
 
-/*
- * assign the values of a four byte array from the individual bytes of the length type
- */
-#define len_to_msg(len, msg)  \
-    (msg)[0] = (u_char)((len) >> 24); \
-	(msg)[1] = (u_char)((len) >> 16); \
-	(msg)[2] = (u_char)((len) >> 8); \
-	(msg)[3] = (u_char)(len)
+/* We only supported 32/64bit intel x86 currently */
+#if !defined(__i386__) && !defined(__amd64__)
+#    error "Your architecture is not supported"
+#endif
 
-/*
- * convert an array of four bytes into an integer and assign it to the second argument
+#define MAX_DATA_SZ (0xffffff)   /* (2**24) - 1 = 16,777,215 bytes */
+#define CONTRAST_CONNECTOR_FLAG (0x80)
+
+/* 
+ * we wrap protobuf messages in a type of pkt format with a flags and 
+ * length fields.
+ * -------------------------------------------------------
+ * | flags(1) |  len(3)   |   packed_protobuf_data(...)  |
+ * -------------------------------------------------------
+ * 
+ * The msg_prefix is the flags + len portion and represents our packet header.
  */
-#define msg_to_len(msg, len)  \
-    (len = (msg[0] << 24) | (msg[1] << 16) | (msg[2] << 8) | msg[3])
+struct sr_pkt_hdr {
+    unsigned flags:8;
+    unsigned len:24;
+    uint8_t buf[];
+} __attribute__((packed));
 
 /*
  * write a serialized protobuf instance to a unix socket
@@ -28,7 +36,18 @@ write_to_service(
 {
 	contrast_dbg_log(log, 0, "write_to_service");
 	struct sockaddr_un server;
+	ngx_str_t *str = NULL;
 	
+    /* in addition to the obvious verification, this also makes downgrading
+     * the type to ssize_t for other comparisons below safe.
+     * NOTE: those ssize_t checks may go away on proper non-blocking io
+     * implementation.
+     */
+    if (data_len > MAX_DATA_SZ) {
+        contrast_log(ERR, log, 0, "data too large for contrast packet format [0x%zx]", data_len);
+        return NULL;
+    }
+
 	int sock = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (sock < 0) {
 		contrast_log(ERR, log, 0, "socket not valid");
@@ -43,23 +62,29 @@ write_to_service(
 		return NULL;
 	}
 
-	u_char msg_prefix[4] = { 0, 0, 0, 0 };
-	len_to_msg(data_len, msg_prefix);
-	if (write(sock, msg_prefix, 4) < 0) {
-		contrast_log(ERR, log, 0, "could not write message prefix");
+    /* shifting by 8 because we are assigning to a 24bit value. */
+    struct sr_pkt_hdr hdr = {.flags = CONTRAST_CONNECTOR_FLAG, .len = (htonl(data_len) >> 8)};
+
+	if (write(sock, &hdr, sizeof(hdr)) < (ssize_t)sizeof(hdr)) {
+		contrast_log(ERR, log, 0, "could not write message header");
 		close(sock);
 		return NULL;
 	}
 
-	if (write(sock, data, data_len) < 0) {
-		contrast_log(ERR, log, 0, "could not write message: d: %p, sz: %lu",
+    /* 
+     * XXX: read and write need to be replaced with non-blocking versions that
+     * timeout to be robust against the contrast-service getting out-of-sync
+     * with this connector.
+     */
+	if (write(sock, data, data_len) < (ssize_t)data_len) {
+		contrast_log(ERR, log, 0, "could not write message: d: %p, sz: %zu",
                 data, data_len);
 		close(sock);
 		return NULL;
 	}
 
-	u_char response_prefix[4] = { 0, 0, 0, 0 };
-	if (read(sock, response_prefix, 4) < 4) {
+    struct sr_pkt_hdr response_hdr;
+	if (read(sock, &response_hdr, sizeof(response_hdr)) < (ssize_t)sizeof(response_hdr)) {
 	    contrast_log(ERR, log, 0,
                 "could not read four bytes from response prefix");
 		close(sock);
@@ -67,7 +92,20 @@ write_to_service(
 	}
 
 	size_t response_len = 0;
-	msg_to_len(response_prefix, response_len);
+	response_len = ntohl(response_hdr.len << 8);
+    dd("[0x%x] -> value 0x%lx  (%ld)", response_hdr.len, response_len, response_len);
+
+    /* 
+     * XXX: when proper non-blocking/timeout reads are implemented, this check
+     * just be wrapped up in timeout handling. Once malformed data is read on
+     * socket, both sides become out of sync and must have their state-machine
+     * re-sync'd. We have no design for this behavior in the comms protocol so
+     * this situation will lead to fatal errors on both sides and require a
+     * restart of both processes.
+     *
+     * XXX: arbitrary size chosen here. We should know the exact max-size of
+     * the protobuf response we expect.
+     */
 	if (!response_len || response_len > 1000000) {
 		contrast_log(ERR, log, 0,
                 "response from analysis engine seems corrupt, len %d",
@@ -76,21 +114,26 @@ write_to_service(
 		return NULL;
 	}
 
-	size_t actual_len = 0;
-	u_char * response = ngx_alloc(response_len, log);
-	if ((actual_len = read(sock, response, response_len)) < response_len) {
+    /* 
+     * XXX: this should be using pooled allocation. Also, I'd rather be
+     * returning a protobuf DTM rather than a raw buffer of bytes that the
+     * caller unpacks to a protobuf DTM. Callers should only see DTM structures
+     * and not deal with raw byte buffers of the comms protocol.
+     */
+	u_char *response = ngx_alloc(response_len, log);
+    ssize_t actual;
+	if ((actual = read(sock, response, response_len)) < (ssize_t)response_len) {
 		contrast_log(ERR, log, 0,
-                "expected len did not match acutal len(%ld != %ld)",
-                actual_len, response_len);
-		free(response);
+                "less than expected sz read (0x%x != 0x%x) read: ", actual, response_len);
+		ngx_free(response);
 		close(sock);
 		return NULL;
 	}
 
 	close(sock);
 
-	ngx_str_t *str = ngx_alloc(sizeof(ngx_str_t), log);
+	str = ngx_alloc(sizeof(ngx_str_t), log);
 	str->data = response;
-	str->len = actual_len;
+	str->len = response_len;
 	return str;
 }	

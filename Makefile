@@ -38,12 +38,20 @@ MOD_VERSION:=$(MOD_SEM_VERSION).$(MOD_DEV_VERSION)dev.$(MOD_ABBREV_VERSION)
 endif
 $(info MVER is '$(MOD_VERSION)') 
 
-.PHONY: all deps
 
-all: VERSION deps 
+# modules are built against a specific nginx version.
+V?=1.14.0
+
+
+.PHONY: all deps modules conf protobuf-c clean maintainer-clean
+
+all: modules
 
 VERSION:
 	echo "$(MOD_VERSION)" > $@
+
+module_version.h: VERSION module_version.h.in
+	cat $@.in | sed -e "s,%%MYVERSION_STR%%,\"$(shell cat $<)\",g" > $@
 
 deps: protobuf-c
 
@@ -51,11 +59,33 @@ clean-deps:
 	rm -rf build/protobuf-c
 	make -C submodules/protobuf-c clean
 
-protobuf-c: 
+protobuf-c: build/protobuf-c/lib/libprotobuf-c.a
+
+build/protobuf-c/lib/libprotobuf-c.a: 
 	cd submodules/protobuf-c; ./autogen.sh
 	cd submodules/protobuf-c; ./configure CFLAGS="-fPIC" --disable-protoc --disable-shared --prefix=`pwd`/../../build/protobuf-c
 	make -C submodules/protobuf-c -j2
 	make -C submodules/protobuf-c install
 
+vendor/nginx-$V.tar.gz:
+	curl -f -o $@ http://nginx.org/download/$(notdir $@)
+
+vendor/nginx-$V/: vendor/nginx-$V.tar.gz
+	tar -C vendor -xzf $<
+
+conf: vendor/nginx-$V/objs/Makefile
+
+vendor/nginx-$V/objs/Makefile: vendor/nginx-$V/
+	cd $< && ./configure --with-compat --add-dynamic-module=../../ 
+
+modules: vendor/nginx-$V/ VERSION build/protobuf-c/lib/libprotobuf-c.a module_version.h vendor/nginx-$V/objs/Makefile
+	cd $< && make modules
+
+install: vendor/nginx-$V/ modules
+	cd $< && make install
+
 clean: clean-deps
-	rm -f VERSION
+	rm -f VERSION module_version.h
+
+maintainer-clean: clean
+	rm -rf vendor/nginx-*

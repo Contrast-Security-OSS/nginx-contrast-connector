@@ -18,10 +18,6 @@
 #include <ngx_http.h>
 #include <ngx_log.h>
 
-#include <protobuf-c/protobuf-c.h>
-#include "dtm.pb-c.h"
-#include "settings.pb-c.h"
-
 #include "ngx_http_contrast_connector_common.h"
 
 static void *ngx_http_contrast_connector_create_loc_config(ngx_conf_t *cf);

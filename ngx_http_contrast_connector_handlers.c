@@ -5,18 +5,30 @@
 #include <ngx_http.h>
 
 /* Protobuf stuff */
-#include "dtm.pb-c.h"
-#include "settings.pb-c.h"
+#include "connect.pb-c.h"
 
 /* Connector stuff */
+#include "module_version.h"
 #include "ngx_http_contrast_connector_common.h"
 #include "ngx_http_contrast_connector_socket.h"
 
 /* Language key to report to Teamsever */
 #define APP_LANG  "Proxy" 
 
-/* Identifier for internal tracking in service */
+/*
+ * Client ID for contrast-service. This is used as part of larger communication
+ * protocol with features that don't apply to this webserver agent.
+ * ClientID+PID is used by TS/contrast-service to record which agents have
+ * received their settings from TS. This does not apply to webserver connectory
+ * modules thus a non-uniquely identifying client id is ok.
+ */
 #define CLIENT_ID  "NGINX"
+
+/* XXX: eh, any better options?  name should reflect its global. Will this be
+ * accessed/modified concurrently in the same memory space? If so, we have an
+ * issue.
+ */
+static int32_t message_count = 0;
 
 typedef struct address_s {
     char *address;
@@ -35,7 +47,7 @@ static ngx_int_t ngx_http_contrast_output_body_filter(
 static void ngx_http_contrast_pool_cleanup(void *data);
 static void build_http_headers_in_dtm(
         ngx_pool_t *pool, ngx_list_t *hdrs,
-        Contrast__Api__Dtm__SimplePair ***hdr_array, size_t *hdrcnt,
+        Contrast__Api__Connect__Pair ***hdr_array, size_t *hdrcnt,
         ngx_log_t *log);
 static void read_chain_buf(void *dst, ngx_buf_t *buf, off_t max_sz);
 
@@ -83,7 +95,8 @@ read_chain_buf(void *dst, ngx_buf_t *buf, off_t max_sz)
          * This doesn't seem to jive with the nginx dev guide. Anyways, be 
          * sure to always use the 'pos' field when dealing with memory bufs.
          */
-        dd("reading buf from memory (%p, %p, %lu)", dst, buf->pos, size);
+        dd("reading buf from memory (%p, %p, %llu)",
+            dst, buf->pos, (unsigned long long)size);
         ngx_memcpy(dst, buf->pos, size);
     }
 
@@ -124,11 +137,13 @@ read_ipv6_address(ngx_connection_t *connection, address_t *addr) {
 }
 #endif
 
-static Contrast__Api__Dtm__RawResponse *
-create_response_dtm(ngx_pool_t *pool, ngx_http_request_t *r)
+static Contrast__Api__Connect__Request *
+create_http_response_dtm(ngx_pool_t *pool, ngx_http_request_t *r)
 {
     ngx_log_t *log = r->connection->log;
     contrast_dbg_log(log, 0, "building RawResponse dtm");
+    ngx_http_contrast_connector_conf_t *conf = ngx_http_get_module_loc_conf(
+            r, ngx_http_contrast_connector_module);
     ngx_http_contrast_ctx_t *ctx = ngx_http_get_module_ctx(
             r, ngx_http_contrast_connector_module);
 
@@ -137,21 +152,32 @@ create_response_dtm(ngx_pool_t *pool, ngx_http_request_t *r)
         return NULL;
     }
 
-    Contrast__Api__Dtm__RawResponse *dtm = ngx_pcalloc(
-        pool, sizeof(Contrast__Api__Dtm__RawResponse));
+    Contrast__Api__Connect__Request *dtm = ngx_pcalloc(
+        pool, sizeof(Contrast__Api__Connect__Request));
     
     if (dtm == NULL) {
         contrast_log(ERR, log, 0, "failed to alloc response dtm");
         return dtm;
     }
 
-    contrast__api__dtm__raw_response__init(dtm);
+    contrast__api__connect__request__init(dtm);
+    /* XXX: phase4 command, should have #def */
+    dtm->command = 4;
+    dtm->app_language = APP_LANG;
+    dtm->message_count = ++message_count;
+    dtm->client_id = CLIENT_ID;
+
+    /* XXX: the next two should be migrated to the PING command */
+    dtm->connector_type = NGINX_VER;
+    dtm->connector_version = CONTRAST_MODULE_VERSION;
+    dtm->pid = (int32_t)ngx_processes[ngx_process_slot].pid;
 
     dtm->timestamp_ms = unix_millis();
     dtm->uuid = ngx_pnalloc(pool, sizeof(ngx_contrast_uuid_t));
     ngx_memcpy(dtm->uuid, ctx->uuid.uuid, sizeof(ngx_contrast_uuid_t));
 
     dd("dtm response uuid '%s'", ctx->uuid.uuid);
+    dtm->app_name = ngx_str_to_char(&conf->app_name, pool);
 
     dtm->response_code = r->headers_out.status;
     dd("access code is %lu", r->headers_out.status);
@@ -168,9 +194,9 @@ create_response_dtm(ngx_pool_t *pool, ngx_http_request_t *r)
             &(dtm->response_headers), &dtm->n_response_headers, log);
     
 
-    Contrast__Api__Dtm__SimplePair *pair = ngx_pcalloc(
-            pool, sizeof(Contrast__Api__Dtm__SimplePair));
-    contrast__api__dtm__simple_pair__init(pair);
+    Contrast__Api__Connect__Pair *pair = ngx_pcalloc(
+            pool, sizeof(Contrast__Api__Connect__Pair));
+    contrast__api__connect__pair__init(pair);
 
     ngx_str_t content_type_str = ngx_string("Content-Type");
     dd("str.data: '%s', str.len: %lu", content_type_str.data, content_type_str.len);
@@ -181,7 +207,7 @@ create_response_dtm(ngx_pool_t *pool, ngx_http_request_t *r)
     dd("ct val: %s", pair->value);
 
     dtm->response_headers = realloc(dtm->response_headers,
-        sizeof(Contrast__Api__Dtm__SimplePair *) * (dtm->n_response_headers + 1));
+        sizeof(Contrast__Api__Connect__Pair *) * (dtm->n_response_headers + 1));
     dtm->response_headers[dtm->n_response_headers] = pair;
     dtm->n_response_headers++;
 
@@ -200,28 +226,43 @@ exit:
 }
 
 
-static Contrast__Api__Dtm__RawRequest *
-create_request_dtm(ngx_pool_t *pool, ngx_http_request_t *r) 
+static Contrast__Api__Connect__Request *
+create_http_request_dtm(ngx_pool_t *pool, ngx_http_request_t *r) 
 {
+    Contrast__Api__Connect__Request *dtm = NULL;
+    ngx_http_contrast_connector_conf_t *conf = ngx_http_get_module_loc_conf(
+            r, ngx_http_contrast_connector_module);
     ngx_log_t *log = r->connection->log;
     ngx_http_contrast_ctx_t *ctx = ngx_http_get_module_ctx(
             r, ngx_http_contrast_connector_module);
 
-    Contrast__Api__Dtm__RawRequest *dtm = ngx_pcalloc(
-        pool, sizeof(Contrast__Api__Dtm__RawRequest));
-    
+    dtm = ngx_pcalloc(pool, sizeof(Contrast__Api__Connect__Request));
     if (dtm == NULL) {
         contrast_log(ERR, log, 0, "failed to alloc dtm");
         return dtm;
     }
 
-    contrast__api__dtm__raw_request__init(dtm);
+    contrast__api__connect__request__init(dtm);
+    dtm->client_id = CLIENT_ID;
+    dtm->pid = (int32_t)ngx_processes[ngx_process_slot].pid;
 
+    /* XXX: phase 2 command.  This should have a #def for the value */
+    dtm->command = 2;
+    dtm->message_count = ++message_count;
+    dtm->app_language = APP_LANG;
+    dtm->client_id = CLIENT_ID;
+    /* XXX: the next two will migrate to the PING command msg */
+    dtm->connector_type = NGINX_VER;
+    dtm->connector_version = CONTRAST_MODULE_VERSION;
+    dtm->pid = (int32_t)ngx_processes[ngx_process_slot].pid;
     dtm->timestamp_ms = unix_millis();
     dtm->uuid = ngx_pnalloc(pool, sizeof(ngx_contrast_uuid_t));
     ngx_memcpy(dtm->uuid, ctx->uuid.uuid, sizeof(ngx_contrast_uuid_t));
     dd("dtm request uuid '%s'", ctx->uuid.uuid);
 
+    /* perhaps this app_name should be global as its unlikely to change */
+    dtm->app_name = ngx_str_to_char(&conf->app_name, pool);
+    
     /* XXX: need to check on these copies. NGINX documentation made a comment
      * that ngx_str_t may not always be null terminated.  The pcalloc is 
      * side-stepping the problem, but it may not be necessary if we handle
@@ -277,7 +318,7 @@ static void
 build_http_headers_in_dtm(
         ngx_pool_t *pool,
         ngx_list_t *hdrs,
-        Contrast__Api__Dtm__SimplePair ***hdr_array,
+        Contrast__Api__Connect__Pair ***hdr_array,
         size_t *hdrcnt,
         ngx_log_t *log)
 {
@@ -308,9 +349,9 @@ build_http_headers_in_dtm(
 
         entry = (&entry_ptr[count]);
     
-        Contrast__Api__Dtm__SimplePair *pair = ngx_pcalloc(
-                pool, sizeof(Contrast__Api__Dtm__SimplePair));
-        contrast__api__dtm__simple_pair__init(pair);
+        Contrast__Api__Connect__Pair *pair = ngx_pcalloc(
+                pool, sizeof(Contrast__Api__Connect__Pair));
+        contrast__api__connect__pair__init(pair);
 
         pair->key = ngx_str_to_char(&entry->key, pool);
         if (pair->key == NULL) {
@@ -328,7 +369,7 @@ build_http_headers_in_dtm(
         }
         *hdr_array = realloc(
                 *hdr_array, 
-                sizeof(Contrast__Api__Dtm__SimplePair *) * (*hdrcnt + 1));
+                sizeof(Contrast__Api__Connect__Pair *) * (*hdrcnt + 1));
         if (*hdr_array == NULL) {
             contrast_log(ERR, log, 0,
                     "error: alloc or realloc failed for headers");
@@ -349,7 +390,7 @@ build_http_headers_in_dtm(
 
 
 static void
-free_response_dtm(ngx_pool_t *pool, Contrast__Api__Dtm__RawResponse *dtm) 
+free_http_response_dtm(ngx_pool_t *pool, Contrast__Api__Connect__Request *dtm) 
 {
     dd("free response dtm");
     if (dtm->uuid != NULL) {
@@ -370,13 +411,16 @@ free_response_dtm(ngx_pool_t *pool, Contrast__Api__Dtm__RawResponse *dtm)
     if (dtm->response_body != NULL) {
         ngx_pfree(pool, dtm->response_body);
     }
+    if (dtm->app_name != NULL) {
+        ngx_pfree(pool, dtm->app_name);
+    }
 
     ngx_pfree(pool, dtm); 
 }
 
 
 static void
-free_request_dtm(ngx_pool_t *pool, Contrast__Api__Dtm__RawRequest *dtm) 
+free_http_request_dtm(ngx_pool_t *pool, Contrast__Api__Connect__Request *dtm) 
 {
     if (dtm->uuid != NULL) {
         ngx_pfree(pool, dtm->uuid);
@@ -410,55 +454,37 @@ free_request_dtm(ngx_pool_t *pool, Contrast__Api__Dtm__RawRequest *dtm)
         ngx_pfree(pool, dtm->request_body);
     }
 
+    if (dtm->app_name != NULL) {
+        ngx_pfree(pool, dtm->app_name);
+    }
+
     ngx_pfree(pool, dtm); 
 }
 
 static ngx_int_t 
-send_response_dtm_to_socket(
-        Contrast__Api__Dtm__RawResponse *dtm, 
+send_connect_request_dtm(
+        Contrast__Api__Connect__Request *dtm, 
         ngx_str_t socket_path,
-        ngx_str_t app_name,
         ngx_log_t *log,
         ngx_pool_t *pool)
 {
-    static int32_t message_count = 0;
     ngx_int_t deny = 0;
     ngx_str_t *response = NULL;
-    Contrast__Api__Settings__AgentSettings *settings = NULL;
+    Contrast__Api__Connect__Response *settings = NULL;
 
-    char *app_name_str = ngx_str_to_char(&app_name, pool);
-    if (app_name_str == NULL) {
-        contrast_log(ERR, log, 0,
-            "failed to convert app_name to char string");
-        return deny;
-    }
-
-    Contrast__Api__Dtm__Message msg = CONTRAST__API__DTM__MESSAGE__INIT;
-    msg.client_id = CLIENT_ID;
-    msg.pid = (int32_t)ngx_processes[ngx_process_slot].pid;
-    msg.client_number = (int32_t)1;
-    msg.client_total = (int32_t)1;
-    msg.message_count = ++message_count;
-    msg.app_name = app_name_str;
-    msg.app_language = APP_LANG;
-    msg.timestamp_ms = unix_millis();
-    msg.event_case = CONTRAST__API__DTM__MESSAGE__EVENT_RESPONSE;
-    msg.response = dtm;
-    
-    contrast_dbg_log(log, 0, "built parent message structure: %s (%s)",
-        msg.app_name, msg.app_language);
-
-    size_t len = contrast__api__dtm__message__get_packed_size(&msg);
+    size_t len = contrast__api__connect__request__get_packed_size(dtm);
     contrast_dbg_log(log, 0, "estimated size of packed message: %ld", len);
 
-    void * buf = ngx_palloc(pool, len);
+    void *buf = ngx_palloc(pool, len);
+
     if (buf == NULL) {
         contrast_log(ERR, log, 0,
                 "error: could not allocate buffer size for protobuf message");
         goto fail;
     }
 
-    size_t packed_size = contrast__api__dtm__message__pack(&msg, buf);
+
+    size_t packed_size = contrast__api__connect__request__pack(dtm, buf);
     contrast_dbg_log(log, 0, "actual packed message size: %ld", packed_size);
     response = write_to_service(socket_path, buf, len, log);
     ngx_pfree(pool, buf);
@@ -468,7 +494,7 @@ send_response_dtm_to_socket(
         goto fail;
     }
 
-    settings = contrast__api__settings__agent_settings__unpack(
+    settings = contrast__api__connect__response__unpack(
         NULL, response->len, response->data);
     ngx_free(response->data);
     ngx_free(response);
@@ -478,22 +504,14 @@ send_response_dtm_to_socket(
         goto fail;
     }
     
-    dd("SR answer dtm: svr-feat: %p, app-sett: %p, accum-sett: %p, prot-stat: %p",
-            settings->server_features, settings->application_settings, settings->accumulator_settings,
-            settings->protect_state);
+    dd("SR connect-reponse dtm: uuid: %p , track: %d, exception: %d, &msg: %p",
+            settings->uuid, settings->track_request, settings->security_exception,
+            settings->security_message);
 
-    if (settings->protect_state == NULL) {
-        contrast_log(ERR, log, 0, "error reading response protect_state");
-        goto fail;
-    }
-
-    contrast_dbg_log(log, 0, "security exception value: %d", 
-        settings->protect_state->security_exception);
-    
-    if (settings->protect_state->security_exception) {
+    if (settings->security_exception) {
         contrast_log(WARN, log, 0, "security exception: %s uuid=%s", 
-            settings->protect_state->security_message,
-            settings->protect_state->uuid);
+            settings->security_message,
+            settings->uuid);
         deny = 1;
     }
 
@@ -502,98 +520,6 @@ fail:
         ngx_free(settings);
     }
 
-    ngx_pfree(pool, app_name_str);
-    return deny;
-}
-
-
-static ngx_int_t 
-send_dtm_to_socket(
-        Contrast__Api__Dtm__RawRequest *dtm, 
-        ngx_str_t socket_path,
-        ngx_str_t app_name,
-        ngx_log_t *log,
-        ngx_pool_t *pool)
-{
-    static int32_t message_count = 0;
-    ngx_int_t deny = 0;
-    ngx_str_t *response = NULL;
-    Contrast__Api__Settings__AgentSettings *settings = NULL;
-
-    char *app_name_str = ngx_str_to_char(&app_name, pool);
-    if (app_name_str == NULL) {
-        contrast_log(ERR, log, 0,
-            "failed to convert app_name to char string");
-        return deny;
-    }
-
-    Contrast__Api__Dtm__Message msg = CONTRAST__API__DTM__MESSAGE__INIT;
-    msg.client_id = CLIENT_ID;
-    msg.pid = (int32_t)ngx_processes[ngx_process_slot].pid;
-    msg.client_number = (int32_t)1;
-    msg.client_total = (int32_t)1;
-    msg.message_count = ++message_count;
-    msg.app_name = app_name_str;
-    msg.app_language = APP_LANG;
-    msg.timestamp_ms = unix_millis();
-    msg.event_case = CONTRAST__API__DTM__MESSAGE__EVENT_REQUEST;
-    msg.request = dtm;
-    
-    contrast_dbg_log(log, 0, "built parent message structure: %s (%s)",
-        msg.app_name, msg.app_language);
-
-    size_t len = contrast__api__dtm__message__get_packed_size(&msg);
-    contrast_dbg_log(log, 0, "estimated size of packed message: %ld", len);
-
-    void * buf = ngx_palloc(pool, len);
-    if (buf == NULL) {
-        contrast_log(ERR, log, 0,
-                "error: could not allocate buffer size for protobuf message");
-        goto fail;
-    }
-
-    size_t packed_size = contrast__api__dtm__message__pack(&msg, buf);
-    contrast_dbg_log(log, 0, "actual packed message size: %ld", packed_size);
-    response = write_to_service(socket_path, buf, len, log);
-    ngx_pfree(pool, buf);
-    
-    if (response == NULL) {
-        contrast_log(ERR, log, 0, "error writing dtm to analysis engine");
-        goto fail;
-    }
-
-    settings = contrast__api__settings__agent_settings__unpack(
-        NULL, response->len, response->data);
-    ngx_free(response->data);
-    ngx_free(response);
-
-    if (settings == NULL) {
-        contrast_log(ERR, log, 0,
-                "failed to deserialize analysis engine response");
-        goto fail;
-    }
-
-    if (settings->protect_state == NULL) {
-        contrast_log(ERR, log, 0, "error reading response protect_state");
-        goto fail;
-    }
-
-    contrast_dbg_log(log, 0, "security exception value: %d", 
-        settings->protect_state->security_exception);
-    
-    if (settings->protect_state->security_exception) {
-        contrast_log(WARN, log, 0, "security exception: %s uuid=%s", 
-            settings->protect_state->security_message,
-            settings->protect_state->uuid);
-        deny = 1;
-    }
-
-fail:
-    if (settings) {
-        ngx_free(settings);
-    }
-
-    ngx_pfree(pool, app_name_str);
     return deny;
 }
 
@@ -613,7 +539,7 @@ fail:
 void
 ngx_http_contrast_connector_body_handler(ngx_http_request_t *r)
 {
-    off_t         len;
+    off_t len;
     ngx_http_contrast_connector_conf_t *conf = ngx_http_get_module_loc_conf(
             r, ngx_http_contrast_connector_module);
     
@@ -631,7 +557,7 @@ ngx_http_contrast_connector_body_handler(ngx_http_request_t *r)
         len += ngx_buf_size(in->buf);
     }
     
-    Contrast__Api__Dtm__RawRequest * dtm = create_request_dtm(r->pool, r);
+    Contrast__Api__Connect__Request * dtm = create_http_request_dtm(r->pool, r);
     if (dtm == NULL) {
         ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
         return;
@@ -661,13 +587,12 @@ ngx_http_contrast_connector_body_handler(ngx_http_request_t *r)
     contrast_dbg_log(r->connection->log, 0,
             "request_body: '%s'", dtm->request_body);
 
-    ngx_int_t deny = send_dtm_to_socket(dtm, 
+    ngx_int_t deny = send_connect_request_dtm(dtm, 
         conf->socket_path, 
-        conf->app_name, 
         r->connection->log,
         r->pool);
 
-    free_request_dtm(r->pool, dtm);
+    free_http_request_dtm(r->pool, dtm);
 
     contrast_dbg_log(r->connection->log, 0,
             "analysis result (body filter): %s", deny ? "blocked" : "allowed");
@@ -762,19 +687,18 @@ ngx_http_contrast_connector_preaccess_handler(ngx_http_request_t *r)
     }
 
     /* this is done for GETs and everything else */
-    Contrast__Api__Dtm__RawRequest *dtm = create_request_dtm(r->pool, r);
+    Contrast__Api__Connect__Request *dtm = create_http_request_dtm(r->pool, r);
     if (dtm == NULL) {
         contrast_log(ERR, r->connection->log, 0, "failed dtm allocation");
         return NGX_DECLINED;
     }
 
-    ngx_int_t deny = send_dtm_to_socket(
+    ngx_int_t deny = send_connect_request_dtm(
         dtm, conf->socket_path, 
-        conf->app_name, 
         r->connection->log, 
         r->pool);
 
-    free_request_dtm(r->pool, dtm);
+    free_http_request_dtm(r->pool, dtm);
 
     contrast_dbg_log(r->connection->log, 0,
         "analysis result: %s", deny ? "blocked" : "allowed");
@@ -960,7 +884,8 @@ ngx_http_contrast_output_body_filter(ngx_http_request_t *r,  ngx_chain_t *in)
             if (new_cl->buf == NULL) {
                 dd("failed to alloc tmp buf");
             }
-            dd("about to memcpy(%p, %p, %lu)", new_cl->buf->pos, cl->buf->pos, size);
+            dd("about to memcpy(%p, %p, %llu)",
+                new_cl->buf->pos, cl->buf->pos, (unsigned long long)size);
             read_chain_buf(new_cl->buf->pos, cl->buf, size);
             dd("mem cpy done");
             new_cl->buf->last = new_cl->buf->end;
@@ -1007,15 +932,14 @@ ngx_http_contrast_output_body_filter(ngx_http_request_t *r,  ngx_chain_t *in)
      * normal processing on it from this point forward.
      */
     ctx->complete = 1;
-    Contrast__Api__Dtm__RawResponse *http_resp_dtm = create_response_dtm(
+    Contrast__Api__Connect__Request *http_resp_dtm = create_http_response_dtm(
             r->pool, r);
-    ngx_int_t deny = send_response_dtm_to_socket(
+    ngx_int_t deny = send_connect_request_dtm(
         http_resp_dtm, cf->socket_path, 
-        cf->app_name, 
         r->connection->log, 
         r->pool);
 
-    free_response_dtm(r->pool, http_resp_dtm);
+    free_http_response_dtm(r->pool, http_resp_dtm);
 
     dd("response check from SR is %ld", deny);
     if (deny)
