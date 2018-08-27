@@ -5,14 +5,14 @@ definitions:
       - apt-get install autoconf automake libtool -y
       - git submodule update --init --recursive
       - mkdir pkgs
-      - make VERSION
+      - make module_version.h
       - ./build_module.sh -y -o `pwd`/pkgs -n contrast -v 1.14.0 .
 
     build_steps_rpm: &build_all_rpm
       - yum install autoconf automake libtool -y
       - git submodule update --init --recursive
       - mkdir pkgs
-      - make VERSION
+      - make module_version.h
       - ./build_module.sh -y -o `pwd`/pkgs -n contrast -v 1.14.0 .
 
 pipelines:
