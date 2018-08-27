@@ -27,6 +27,14 @@ This is going to sync up your git submodules. It likely hardly ever going to be
 updated so you'll probably only going to need to run this like once a year, if
 that.
 
+## Prereqs
+
+These need to be installed for the NGINX build system:
+
+* libpcre3 (apt-get install libpcre3-dev)
+* zlib (apt-get install zlib1g-dev)
+
+## Compile
 To compile, Just run
 
     make
@@ -41,15 +49,27 @@ Module binaries will be left in `vendor/nginx-<version>/objs/`
 
 # Install
 
-This depends on how you want the module on your system. Running:
+For any install method you choose, see Configuration section about configuring
+nginx to use the module and how to configure an app to be protected by the
+contrast webserver agent.
+
+## The plain-jane from-src method
+
+This method just uses nginx's 'Makefile' to install onto your system. It will
+not integrate into the system services or anything so that is up to use. 
 
     make install # or make V=<nginx version> install
 
 will install the nginx server and this connector module using the nginx install
-receipe. This will likely put everything under /usr/local/nginx. This will work
-fine but you are on your own for running the nginx server and configuring it.
+receipe. It will install the nginx server, config files, and this module in the
+vendor/nginx-<version>-svr/ directory. You can modify your nginx config as you
+see fit from here to run it as you want. Personally, I just run it on an
+unprivileged port so I can do all my work as non-root user.
+
 Once this is done once, it will probably be an efficient cycle of development
 to call `make install` and repopulate the module on the system.
+
+## The half-way-installed-pretend-Im-a-pkg method
 
 Alternatively, you can install an nginx system package (from the nginx.org pkg
 repositories) and then nginx will be integrated with your system start/stop
@@ -58,10 +78,15 @@ services. To get your module in play you can run:
     cp vendor/nginx-<version>/objs/*.so /etc/nginx/modules/
 
 Assuming you've already configured the module and app for contrast protection,
-this will have nginx find you module and use it.
+this will have nginx find your module and use it. Note, that you must be sure
+to build your module against the same package version of nginx you installed.
 
-See the section below about configuring nginx to use the module and how to
-configure an app to be protected by the contrast webserver agent.
+## From packages
+
+This doesn't really help for development of this module, but don't forget that
+the contrast-webserver-agent-nginx package is available from the Contrast
+package repository.  You can also build the package from the local code and
+install it from the local package file, but that is kinda slow for a dev cycle.
 
 # Configuring the webserver agent connector
 

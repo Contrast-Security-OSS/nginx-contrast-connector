@@ -3,6 +3,7 @@
 #include <ngx_config.h>
 #include <ngx_core.h>
 #include <ngx_http.h>
+#include <netinet/in.h>
 
 /* Protobuf stuff */
 #include "connect.pb-c.h"
@@ -52,24 +53,37 @@ static void build_http_headers_in_dtm(
 static void read_chain_buf(void *dst, ngx_buf_t *buf, off_t max_sz);
 
 /*
- * populate addr with information about a IPv4 address.
+ * populate addr with information about a IPv4/IPv6 address.
  * address is dynamically allocated and must be freed. 
  */
 static ngx_int_t
-read_address(
-        struct sockaddr *sockaddr, address_t *addr, ngx_http_request_t *r)
+read_address(ngx_connection_t *conn, address_t *addr)
 {
-    if (sockaddr && sockaddr->sa_family == AF_INET) {
+    /* nginx env should *always* have a valid sockaddr */
+    struct sockaddr *sockaddr = conn->sockaddr;
+
+    if (sockaddr->sa_family == AF_INET) {
         struct sockaddr_in * sin = (struct sockaddr_in *)sockaddr;
-        if (sin != NULL) {
-            addr->address = ngx_pcalloc(r->pool, INET_ADDRSTRLEN);
-            if (addr->address != NULL) {           
-                inet_ntop(AF_INET, &(sin->sin_addr), addr->address, INET_ADDRSTRLEN);
-                addr->port = sin->sin_port;
-                addr->version = 4;
-                return NGX_OK;
-            }
+        addr->address = ngx_pcalloc(conn->pool, INET_ADDRSTRLEN);
+        if (addr->address != NULL) {           
+            inet_ntop(AF_INET, &(sin->sin_addr), addr->address, INET_ADDRSTRLEN);
+            addr->port = sin->sin_port;
+            addr->version = 4;
+            return NGX_OK;
         }
+    } else if (sockaddr->sa_family == AF_INET6) {
+        struct sockaddr_in6 * sin = (struct sockaddr_in6 *)sockaddr;
+        addr->address = ngx_pcalloc(conn->pool, INET6_ADDRSTRLEN);
+        if (addr->address != NULL) { 
+            inet_ntop(AF_INET6, &(sin->sin6_addr), addr->address, INET6_ADDRSTRLEN);
+            addr->port = sin->sin6_port;
+            addr->version = 6;
+            return NGX_OK;
+        }
+    } else {
+        contrast_log(ERR, conn->log, 0,
+            "unknown sockaddr family used [0x%x], can't obtain ip information",
+            sockaddr->sa_family);
     }
 
     return NGX_ERROR;
@@ -125,17 +139,6 @@ void chain_to_buffer(ngx_chain_t *in, void *out, off_t max_sz)
     return;
 }
 
-
-/*
- * populate addr with information about a IPv6 address.
- * address is dynamically allocated and must be freed. 
- */
-#if 0
-static ngx_int_t
-read_ipv6_address(ngx_connection_t *connection, address_t *addr) {
-    return NGX_ERROR;
-}
-#endif
 
 static Contrast__Api__Connect__Request *
 create_http_response_dtm(ngx_pool_t *pool, ngx_http_request_t *r)
@@ -282,7 +285,7 @@ create_http_request_dtm(ngx_pool_t *pool, ngx_http_request_t *r)
     }
 
     struct address_s client_address;
-    if (read_address(r->connection->sockaddr, &client_address, r) == NGX_OK) {
+    if (read_address(r->connection, &client_address) == NGX_OK) {
         if (client_address.address != NULL) {
             dtm->client_ip = client_address.address;
             dtm->client_ip_version = client_address.version;
@@ -293,7 +296,7 @@ create_http_request_dtm(ngx_pool_t *pool, ngx_http_request_t *r)
     }
 
     struct address_s server_address;
-    if (read_address(r->connection->listening->sockaddr, &server_address, r) == NGX_OK) {
+    if (read_address(r->connection, &server_address) == NGX_OK) {
         if (server_address.address != NULL) {
             dtm->server_ip = server_address.address;
             dtm->server_ip_version = server_address.version;
@@ -734,7 +737,8 @@ ngx_http_contrast_create_ctx(ngx_http_request_t *r)
     ctx->out_pool = ngx_create_pool(NGX_DEFAULT_POOL_SIZE * 2, r->connection->log);
     if (ctx->out_pool == NULL) {
         contrast_log(ERR, r->connection->log, 0, "ctx mem allocation failed");
-        return NULL; /* XXX: leaks ctx */
+        ngx_pfree(r->pool, ctx);
+        return NULL;
     }
     
     cln = ngx_pool_cleanup_add(r->pool, sizeof(ngx_http_contrast_ctx_t));
