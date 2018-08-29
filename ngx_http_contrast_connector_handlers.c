@@ -135,6 +135,10 @@ void chain_to_buffer(ngx_chain_t *in, void *out, off_t max_sz)
 
         read_chain_buf(pos, buf, size);
         pos += size;
+
+        if (buf->last_buf) {
+            dd("I just hit the last buffer in a chain!");
+        }
     }
     return;
 }
@@ -527,109 +531,42 @@ fail:
 }
 
 
-/* 
- * by using this body_handler, we have taken control of the nginx processing
- * flow and its now up to us to to keep it going. Thats the reason why there
- * is no return value in this callback. So we either need to finish the request
- * processing by calling ngx_http_finalize_request() or some other mechanism.
- * That 'other' mechanism is by manually advancing the phase state and
- * re-entering the request state machine processing.
- *
- * If this is a request that we should allow, then we will re-enter the state
- * machine processing. Otherwise, we finalize the request and provide an error
- * or forbidden http response directly.
- */
 void
-ngx_http_contrast_connector_body_handler(ngx_http_request_t *r)
+ngx_http_contrast_request_read(ngx_http_request_t *r) 
 {
-    off_t len;
-    ngx_http_contrast_connector_conf_t *conf = ngx_http_get_module_loc_conf(
-            r, ngx_http_contrast_connector_module);
-    
-    if (r->request_body == NULL) {
-        /* XXX: under what circumstatnces could this ever happen? */ 
-        contrast_log(ERR, r->connection->log, 0,
-                "request body was null!! why!?");
-        ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
-        return;
-    }
+     ngx_http_contrast_ctx_t *ctx;
 
-    len = 0;
+     ctx = ngx_http_get_module_ctx(r, ngx_http_contrast_connector_module);
 
-    for (ngx_chain_t *in = r->request_body->bufs; in; in = in->next) {
-        len += ngx_buf_size(in->buf);
-    }
-    
-    Contrast__Api__Connect__Request * dtm = create_http_request_dtm(r->pool, r);
-    if (dtm == NULL) {
-        ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
-        return;
-    }
+     /* 
+      * This is the main-request reference count. It was incremented when the
+      * read_client_request_body was called from the preaccess handler.  I
+      * don't know why it should be decremented here but I saw it done in
+      * another module.
+      *
+      * My guess is that we are re-running the same phases of the state machine
+      * in a round about way to make the request body fully buffer as the
+      * preaccess phase and thus we don't want to represent the
+      * read_client_request_body "phase" to represent holding a reference on
+      * the request... because its really not.
+      */
+     r->main->count--;
 
-    /*
-     * request_body memory owned by dtm and will be freed in free_dtm. In the
-     * future, I'd like for build_dtm_from_request to handle this or have the
-     * analysis engine take the body in chunks.
-     */
-    dtm->request_body = ngx_pcalloc(r->pool, len + 1);
-    if (dtm->request_body == NULL) {
-        contrast_log(ERR, r->connection->log, 0,"failed to alloc req body");
-        ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
-        return;
-    }
-
-    ngx_buf_t *rb_buf = r->request_body->bufs->buf;
-    
-    /* 
-     * XXX: probably should loop this as if it was a chain. I'm not clear on nginx
-     * promises with how it organizes the buffers in this case. I've only ever
-     * seen one buf in use.
-     */
-    read_chain_buf(dtm->request_body, rb_buf, len);
-
-    contrast_dbg_log(r->connection->log, 0,
-            "request_body: '%s'", dtm->request_body);
-
-    ngx_int_t deny = send_connect_request_dtm(dtm, 
-        conf->socket_path, 
-        r->connection->log,
-        r->pool);
-
-    free_http_request_dtm(r->pool, dtm);
-
-    contrast_dbg_log(r->connection->log, 0,
-            "analysis result (body filter): %s", deny ? "blocked" : "allowed");
-    if (deny) {
-        contrast_log(WARN, r->connection->log, 0,
-                "Blocked Request (body filter)");
-        ngx_http_finalize_request(r, NGX_HTTP_FORBIDDEN);
-        /*
-         * I would have expected the above finalize_request() to reset the
-         * nginx state machine to handle another request however it leaves the
-         * read_event_handler in a blocking state. The finalize_request()
-         * function will call itself again later with the NGX_OK rc value, but
-         * this is not enough to reset the state machine.
-         *
-         * The finalize_request() below passes the NGX_DONE code which will
-         * close out associated connections and reset the state machine to
-         * acception more http requests.
-         */
-        ngx_http_finalize_request(r, NGX_DONE);
-        return;
-    }
-
-    /*
-     * This handler isn't able to return any values to instruct the nginx core
-     * what to do next so instead we must manually advance the nginx http phase
-     * and re-enter the phase execution logic.
-     */
-    r->phase_handler++;
-    ngx_http_core_run_phases(r);
-    ngx_http_finalize_request(r, NGX_DONE);
-    return;
+     if (ctx->waiting_more_body)
+     {   
+         ctx->waiting_more_body = 0;
+         ngx_http_core_run_phases(r);
+     }   
 }
 
 
+/*
+ * This is the main pre-access handler where recording data to be analyzed
+ * begins. It's important to understand that this handler can be called
+ * multiple times for the same overall request. This certainly occurs when the
+ * client has issued an "Expect: 100-Continue" request to us, but may happen
+ * for cases I don't yet know about.
+ */
 ngx_int_t
 ngx_http_contrast_connector_preaccess_handler(ngx_http_request_t *r)
 {
@@ -651,63 +588,138 @@ ngx_http_contrast_connector_preaccess_handler(ngx_http_request_t *r)
         return NGX_DECLINED;
     }
 
-    ctx = ngx_http_contrast_create_ctx(r);
-
+    ctx = ngx_http_get_module_ctx(r, ngx_http_contrast_connector_module);
     if (ctx == NULL) {
-        contrast_log(ERR, r->connection->log, 0, "ctx alloc failed");
-        return NGX_HTTP_INTERNAL_SERVER_ERROR;
+        ctx = ngx_http_contrast_create_ctx(r);
+        if (ctx == NULL) {
+            contrast_log(ERR, r->connection->log, 0, "ctx alloc failed");
+            return NGX_HTTP_INTERNAL_SERVER_ERROR;
+        }
+        dd("setting a new context: %p", ctx);
+        ngx_http_set_ctx(r, ctx, ngx_http_contrast_connector_module);
+    } else {
+        dd("reusing an existing ctx: %p", ctx);
     }
 
-    ngx_http_set_ctx(r, ctx, ngx_http_contrast_connector_module);
- 
-    if (r->method == NGX_HTTP_POST) {
-        contrast_dbg_log(r->connection->log, 0,
-                "handling HTTP POST for request %p", r);
-        rc = ngx_http_read_client_request_body(
-            r, ngx_http_contrast_connector_body_handler);
-
-        if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
-            contrast_log(ERR, r->connection->log, 0,"got bad rc: %d", rc);
-            return rc;
-        }
+    if (ctx->waiting_more_body) {
+        dd("still waiting on more body data before proceeding. count: %d",
+            r->main->count);
         /*
+         * NGINX has called this handler again on an existing request
+         * in-progress that we wanted more data from.
+         *
          * we return NGX_DONE here to tell the nginx that we have fully handled
          * the request and that it should not bother calling
          * ngx_http_finalize_request() to move to the next phase of request
-         * processing.
+         * processing. This is a lie.
          *
-         * We do this because our body handler registered above will take care
-         * of generating the FORBIDDEN response if needed or moving the request
-         * to the next nginx phase and kicking the phase processor again.
+         * We do this because we need to buffer the entire request body so it
+         * can be sent in one piece to speedracer. This buffering behavior is
+         * opposite to nginx's design and will likely severely restrict its
+         * ability to work in its high-performant nature when connection load
+         * is high, but such is life currently in the name of security.
+         * Returning NGX_DONE at this stage will force nginx to not process the
+         * partial request buffer and make it stuck at this stage for the
+         * request so the entire request is buffered.
          *
-         * In short, by registering the body_handler above and returning DONE
-         * here, we have effectively paused nginx processing on this request 
-         * until the full body has been recieved. This is not the best for
-         * performance, but will deliver correct processing with the current
-         * design.
          */
         return NGX_DONE;
     }
 
-    /* this is done for GETs and everything else */
-    Contrast__Api__Connect__Request *dtm = create_http_request_dtm(r->pool, r);
-    if (dtm == NULL) {
-        contrast_log(ERR, r->connection->log, 0, "failed dtm allocation");
-        return NGX_DECLINED;
+    if (!ctx->body_requested) {
+        ctx->body_requested = 1;
+
+        dd("asking for request body, main count is: %d", r->main->count);
+        /* 
+         * read body into a single memory buffer. eh, why not? we are buffering
+         * the whole thing
+         */
+        r->request_body_in_single_buf = 1;
+
+        /* 
+         * do not unlink the file immediately after creation. This file is able
+         * to be moved to another directory if speedracer wanted to perform
+         * scanning on large request bodies directly.  I'm not going to use
+         * this yet, but may be an interesting optimization point later.
+         *
+         *  r->request_body_in_persistent_file = 1;
+         */
+        /*
+         * unlink the file when request is finalized. Used in coordination with
+         * the persistent flag above.
+         *
+         *  r->request_body_in_clean_file = 1;
+         */
+        rc = ngx_http_read_client_request_body(
+            r, ngx_http_contrast_request_read);
+
+        if (rc == NGX_AGAIN) {
+            dd("nginx wants us to wait for more data");
+            ctx->waiting_more_body = 1;
+            return NGX_DONE;
+        }
     }
 
-    ngx_int_t deny = send_connect_request_dtm(
-        dtm, conf->socket_path, 
-        r->connection->log, 
-        r->pool);
+    /* check if this request is fully buffered and ready to be processed */
+    if (!ctx->waiting_more_body)
+    {
+        /* 
+         * If we requested more body from the above statement and either got it
+         * all or there wasn't any more then we will hit this block
+         */
+        dd("all request body is received and ready to be processed");
+        
+        if (r->request_body->temp_file) {
+            dd("request body in tempfile");
+            /* 
+             * I'm hoping that that the chain buffer processing will read the
+             * data from the tempfile in the same way that it reads it from
+             * memory. It should.
+             */
+        } else {
+            dd("request body in memory");
+        }
 
-    free_http_request_dtm(r->pool, dtm);
+        off_t len = 0;
+        for (ngx_chain_t *in = r->request_body->bufs; in; in = in->next) {
+            len += ngx_buf_size(in->buf);
+        }
+        dd("request buffer total size: %ld bytes", len);
+    
+        Contrast__Api__Connect__Request * dtm = create_http_request_dtm(r->pool, r);
+        if (dtm == NULL) {
+            return NGX_HTTP_INTERNAL_SERVER_ERROR;
+        }
 
-    contrast_dbg_log(r->connection->log, 0,
+        /*
+         * request_body memory owned by dtm and will be freed in free_dtm. In the
+         * future, I'd like for build_dtm_from_request to handle this or have the
+         * analysis engine take the body in chunks... maybe
+         */
+        if (len) {
+            dtm->request_body = ngx_pcalloc(r->pool, len + 1);
+            if (dtm->request_body == NULL) {
+                contrast_log(ERR, r->connection->log, 0,"failed to alloc req body");
+                return NGX_HTTP_INTERNAL_SERVER_ERROR;
+            }
+
+            chain_to_buffer(r->request_body->bufs, dtm->request_body, len);
+            contrast_dbg_log(r->connection->log, 0,
+                    "request_body: '%s'", dtm->request_body);
+        }
+        ngx_int_t deny = send_connect_request_dtm(dtm, 
+            conf->socket_path, 
+            r->connection->log,
+            r->pool);
+
+        free_http_request_dtm(r->pool, dtm);
+
+        contrast_dbg_log(r->connection->log, 0,
         "analysis result: %s", deny ? "blocked" : "allowed");
-    if (deny) {
-        contrast_log(WARN, r->connection->log, 0, "Blocked Request");
-        return NGX_HTTP_FORBIDDEN;
+        if (deny) {
+            contrast_log(WARN, r->connection->log, 0, "Blocked Request");
+            return NGX_HTTP_FORBIDDEN;
+        }
     }
 
     return NGX_DECLINED;
