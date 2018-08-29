@@ -76,7 +76,7 @@ vendor/nginx-$V/: vendor/nginx-$V.tar.gz
 conf: vendor/nginx-$V/objs/Makefile
 
 vendor/nginx-$V/objs/Makefile: vendor/nginx-$V/
-	cd $< && ./configure --with-compat --add-dynamic-module=../../ 
+	cd $< && ./configure --prefix=`pwd`/../nginx-$(V)-svr --with-compat --add-dynamic-module=../../ 
 
 modules: vendor/nginx-$V/ VERSION build/protobuf-c/lib/libprotobuf-c.a module_version.h vendor/nginx-$V/objs/Makefile
 	cd $< && make modules
