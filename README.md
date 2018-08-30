@@ -121,7 +121,7 @@ The connector module can be tested in a vagrant vm or docker image, your
 choice. If using docker, the following `Dockerfile` will help jumpstart your
 testing.
 
-    FROM contrast/installer-build:ubuntu-18
+    FROM contrast/proxy-pipeline-environment:ubuntu-18
     RUN curl https://contrastsecurity.jfrog.io/contrastsecurity/api/gpg/key/public | apt-key add -
     RUN echo "deb https://contrastsecurity.jfrog.io/contrastsecurity/debian-staging/ bionic contrast" > /etc/apt/sources.list.d/contrast.list
     RUN curl -O https://nginx.org/keys/nginx_signing.key && apt-key add nginx_signing.key && echo 'deb http://nginx.org/packages/ubuntu/ bionic nginx' >> /etc/apt/sources.list && echo 'deb-src http://nginx.org/packages/ubuntu/ bionic nginx' >> /etc/apt/sources.list
