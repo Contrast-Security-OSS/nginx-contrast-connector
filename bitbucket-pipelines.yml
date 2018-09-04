@@ -20,32 +20,32 @@ pipelines:
     - parallel:
       - step:
           name: ubuntu-18 nginx-1.14.0 pkg
-          image: contrast/installer-build:ubuntu-18
+          image: contrast/proxy-pipeline-environment:ubuntu-18
           script: *build_all_deb
           artifacts:
               - pkgs/*
       - step:
           name: ubuntu-16 nginx-1.14.0 pkg
-          image: contrast/installer-build:ubuntu-16
+          image: contrast/proxy-pipeline-environment:ubuntu-16
           script: *build_all_deb
           artifacts:
               - pkgs/*
       - step:
           name: ubuntu-14 nginx-1.14.0 pkg
-          image: contrast/installer-build:ubuntu-14
+          image: contrast/proxy-pipeline-environment:ubuntu-14
           script: *build_all_deb
           artifacts:
               - pkgs/*
       - step:
           name: centos7 nginx-1.14.0 pkg
-          image: contrast/installer-build:centos-7
+          image: contrast/proxy-pipeline-environment:centos-7
           script: *build_all_rpm
           artifacts:
               - pkgs/*
 
     - step:
         name: deploy pkgs to staging
-        image: contrast/installer-build:ubuntu-18
+        image: contrast/proxy-pipeline-environment:ubuntu-18
         script:
             - ls -lah pkgs
             - bitbucket_scripts/deploy.sh pkgs
