@@ -39,6 +39,9 @@ typedef struct {
     ngx_chain_t *output_chain;
     size_t content_len;
     ngx_chain_t *prev_cl;
+
+    unsigned waiting_more_body:1;
+    unsigned body_requested:1;
 } ngx_http_contrast_ctx_t;
 
 /*
