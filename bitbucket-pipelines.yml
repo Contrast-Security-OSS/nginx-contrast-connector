@@ -4,6 +4,7 @@ definitions:
     build_steps_deb: &build_all_deb
       - apt-get install autoconf automake libtool -y
       - git submodule update --init --recursive
+      - ./bitbucket_scripts/build_protobuf-c.sh
       - mkdir pkgs
       - make module_version.h
       - ./build_module.sh -y -o `pwd`/pkgs -n contrast -v 1.14.0 .
@@ -11,6 +12,7 @@ definitions:
     build_steps_rpm: &build_all_rpm
       - yum install autoconf automake libtool -y
       - git submodule update --init --recursive
+      - ./bitbucket_scripts/build_protobuf-c.sh
       - mkdir pkgs
       - make module_version.h
       - ./build_module.sh -y -o `pwd`/pkgs -n contrast -v 1.14.0 .
@@ -18,6 +20,15 @@ definitions:
 pipelines:
   default:
     - parallel:
+      - step:
+          name: src dist
+          image: contrast/proxy-pipeline-environment:ubuntu-18
+          script:
+              - make dist
+          # nothing is being done with this currently. I expect whatever is
+          # here to change once we move to github.
+          artifacts:
+              - contrast-webserver-agent-nginx-*.tar.gz
       - step:
           name: ubuntu-18 nginx-1.14.0 pkg
           image: contrast/proxy-pipeline-environment:ubuntu-18

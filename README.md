@@ -158,6 +158,34 @@ For rpms, same steps apply. The build_module.sh tool will detect the platform
 and build packages suitable for it, ie rpm or deb.  Rpms are left in
 /home/vagrant/rpmbuild/RPMS
 
+# Creating a source distribution
+
+When distributing source to non-developers of the project, we want to package
+the source in a cleaner way without all the development scripts and helpers.
+If a user wants to do development on the project, then they should get the git
+repo. Some of our helper make targets depend on being in a git repo and I
+didn't want that as a requirement since it just adds complexity.  I'm not going
+to share that complexity unless its a developer working on the project.
+
+On a system with GNU tar (ie. Linux) Run:
+
+    make dist
+
+That's it. The source dist will be left in the local dir as:
+`contrast-webserver-agent-nginx-<version>.tar.gz`
+
+Some other motivations for the design:
+
+* No dependence on git.
+* Also don't want users towing around the entire git repo or deal with having
+to checkout a subset of its depth to stay managable.
+* Utilize nginx build system, naturally.  Want to fit into "normal" modul builds.
+* Shouldn't be largely different than when building as a developer on the
+project.
+* Don't want to distribute copies of protobuf-1.3.1.
+* Don't want to tar up protobuf-1.3.1 into our module source tarball.  It's
+"odd" to do that.
+
 # How do I test?
 
 See the speedracer documentation for how to configure speedracer to speak with
