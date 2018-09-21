@@ -39,6 +39,13 @@ endif
 $(info MVER is '$(MOD_VERSION)') 
 
 
+# globbing of the files to be included in a src dist tarball. We purposefully
+# leave out a lot of the 'development' scripts and helpers because they would
+# just confuse users.  If someone wants to do development on this module, they
+# should grab the git repo.
+DIST_FILES=*.c *.h *.md config vendor/*.conf VERSION
+
+PROJ_NAME=contrast-webserver-agent-nginx
 # modules are built against a specific nginx version.
 V?=1.14.0
 
@@ -76,13 +83,22 @@ vendor/nginx-$V/: vendor/nginx-$V.tar.gz
 conf: vendor/nginx-$V/objs/Makefile
 
 vendor/nginx-$V/objs/Makefile: vendor/nginx-$V/
-	cd $< && ./configure --with-http_v2_module --prefix=`pwd`/../nginx-$(V)-svr --with-compat --add-dynamic-module=../../ 
+	cd $< && PROTOBUFC_INC=../../build/protobuf-c/include PROTOBUFC_LIB=../../build/protobuf-c/lib  ./configure --with-http_v2_module --prefix=`pwd`/../nginx-$(V)-svr --with-compat --add-dynamic-module=../../ 
 
 modules: vendor/nginx-$V/ VERSION build/protobuf-c/lib/libprotobuf-c.a module_version.h vendor/nginx-$V/objs/Makefile
 	cd $< && make modules
 
 install: vendor/nginx-$V/ modules
 	cd $< && make install
+
+# only gnutar is going to work with this recipe
+dist: module_version.h
+	{ \
+	set -e \
+	echo "distfiles is $(DIST_FILES)"; \
+	tar --transform s,^,$(PROJ_NAME)-$(MOD_VERSION)/, \
+		-czvf $(PROJ_NAME)-$(MOD_VERSION).tgz $(DIST_FILES); \
+	}	
 
 clean: clean-deps
 	rm -f VERSION module_version.h
