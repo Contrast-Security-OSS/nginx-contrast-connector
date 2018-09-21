@@ -223,9 +223,9 @@ create_http_response_dtm(ngx_pool_t *pool, ngx_http_request_t *r)
         goto exit;
     }
 
-    dtm->response_body = ngx_pnalloc(pool, ctx->content_len + 1);
-    chain_to_buffer(ctx->output_chain, dtm->response_body, ctx->content_len);
-    dtm->response_body[ctx->content_len] = '\0';
+    dtm->response_body.data = ngx_pnalloc(pool, ctx->content_len);
+    chain_to_buffer(ctx->output_chain, dtm->response_body.data, ctx->content_len);
+    dtm->response_body.len = ctx->content_len;
 
 exit:
 
@@ -310,7 +310,8 @@ create_http_request_dtm(ngx_pool_t *pool, ngx_http_request_t *r)
         }
     }
 
-    dtm->request_body = NULL;
+    dtm->request_body.data = NULL;
+    dtm->request_body.len = 0;
 
     dtm->n_request_headers = 0;
 
@@ -415,8 +416,8 @@ free_http_response_dtm(ngx_pool_t *pool, Contrast__Api__Connect__Request *dtm)
         ngx_free(dtm->response_headers);
     }
 
-    if (dtm->response_body != NULL) {
-        ngx_pfree(pool, dtm->response_body);
+    if (dtm->response_body.data != NULL) {
+        ngx_pfree(pool, dtm->response_body.data);
     }
     if (dtm->app_name != NULL) {
         ngx_pfree(pool, dtm->app_name);
@@ -457,8 +458,8 @@ free_http_request_dtm(ngx_pool_t *pool, Contrast__Api__Connect__Request *dtm)
         ngx_free(dtm->request_headers);
     }
 
-    if (dtm->request_body != NULL) {
-        ngx_pfree(pool, dtm->request_body);
+    if (dtm->request_body.data != NULL) {
+        ngx_pfree(pool, dtm->request_body.data);
     }
 
     if (dtm->app_name != NULL) {
@@ -697,15 +698,14 @@ ngx_http_contrast_connector_preaccess_handler(ngx_http_request_t *r)
          * analysis engine take the body in chunks... maybe
          */
         if (len) {
-            dtm->request_body = ngx_pcalloc(r->pool, len + 1);
-            if (dtm->request_body == NULL) {
+            dtm->request_body.data = ngx_pcalloc(r->pool, len);
+            if (dtm->request_body.data == NULL) {
                 contrast_log(ERR, r->connection->log, 0,"failed to alloc req body");
                 return NGX_HTTP_INTERNAL_SERVER_ERROR;
             }
 
-            chain_to_buffer(r->request_body->bufs, dtm->request_body, len);
-            contrast_dbg_log(r->connection->log, 0,
-                    "request_body: '%s'", dtm->request_body);
+            chain_to_buffer(r->request_body->bufs, dtm->request_body.data, len);
+            dtm->request_body.len = len;
         }
         ngx_int_t deny = send_connect_request_dtm(dtm, 
             conf->socket_path, 

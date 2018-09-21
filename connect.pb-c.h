@@ -44,11 +44,13 @@ struct  _Contrast__Api__Connect__Request
    */
   char *client_id;
   /*
-   * string representing connector type (nginx, apache etc) 
-   * and version.
-   * only expected on "ping" messages
+   * string representing connector type (nginx, apache etc). This should
+   * include the webserver name and version.  ie. nginx-1.14.0
    */
   char *connector_type;
+  /*
+   * connector code version.
+   */
   char *connector_version;
   /*
    * process id for the agent
@@ -118,7 +120,7 @@ struct  _Contrast__Api__Connect__Request
   /*
    * request body
    */
-  char *request_body;
+  ProtobufCBinaryData request_body;
   /*
    * response code
    */
@@ -131,11 +133,11 @@ struct  _Contrast__Api__Connect__Request
   /*
    * response body
    */
-  char *response_body;
+  ProtobufCBinaryData response_body;
 };
 #define CONTRAST__API__CONNECT__REQUEST__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&contrast__api__connect__request__descriptor) \
-    , (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, 0, 0, 0, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, 0, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, 0, 0, (char *)protobuf_c_empty_string, 0, 0, 0,NULL, (char *)protobuf_c_empty_string, 0, 0,NULL, (char *)protobuf_c_empty_string }
+    , (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, 0, 0, 0, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, 0, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, 0, 0, (char *)protobuf_c_empty_string, 0, 0, 0,NULL, {0,NULL}, 0, 0,NULL, {0,NULL} }
 
 
 struct  _Contrast__Api__Connect__Response
