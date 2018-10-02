@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -ex
+
 #make modsecurity
 #cd /usr/src/
 #git clone https://github.com/SpiderLabs/ModSecurity.git /usr/src/modsecurity
@@ -13,14 +15,49 @@
 #make -j6
 #make install
 
-#make modsecurity-nginx
 cd /nginx-speedracer-connector
-make install
+make dist
+CONN_VERSION=`cat VERSION`
+cd /
+tar -xzf nginx-speedracer-connector/contrast-webserver-agent-nginx-$CONN_VERSION.tgz
 
-#cp -R docker-builds/go-speedracer-go /go-speedracer-go
+cd /
+curl -L -o /nginx-1.14.0.tar.gz http://nginx.org/download/nginx-1.14.0.tar.gz
+curl -L https://github.com/protobuf-c/protobuf-c/releases/download/v1.3.1/protobuf-c-1.3.1.tar.gz > protobuf-c-1.3.1.tar.gz
+
+tar -xzf /nginx-1.14.0.tar.gz
+tar -xzf /protobuf-c-1.3.1.tar.gz
+
+# protobuf-c
+cd protobuf-c-1.3.1
+./configure CFLAGS="-fPIC" --disable-protoc --disable-shared --prefix=`pwd`/../protobuf-c-root
+make -j4
+make install
+cd /
+ls -l /
+# nginx + module
+cd nginx-1.14.0
+PROTOBUFC_LIB=../protobuf-c-root/lib/ PROTOBUFC_INC=../protobuf-c-root/include/ \
+    ./configure \
+    --add-dynamic-module=../contrast-webserver-agent-nginx-$CONN_VERSION \
+                 --with-compat \
+                 --with-http_ssl_module --without-http_access_module \
+                 --without-http_auth_basic_module \
+                 --without-http_autoindex_module \
+                 --without-http_empty_gif_module \
+                 --without-http_fastcgi_module \
+                 --without-http_referer_module \
+                 --without-http_memcached_module \
+                 --without-http_scgi_module \
+                 --without-http_split_clients_module \
+                 --without-http_ssi_module \
+                 --without-http_uwsgi_module
+make -j4 install
+
+# now make the contrast-service
 
 curl -o /go1.11.tgz https://dl.google.com/go/go1.11.linux-amd64.tar.gz
-tar -C /usr/local -xzvf  /go1.11.tgz
+tar -C /usr/local -xzf  /go1.11.tgz
 export PATH=$PATH:/usr/local/go/bin
 
 curl https://raw.githubusercontent.com/golang/dep/master/install.sh | GOBIN=/usr/local/go/bin sh
