@@ -32,7 +32,7 @@ endif
 # if the developmental version is zero, its a fresh release and don't use
 # developmental versioning.
 ifeq ($(MOD_DEV_VERSION),0)
-MOD_VERSION:=$(MODE_SEM_VERSION)
+MOD_VERSION:=$(MOD_SEM_VERSION)
 else
 MOD_VERSION:=$(MOD_SEM_VERSION).$(MOD_DEV_VERSION)dev.$(MOD_ABBREV_VERSION)
 endif
