@@ -1,5 +1,7 @@
 image: python:3.6
 max-time: 20
+clone:
+  depth: full
 definitions:
     build_steps_deb: &build_all_deb
       - apt-get install autoconf automake libtool -y
