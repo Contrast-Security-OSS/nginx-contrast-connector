@@ -68,7 +68,7 @@ pipelines:
   default:
     - parallel: *build_all_artifacts
   branches:
-    'develop':
+    'CONTRAST-27565-wsa-deploy':
         - parallel: *build_all_artifacts
         - step:
             name: deploy pkgs to staging

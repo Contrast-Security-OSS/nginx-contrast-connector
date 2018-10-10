@@ -26,6 +26,8 @@ curl -H "Content-Type: application/json" \
      -d "{\"color\": \"gray\", \"message_format\": \"text\", \"message\": \"$MESSAGE\" }" \
      https://api.hipchat.com/v2/room/$ROOM_ID/notification?auth_token=$AUTH_TOKEN
 
+
+rm -rf ${CURRENT_ARTIFACT_PATH}/*
 unzip ${FUTURE_ARTIFACT} -d ${CURRENT_ARTIFACT_PATH}
 
 echo ${FUTURE_BUILD_NUMBER} > "$CONTRAST_DATA_DIR"/agents/proxy/nginx/deployedVersion.txt
