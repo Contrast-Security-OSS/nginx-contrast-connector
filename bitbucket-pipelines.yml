@@ -1,5 +1,7 @@
-image: atlassian/default-image:2
-
+image: python:3.6
+max-time: 20
+clone:
+  depth: full
 definitions:
     build_steps_deb: &build_all_deb
       - apt-get install autoconf automake libtool -y
@@ -17,9 +19,7 @@ definitions:
       - make module_version.h
       - ./build_module.sh -y -o `pwd`/pkgs -n contrast -v 1.14.0 .
 
-pipelines:
-  default:
-    - parallel:
+    parallel: &build_all_artifacts
       - step:
           name: src dist
           image: contrast/proxy-pipeline-environment:ubuntu-18
@@ -54,9 +54,141 @@ pipelines:
           artifacts:
               - pkgs/*
 
-    - step:
-        name: deploy pkgs to staging
-        image: contrast/proxy-pipeline-environment:ubuntu-18
-        script:
-            - ls -lah pkgs
-            - bitbucket_scripts/deploy.sh pkgs
+    step: &deployToTSStaging
+      name: Deploy to TS Staging
+      max-time: 3
+      deployment: staging
+      script:
+        - apt-get update && apt-get install -fy awscli
+        - export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID_STAGING && export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY_STAGING
+        - python bitbucket_scripts/deploy_to_s3.py pkgs staging
+
+
+pipelines:
+  default:
+    - parallel: *build_all_artifacts
+  branches:
+    'develop':
+        - parallel: *build_all_artifacts
+        - step:
+            name: deploy pkgs to staging
+            image: contrast/proxy-pipeline-environment:ubuntu-18
+            script:
+                - ls -lah pkgs
+                - bitbucket_scripts/deploy.sh pkgs staging
+        - step: *deployToTSStaging
+    'master':
+        - parallel: *build_all_artifacts
+        - step:
+            name: deploy pkgs to staging
+            image: contrast/proxy-pipeline-environment:ubuntu-18
+            script:
+                - ls -lah pkgs
+                - bitbucket_scripts/deploy.sh pkgs staging
+        - step: *deployToTSStaging
+    tags:
+        '*/*.*.*':
+        - parallel: *build_all_artifacts
+        - step:
+            name: deploy pkgs to public
+            image: contrast/proxy-pipeline-environment:ubuntu-18
+            script:
+                - ls -lah pkgs
+                - bitbucket_scripts/deploy.sh pkgs public
+        - step:
+            name: Deploy to SAAS (App)
+            image:
+            ame: 763284681916.dkr.ecr.us-east-1.amazonaws.com/deployer-production-saas-deploy
+            aws:
+                access-key: $AWS_ACCESS_KEY_ID_PROD
+                secret-key: $AWS_SECRET_ACCESS_KEY_PROD
+            script:
+            - revision=$(TZ=UTC git show -s --format=%cd --date=format-local:%Y%m%d-%H%M HEAD).$(git rev-parse --short HEAD)
+            - tag=$(git describe --tags --exact-match $BITBUCKET_COMMIT)
+            - echo "Got the following Deploy Tag - $tag  Revision - $revision"
+            - IFS='/' read -r release_ticket release_version <<<"$tag"
+            - create_aws_profile.sh $AWS_ACCESS_KEY_ID_PROD $AWS_SECRET_ACCESS_KEY_PROD production
+            - create_aws_profile.sh $AWS_ACCESS_KEY_ID_STAGING $AWS_SECRET_ACCESS_KEY_STAGING staging
+            - deployer.py --single --environment saas --artifact webserver-agent --release-version $revision --release-ticket https://contrast.atlassian.net/browse/${release_ticket} --filename webserver-agent-bundle-${revision}.zip
+  
+  custom:
+    alpha-deploy:
+        - step:
+            name: Deploy to Alpha
+            image:
+            ame: 763284681916.dkr.ecr.us-east-1.amazonaws.com/deployer-production-saas-deploy
+            aws:
+                access-key: $AWS_ACCESS_KEY_ID_PROD
+                secret-key: $AWS_SECRET_ACCESS_KEY_PROD
+            script:
+            - revision=$(TZ=UTC git show -s --format=%cd --date=format-local:%Y%m%d-%H%M HEAD).$(git rev-parse --short HEAD)
+            - tag=$(git describe --tags --exact-match $BITBUCKET_COMMIT)
+            - echo "Got the following Deploy Tag - $tag  Revision - $revision"
+            - IFS='/' read -r release_ticket release_version <<<"$tag"
+            - create_aws_profile.sh $AWS_ACCESS_KEY_ID_PROD $AWS_SECRET_ACCESS_KEY_PROD production
+            - create_aws_profile.sh $AWS_ACCESS_KEY_ID_STAGING $AWS_SECRET_ACCESS_KEY_STAGING staging
+            - deployer.py --single --environment alpha --artifact webserver-agent --release-version $revision --release-ticket https://contrast.atlassian.net/browse/${release_ticket} --filename webserver-agent-bundle-${revision}.zip
+    apptwo-deploy:
+        - step:
+            name: Deploy to Apptwo
+            image:
+            ame: 763284681916.dkr.ecr.us-east-1.amazonaws.com/deployer-production-saas-deploy
+            aws:
+                access-key: $AWS_ACCESS_KEY_ID_PROD
+                secret-key: $AWS_SECRET_ACCESS_KEY_PROD
+            script:
+            - revision=$(TZ=UTC git show -s --format=%cd --date=format-local:%Y%m%d-%H%M HEAD).$(git rev-parse --short HEAD)
+            - tag=$(git describe --tags --exact-match $BITBUCKET_COMMIT)
+            - echo "Got the following Deploy Tag - $tag  Revision - $revision"
+            - IFS='/' read -r release_ticket release_version <<<"$tag"
+            - create_aws_profile.sh $AWS_ACCESS_KEY_ID_PROD $AWS_SECRET_ACCESS_KEY_PROD production
+            - create_aws_profile.sh $AWS_ACCESS_KEY_ID_STAGING $AWS_SECRET_ACCESS_KEY_STAGING staging
+            - deployer.py --single --environment apptwo --artifact webserver-agent --release-version $revision --release-ticket https://contrast.atlassian.net/browse/${release_ticket} --filename webserver-agent-bundle-${revision}.zip
+    saas-deploy:
+        - step:
+            name: Deploy to SAAS (App)
+            image:
+            ame: 763284681916.dkr.ecr.us-east-1.amazonaws.com/deployer-production-saas-deploy
+            aws:
+                access-key: $AWS_ACCESS_KEY_ID_PROD
+                secret-key: $AWS_SECRET_ACCESS_KEY_PROD
+            script:
+            - revision=$(TZ=UTC git show -s --format=%cd --date=format-local:%Y%m%d-%H%M HEAD).$(git rev-parse --short HEAD)
+            - tag=$(git describe --tags --exact-match $BITBUCKET_COMMIT)
+            - echo "Got the following Deploy Tag - $tag  Revision - $revision"
+            - IFS='/' read -r release_ticket release_version <<<"$tag"
+            - create_aws_profile.sh $AWS_ACCESS_KEY_ID_PROD $AWS_SECRET_ACCESS_KEY_PROD production
+            - create_aws_profile.sh $AWS_ACCESS_KEY_ID_STAGING $AWS_SECRET_ACCESS_KEY_STAGING staging
+            - deployer.py --single --environment saas --artifact webserver-agent --release-version $revision --release-ticket https://contrast.atlassian.net/browse/${release_ticket} --filename webserver-agent-bundle-${revision}.zip
+    eval-deploy:
+        - step:
+            name: Deploy to Eval
+            image:
+            ame: 763284681916.dkr.ecr.us-east-1.amazonaws.com/deployer-production-saas-deploy
+            aws:
+                access-key: $AWS_ACCESS_KEY_ID_PROD
+                secret-key: $AWS_SECRET_ACCESS_KEY_PROD
+            script:
+            - revision=$(TZ=UTC git show -s --format=%cd --date=format-local:%Y%m%d-%H%M HEAD).$(git rev-parse --short HEAD)
+            - tag=$(git describe --tags --exact-match $BITBUCKET_COMMIT)
+            - echo "Got the following Deploy Tag - $tag  Revision - $revision"
+            - IFS='/' read -r release_ticket release_version <<<"$tag"
+            - create_aws_profile.sh $AWS_ACCESS_KEY_ID_PROD $AWS_SECRET_ACCESS_KEY_PROD production
+            - create_aws_profile.sh $AWS_ACCESS_KEY_ID_STAGING $AWS_SECRET_ACCESS_KEY_STAGING staging
+            - deployer.py --single --environment Eval --artifact webserver-agent --release-version $revision --release-ticket https://contrast.atlassian.net/browse/${release_ticket} --filename webserver-agent-bundle-${revision}.zip
+    ce-deploy:
+        - step:
+            name: Deploy to Community Edition (CE)
+            image:
+            ame: 763284681916.dkr.ecr.us-east-1.amazonaws.com/deployer-production-saas-deploy
+            aws:
+                access-key: $AWS_ACCESS_KEY_ID_PROD
+                secret-key: $AWS_SECRET_ACCESS_KEY_PROD
+            script:
+            - revision=$(TZ=UTC git show -s --format=%cd --date=format-local:%Y%m%d-%H%M HEAD).$(git rev-parse --short HEAD)
+            - tag=$(git describe --tags --exact-match $BITBUCKET_COMMIT)
+            - echo "Got the following Deploy Tag - $tag  Revision - $revision"
+            - IFS='/' read -r release_ticket release_version <<<"$tag"
+            - create_aws_profile.sh $AWS_ACCESS_KEY_ID_PROD $AWS_SECRET_ACCESS_KEY_PROD production
+            - create_aws_profile.sh $AWS_ACCESS_KEY_ID_STAGING $AWS_SECRET_ACCESS_KEY_STAGING staging
+            - deployer.py --single --environment ce --artifact webserver-agent --release-version $revision --release-ticket https://contrast.atlassian.net/browse/${release_ticket} --filename webserver-agent-bundle-${revision}.zip

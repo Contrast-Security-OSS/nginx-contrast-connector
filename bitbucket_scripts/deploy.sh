@@ -3,8 +3,10 @@
 set -ex
 
 pkgdir=${1}
+env=${2}
 
 echo "location of packages ${pkgdir}"
+echo "Deploying to environment ${env}"
 
 function check_http_result {
     local result=$1
@@ -32,19 +34,32 @@ function push_to_repo {
         check_http_result $responseCode
 }
 
+function determine_environment {
+    local environment=$1
+    local distroType=$2
+
+    case "$environment" in
+    "staging") environment="${distroType}-staging" ;;
+    "public") environment="${distroType}-public" ;;
+    esac
+    echo "$environment"
+}
+
 
 for p in ${pkgdir}/*.rpm; do
     pkgname=`basename $p`
     el_ver=`echo $pkgname | sed 's/.*el\([[:digit:]]\).*.rpm/\1/'`
     distro="centos-$el_ver"
-    push_to_repo "rpm-staging" "$distro/" $p
+    environment=$(determine_environment $env "rpm")
+    push_to_repo "$environment" "$distro/" $p
 done
 
 for p in ${pkgdir}/*.deb; do
     pkgname=`basename $p`
     arch=`echo "$pkgname" | sed 's/.*_\(.*\).deb$/\1/'`
     distro=`echo "$pkgname" | sed 's/.*~\(.*\)_.*.deb$/\1/'`
-     push_to_repo "debian-staging" \
+    environment=$(determine_environment $env "debian")
+     push_to_repo "$environment" \
          "pool/${pkgname};deb.distribution=${distro};deb.component=contrast;deb.architecture=${arch}" \
          $p
 done
