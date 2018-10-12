@@ -98,10 +98,10 @@ pipelines:
         - step:
             name: Deploy to SAAS (App)
             image:
-            ame: 763284681916.dkr.ecr.us-east-1.amazonaws.com/deployer-production-saas-deploy
-            aws:
-                access-key: $AWS_ACCESS_KEY_ID_PROD
-                secret-key: $AWS_SECRET_ACCESS_KEY_PROD
+                name: 763284681916.dkr.ecr.us-east-1.amazonaws.com/deployer-production-saas-deploy
+                aws:
+                    access-key: $AWS_ACCESS_KEY_ID_PROD
+                    secret-key: $AWS_SECRET_ACCESS_KEY_PROD
             script:
             - revision=$(TZ=UTC git show -s --format=%cd --date=format-local:%Y%m%d-%H%M HEAD).$(git rev-parse --short HEAD)
             - tag=$(git describe --tags --exact-match $BITBUCKET_COMMIT)
@@ -116,10 +116,10 @@ pipelines:
         - step:
             name: Deploy to Alpha
             image:
-            ame: 763284681916.dkr.ecr.us-east-1.amazonaws.com/deployer-production-saas-deploy
-            aws:
-                access-key: $AWS_ACCESS_KEY_ID_PROD
-                secret-key: $AWS_SECRET_ACCESS_KEY_PROD
+                name: 763284681916.dkr.ecr.us-east-1.amazonaws.com/deployer-production-saas-deploy
+                aws:
+                    access-key: $AWS_ACCESS_KEY_ID_PROD
+                    secret-key: $AWS_SECRET_ACCESS_KEY_PROD
             script:
             - revision=$(TZ=UTC git show -s --format=%cd --date=format-local:%Y%m%d-%H%M HEAD).$(git rev-parse --short HEAD)
             - tag=$(git describe --tags --exact-match $BITBUCKET_COMMIT)
@@ -132,10 +132,10 @@ pipelines:
         - step:
             name: Deploy to Apptwo
             image:
-            ame: 763284681916.dkr.ecr.us-east-1.amazonaws.com/deployer-production-saas-deploy
-            aws:
-                access-key: $AWS_ACCESS_KEY_ID_PROD
-                secret-key: $AWS_SECRET_ACCESS_KEY_PROD
+                name: 763284681916.dkr.ecr.us-east-1.amazonaws.com/deployer-production-saas-deploy
+                aws:
+                    access-key: $AWS_ACCESS_KEY_ID_PROD
+                    secret-key: $AWS_SECRET_ACCESS_KEY_PROD
             script:
             - revision=$(TZ=UTC git show -s --format=%cd --date=format-local:%Y%m%d-%H%M HEAD).$(git rev-parse --short HEAD)
             - tag=$(git describe --tags --exact-match $BITBUCKET_COMMIT)
@@ -148,10 +148,10 @@ pipelines:
         - step:
             name: Deploy to SAAS (App)
             image:
-            ame: 763284681916.dkr.ecr.us-east-1.amazonaws.com/deployer-production-saas-deploy
-            aws:
-                access-key: $AWS_ACCESS_KEY_ID_PROD
-                secret-key: $AWS_SECRET_ACCESS_KEY_PROD
+                name: 763284681916.dkr.ecr.us-east-1.amazonaws.com/deployer-production-saas-deploy
+                aws:
+                    access-key: $AWS_ACCESS_KEY_ID_PROD
+                    secret-key: $AWS_SECRET_ACCESS_KEY_PROD
             script:
             - revision=$(TZ=UTC git show -s --format=%cd --date=format-local:%Y%m%d-%H%M HEAD).$(git rev-parse --short HEAD)
             - tag=$(git describe --tags --exact-match $BITBUCKET_COMMIT)
@@ -164,10 +164,10 @@ pipelines:
         - step:
             name: Deploy to Eval
             image:
-            ame: 763284681916.dkr.ecr.us-east-1.amazonaws.com/deployer-production-saas-deploy
-            aws:
-                access-key: $AWS_ACCESS_KEY_ID_PROD
-                secret-key: $AWS_SECRET_ACCESS_KEY_PROD
+                name: 763284681916.dkr.ecr.us-east-1.amazonaws.com/deployer-production-saas-deploy
+                aws:
+                    access-key: $AWS_ACCESS_KEY_ID_PROD
+                    secret-key: $AWS_SECRET_ACCESS_KEY_PROD
             script:
             - revision=$(TZ=UTC git show -s --format=%cd --date=format-local:%Y%m%d-%H%M HEAD).$(git rev-parse --short HEAD)
             - tag=$(git describe --tags --exact-match $BITBUCKET_COMMIT)
@@ -180,10 +180,10 @@ pipelines:
         - step:
             name: Deploy to Community Edition (CE)
             image:
-            ame: 763284681916.dkr.ecr.us-east-1.amazonaws.com/deployer-production-saas-deploy
-            aws:
-                access-key: $AWS_ACCESS_KEY_ID_PROD
-                secret-key: $AWS_SECRET_ACCESS_KEY_PROD
+                name: 763284681916.dkr.ecr.us-east-1.amazonaws.com/deployer-production-saas-deploy
+                aws:
+                    access-key: $AWS_ACCESS_KEY_ID_PROD
+                    secret-key: $AWS_SECRET_ACCESS_KEY_PROD
             script:
             - revision=$(TZ=UTC git show -s --format=%cd --date=format-local:%Y%m%d-%H%M HEAD).$(git rev-parse --short HEAD)
             - tag=$(git describe --tags --exact-match $BITBUCKET_COMMIT)
