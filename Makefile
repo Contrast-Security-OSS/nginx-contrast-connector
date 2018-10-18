@@ -4,7 +4,7 @@
 # VERSION file so we will attempt to dynamically make the version from the git
 # tag info and commit hashes.
 
-DESCRIBE:=$(shell git describe --always --long)
+DESCRIBE:=$(shell git describe --always --long --tags)
 
 # Tags should use a 3-part semantic versioning scheme (http://semver.org). This
 # is in the form of MAJOR.MINOR.PATCH. While developing on prerelease software,
@@ -18,9 +18,9 @@ DESCRIBE:=$(shell git describe --always --long)
 # dropped. This will be signified by a zero (0) as the commit num indicating a
 # fresh tag.
 
-MOD_SEM_VERSION:=$(shell echo "$(DESCRIBE)" | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\1/p')
-MOD_DEV_VERSION:=$(shell echo "$(DESCRIBE)" | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\2/p')
-MOD_ABBREV_VERSION:=$(shell echo "$(DESCRIBE)" | sed -n 's/^\([0-9\.]*\)-\([0-9]*\)-\([a-z0-9]*\)/\3/p')
+MOD_SEM_VERSION:=$(shell echo "$(DESCRIBE)" | sed -E -n "s/^.*(([0-9]+\.){2}[0-9]).*/\1/p")
+MOD_DEV_VERSION:=$(shell echo "$(DESCRIBE)" | sed -E -n "s/.*(([0-9]+\.){2}[0-9])-([0-9]+).*/\3/p")
+MOD_ABBREV_VERSION:=$(shell echo "$(DESCRIBE)" | sed -E -n "s/.*([0-9\.]*)-([0-9]*)-(.*)/\3/p")
 
 # if no tag has been created, the fallback case here will make a version.
 ifeq ($(MOD_SEM_VERSION),)
