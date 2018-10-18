@@ -13,6 +13,8 @@ ADD docker-builds/go-speedracer-go /go-speedracer-go
 RUN chmod +x /build.sh && /bin/bash -c "source /build.sh"
 
 ADD docker-builds/nginx.conf /usr/local/nginx/conf/nginx.conf
+ADD contrast_security.yaml /etc/contrast/webserver/contrast_security.yaml
+
 #ADD modsec_includes.conf /usr/local/nginx/conf/modsec_includes.conf
 #ADD modsecurity.conf /usr/local/nginx/conf/modsecurity.conf
 #ADD crs-setup.conf /usr/local/nginx/conf/rules/crs-setup.conf
