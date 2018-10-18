@@ -86,8 +86,8 @@ pipelines:
                 - ls -lah pkgs
                 - bitbucket_scripts/deploy.sh pkgs staging
         - step: *deployToTSStaging
-    tags:
-        '*/*.*.*':
+  tags:
+    '*/*.*.*':
         - parallel: *build_all_artifacts
         - step:
             name: deploy pkgs to public
