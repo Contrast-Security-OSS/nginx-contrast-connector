@@ -4,7 +4,7 @@ RUN apt-get update -y && apt-get install -y curl gnupg2
 
 RUN curl https://contrastsecurity.jfrog.io/contrastsecurity/api/gpg/key/public | apt-key add -
 RUN echo "deb https://contrastsecurity.jfrog.io/contrastsecurity/debian-staging/ bionic contrast" > /etc/apt/sources.list.d/contrast.list
-RUN apt-get update && apt-get install -y modsecurity flex bison libgeoip-dev git wget build-essential libpcre3 libpcre3-dev libssl-dev libtool autoconf apache2-dev libxml2-dev libcurl4-openssl-dev psmisc vim
+RUN apt-get update && apt-get install -y contrast-modsecurity flex bison libgeoip-dev git wget build-essential libpcre3 libpcre3-dev libssl-dev libtool autoconf apache2-dev libxml2-dev libcurl4-openssl-dev psmisc vim
 
 
 ADD docker-builds/build.sh /build.sh
