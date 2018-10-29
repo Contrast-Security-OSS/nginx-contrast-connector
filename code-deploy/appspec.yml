@@ -1,0 +1,11 @@
+version: 0.0
+os: linux
+files:
+  - source: /WEBSERVER_SOURCE
+    destination: /tmp
+hooks:
+  ApplicationStart:
+    - location: deployment/start.sh
+  ValidateService:
+    - location: deployment/verify.sh
+
