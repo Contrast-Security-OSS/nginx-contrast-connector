@@ -795,7 +795,6 @@ ngx_http_contrast_header_filter(ngx_http_request_t *r)
     ngx_http_contrast_connector_conf_t *cf = NULL;
     ngx_http_contrast_ctx_t *ctx = NULL;
 
-    contrast_log(ERR, r->connection->log, 0, "in header filter");
     cf = ngx_http_get_module_loc_conf(r, ngx_http_contrast_connector_module);
     ctx = ngx_http_get_module_ctx(r, ngx_http_contrast_connector_module);
     /* 
@@ -853,7 +852,6 @@ ngx_http_contrast_output_body_filter(ngx_http_request_t *r,  ngx_chain_t *in)
     ngx_http_contrast_connector_conf_t *cf = NULL;
     ngx_log_t *log = r->connection->log;
 
-    contrast_log(ERR, r->connection->log, 0, "output body filter entered");
     cf = ngx_http_get_module_loc_conf(r, ngx_http_contrast_connector_module);
     ctx = ngx_http_get_module_ctx(r, ngx_http_contrast_connector_module);
 
