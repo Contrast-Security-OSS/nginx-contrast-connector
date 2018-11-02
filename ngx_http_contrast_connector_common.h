@@ -5,13 +5,24 @@
 
 #include <nginx.h>
 #include <ngx_config.h>
+#include <ngx_auto_config.h>
 #include <ngx_core.h>
 #include <ngx_http.h>
 
+
+#if !(NGX_HAVE_VARIADIC_MACROS)
+#   error("platform is missing variadic macro support")
+#endif
+
+/* debugging code enabled using --with-debug on nginx ./configure */
+#if (NGX_DEBUG)
 /* easy debug printing used for development and debugging. */
-#define dd(fmt, ...) \
+#   define dd(fmt, ...) \
     fprintf(stderr, "[contrast] %s:%d (%s): " fmt "\n", \
             __FILE__, __LINE__, __func__, ## __VA_ARGS__)
+#else
+#   define dd(...)
+#endif
 
 #define contrast_log(lvl, log, err, fmt, ...) \
     ngx_log_error(NGX_LOG_ ## lvl, log, err, \

@@ -18,6 +18,7 @@
 #include <ngx_http.h>
 #include <ngx_log.h>
 
+#include "module_version.h"
 #include "ngx_http_contrast_connector_common.h"
 
 static void *ngx_http_contrast_connector_create_loc_config(ngx_conf_t *cf);
@@ -160,7 +161,7 @@ ngx_module_t ngx_http_contrast_connector_module = {
 /*
  * default socket to communicate with contrast service
  */
-static const char DEFAULT_SOCKET[] = "/tmp/contrast-security.sock";
+static const char DEFAULT_SOCKET[] = "/run/contrast-service.sock";
 
 /*
  * default name for applications in contrast service
@@ -192,20 +193,23 @@ ngx_http_contrast_connector_merge_loc_config(ngx_conf_t *cf,
     ngx_http_contrast_connector_conf_t *prev = parent;
     ngx_http_contrast_connector_conf_t *conf = child;
 
-    /* default to disable Contrast protection */
-    ngx_conf_merge_off_value(conf->enable, prev->enable, 0);
+    /* default to enable Contrast protection */
+    ngx_conf_merge_off_value(conf->enable, prev->enable, 1);
     ngx_conf_merge_off_value(conf->debug, prev->debug, 0);
     ngx_conf_merge_str_value(conf->socket_path, prev->socket_path,
-        DEFAULT_SOCKET);
+            DEFAULT_SOCKET);
     
-    contrast_log(INFO, cf->log, 0, 
-        "APP NAME = %s %s", conf->app_name.data, prev->app_name.data); 
     ngx_conf_merge_str_value(conf->app_name, prev->app_name, DEFAULT_NAME);
-
+    contrast_log(NOTICE, cf->log, 0, 
+            "location/appname: %s", conf->app_name.data); 
+    contrast_log(NOTICE, cf->log, 0, 
+            "analysis: %s", conf->enable ? "enabled" : "disabled"); 
+    contrast_log(NOTICE, cf->log, 0,
+            "analysis-engine socket_path: %s", conf->socket_path.data);
     if (conf->debug) {
-        contrast_log(INFO, cf->log, 0,
-            "contrast rule-engine socket_path: %s", conf->socket_path.data);
+        contrast_log(WARN, cf->log, 0, "!!! DEBUG ENABLED !!!");
     }
+
     return NGX_CONF_OK;
 }
 
@@ -223,6 +227,9 @@ ngx_http_contrast_connector_module_init(ngx_conf_t * cf)
         return NGX_ERROR;
     }
 
+    contrast_log(NOTICE, cf->log, 0,
+        "Initializing connector module (v%s)", CONTRAST_MODULE_VERSION); 
+
     /* attach url handler after the pre-access phase. */
     ngx_http_handler_pt *h_preaccess = ngx_array_push(
         &main_conf->phases[NGX_HTTP_PREACCESS_PHASE].handlers);
@@ -235,7 +242,7 @@ ngx_http_contrast_connector_module_init(ngx_conf_t * cf)
     /* insert output body filter into output chain */
     ngx_http_contrast_output_filters_init(cf);
 
-    contrast_log(INFO, cf->log, 0,
+    contrast_log(NOTICE, cf->log, 0,
 	    "Completed initialization of contrast connector module");
     return NGX_OK;
 }
