@@ -32,6 +32,6 @@ curl -H "Content-Type: application/json" \
 
 rm -rf ${NGINX_ARTIFACT_PATH}/*
 unzip ${FUTURE_ARTIFACT} -d ${CURRENT_ARTIFACT_PATH}
-mv contrast-webserver-agent-* ${NGINX_ARTIFACT_PATH}
+mv ${CURRENT_ARTIFACT_PATH}/contrast-webserver-agent-* ${NGINX_ARTIFACT_PATH}
 
 echo ${FUTURE_BUILD_NUMBER} > "$CONTRAST_DATA_DIR"/agents/proxy/nginx/deployedVersion.txt
