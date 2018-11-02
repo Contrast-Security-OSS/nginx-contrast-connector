@@ -6,7 +6,10 @@ else
   CONTRAST_DATA_DIR=/secure/contrast
 fi
 
-CURRENT_ARTIFACT_PATH="$CONTRAST_DATA_DIR"/agents/proxy/nginx/
+CURRENT_ARTIFACT_PATH="$CONTRAST_DATA_DIR"/agents/proxy
+
+NGINX_ARTIFACT_PATH=${CURRENT_ARTIFACT_PATH}/nginx
+
 if [ -f "$CONTRAST_DATA_DIR"/agents/proxy/nginx/deployedVersion.txt ]
 then
 CURRENT_BUILD_NUMBER=$(cat "$CONTRAST_DATA_DIR"/agents/proxy/nginx/deployedVersion.txt)
@@ -27,7 +30,8 @@ curl -H "Content-Type: application/json" \
      https://api.hipchat.com/v2/room/$ROOM_ID/notification?auth_token=$AUTH_TOKEN
 
 
-rm -rf ${CURRENT_ARTIFACT_PATH}/*
+rm -rf ${NGINX_ARTIFACT_PATH}/*
 unzip ${FUTURE_ARTIFACT} -d ${CURRENT_ARTIFACT_PATH}
+mv contrast-webserver-agent-* ${NGINX_ARTIFACT_PATH}
 
 echo ${FUTURE_BUILD_NUMBER} > "$CONTRAST_DATA_DIR"/agents/proxy/nginx/deployedVersion.txt
