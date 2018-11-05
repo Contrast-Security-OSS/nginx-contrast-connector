@@ -95,6 +95,7 @@ pipelines:
             script:
                 - ls -lah pkgs
                 - bitbucket_scripts/deploy.sh pkgs public
+        - step: *deployToTSStaging
         - step:
             name: Deploy to SAAS (App)
             image:
