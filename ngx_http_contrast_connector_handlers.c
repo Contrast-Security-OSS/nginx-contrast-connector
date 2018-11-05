@@ -517,7 +517,7 @@ send_connect_request_dtm(
             settings->security_message);
 
     if (settings->security_exception) {
-        contrast_log(WARN, log, 0, "security exception: %s uuid=%s", 
+        contrast_dbg_log(log, 0, "security exception: %s uuid=%s", 
             settings->security_message,
             settings->uuid);
         deny = 1;
@@ -715,9 +715,9 @@ ngx_http_contrast_connector_preaccess_handler(ngx_http_request_t *r)
         free_http_request_dtm(r->pool, dtm);
 
         contrast_dbg_log(r->connection->log, 0,
-        "analysis result: %s", deny ? "blocked" : "allowed");
+                "analysis result: %s", deny ? "blocked" : "allowed");
         if (deny) {
-            contrast_log(WARN, r->connection->log, 0, "Blocked Request");
+            contrast_log(INFO, r->connection->log, 0, "Blocked Request");
             return NGX_HTTP_FORBIDDEN;
         }
     }
@@ -795,7 +795,6 @@ ngx_http_contrast_header_filter(ngx_http_request_t *r)
     ngx_http_contrast_connector_conf_t *cf = NULL;
     ngx_http_contrast_ctx_t *ctx = NULL;
 
-    contrast_log(ERR, r->connection->log, 0, "in header filter");
     cf = ngx_http_get_module_loc_conf(r, ngx_http_contrast_connector_module);
     ctx = ngx_http_get_module_ctx(r, ngx_http_contrast_connector_module);
     /* 
@@ -853,7 +852,6 @@ ngx_http_contrast_output_body_filter(ngx_http_request_t *r,  ngx_chain_t *in)
     ngx_http_contrast_connector_conf_t *cf = NULL;
     ngx_log_t *log = r->connection->log;
 
-    contrast_log(ERR, r->connection->log, 0, "output body filter entered");
     cf = ngx_http_get_module_loc_conf(r, ngx_http_contrast_connector_module);
     ctx = ngx_http_get_module_ctx(r, ngx_http_contrast_connector_module);
 
