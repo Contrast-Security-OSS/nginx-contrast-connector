@@ -74,7 +74,7 @@ definitions:
         - apt-get update && apt-get install -y contrast-modsecurity contrast-service
         - ./bitbucket_scripts/run_nginx_tests.sh
         - git clone https://github.com/nginx/nginx-tests.git
-        - (/usr/bin/Contrast-Service &) && cd nginx-tests && TEST_NGINX_GLOBALS="load_module modules/ngx_http_contrast_connector_module.so;" TEST_NGINX_GLOBALS_HTTP="contrast on;" TEST_NGINX_BINARY=/usr/local/nginx/sbin/nginx prove .
+        - (/usr/bin/Contrast-Service &) && cd nginx-tests && TEST_NGINX_GLOBALS="load_module modules/ngx_http_contrast_connector_module.so;" TEST_NGINX_GLOBALS_HTTP="contrast on;" TEST_NGINX_BINARY=/usr/bin/nginx prove .
 
 pipelines:
   default:
