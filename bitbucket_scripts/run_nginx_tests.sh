@@ -6,6 +6,7 @@ apt-get update -y && apt-get install -y curl gnupg2
 curl https://contrastsecurity.jfrog.io/contrastsecurity/api/gpg/key/public | apt-key add -
 echo "deb https://contrastsecurity.jfrog.io/contrastsecurity/debian-staging/ bionic contrast" > /etc/apt/sources.list.d/contrast.list
 apt-get update && apt-get install -y contrast-modsecurity contrast-service flex bison libgeoip-dev git wget build-essential libpcre3 libpcre3-dev libssl-dev libtool autoconf apache2-dev libxml2-dev libcurl4-openssl-dev psmisc vim
+
 curl -L -o /nginx-1.14.0.tar.gz http://nginx.org/download/nginx-1.14.0.tar.gz && tar -xzf /nginx-1.14.0.tar.gz
 cd nginx-1.14.0 && ./configure --with-compat \
           --with-http_ssl_module --without-http_access_module \
@@ -19,7 +20,9 @@ cd nginx-1.14.0 && ./configure --with-compat \
           --without-http_split_clients_module \
           --without-http_ssi_module \
           --without-http_uwsgi_module && make -j4 install
-          
+
+
+ls && cwd
 mv docker-builds/nginx.conf /usr/local/nginx/conf/nginx.conf && sed -i 's%modules%/usr/lib/nginx/modules%g' /usr/local/nginx/conf/nginx.conf
 mv docker-builds/contrast_security.yml /etc/contrast/webserver/contrast_security.yaml
 
