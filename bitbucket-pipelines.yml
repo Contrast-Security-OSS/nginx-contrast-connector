@@ -72,7 +72,7 @@ definitions:
         - curl https://contrastsecurity.jfrog.io/contrastsecurity/api/gpg/key/public | apt-key add -
         - echo "deb https://contrastsecurity.jfrog.io/contrastsecurity/debian-staging/ bionic contrast" > /etc/apt/sources.list.d/contrast.list
         - apt-get update && apt-get install -y contrast-modsecurity contrast-service
-        - ./bitbucket_scripts/run_nginx_test.sh
+        - ./bitbucket_scripts/run_nginx_tests.sh
         - mv docker-builds/nginx.conf /usr/local/nginx/conf/nginx.conf
         - mv docker-builds/contrast_security.yml /etc/contrast/webserver/contrast_security.yaml
         - git clone https://github.com/nginx/nginx-tests.git
