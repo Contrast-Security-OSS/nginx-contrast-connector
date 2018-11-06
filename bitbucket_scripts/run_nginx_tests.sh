@@ -7,7 +7,7 @@ curl https://contrastsecurity.jfrog.io/contrastsecurity/api/gpg/key/public | apt
 echo "deb https://contrastsecurity.jfrog.io/contrastsecurity/debian-staging/ bionic contrast" > /etc/apt/sources.list.d/contrast.list
 apt-get update && apt-get install -y contrast-modsecurity contrast-service flex bison libgeoip-dev git wget build-essential libpcre3 libpcre3-dev libssl-dev libtool autoconf apache2-dev libxml2-dev libcurl4-openssl-dev psmisc vim
 
-cd ../
+cd ../ && ls && pwd
 mv docker-builds/nginx.conf /usr/local/nginx/conf/nginx.conf
 mv docker-builds/contrast_security.yml /etc/contrast/webserver/contrast_security.yaml
 
