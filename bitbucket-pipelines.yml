@@ -68,7 +68,7 @@ definitions:
       name: Nginx Tests
       image: ubuntu
       script:
-        - apt-get update -y && apt-get install -y curl gnupg2
+        - apt-get update -y && apt-get install -y curl gnupg2 git-all
         - curl https://contrastsecurity.jfrog.io/contrastsecurity/api/gpg/key/public | apt-key add -
         - echo "deb https://contrastsecurity.jfrog.io/contrastsecurity/debian-staging/ bionic contrast" > /etc/apt/sources.list.d/contrast.list
         - apt-get update && apt-get install -y contrast-modsecurity contrast-service
