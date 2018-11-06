@@ -21,8 +21,7 @@ cd nginx-1.14.0 && ./configure --with-compat \
           --without-http_ssi_module \
           --without-http_uwsgi_module && make -j4 install
 
-
-ls && cwd
+cd ../
 mv docker-builds/nginx.conf /usr/local/nginx/conf/nginx.conf && sed -i 's%modules%/usr/lib/nginx/modules%g' /usr/local/nginx/conf/nginx.conf
 mv docker-builds/contrast_security.yml /etc/contrast/webserver/contrast_security.yaml
 
