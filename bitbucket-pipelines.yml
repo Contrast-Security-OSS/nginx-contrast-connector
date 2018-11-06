@@ -72,7 +72,11 @@ definitions:
         - curl https://contrastsecurity.jfrog.io/contrastsecurity/api/gpg/key/public | apt-key add -
         - echo "deb https://contrastsecurity.jfrog.io/contrastsecurity/debian-staging/ bionic contrast" > /etc/apt/sources.list.d/contrast.list
         - apt-get update && apt-get install -y contrast-modsecurity contrast-service
-        - ls && pwd
+        - mv docker-builds/nginx.conf /usr/local/nginx/conf/nginx.conf
+        - mv docker-builds/contrast_security.yml /etc/contrast/webserver/contrast_security.yaml
+        - bash package=$(ls ./pkgs | grep "bionic" | head -n 1) && apt install ./pkgs/${package} -y
+        - git clone https://github.com/nginx/nginx-tests.git
+        - (/usr/bin/Contrast-Service &) && cd nginx-tests && TEST_NGINX_GLOBALS="load_module modules/ngx_http_contrast_connector_module.so;" TEST_NGINX_GLOBALS_HTTP="contrast on;" TEST_NGINX_BINARY=/usr/local/nginx/sbin/nginx prove .
 
 pipelines:
   default:
