@@ -68,10 +68,11 @@ definitions:
       name: Nginx Tests
       image: ubuntu
       script:
-        - ./bitbucket_scripts/run_nginx_tests.sh
-
-
-
+        - apt-get update -y && apt-get install -y curl gnupg2
+        - curl https://contrastsecurity.jfrog.io/contrastsecurity/api/gpg/key/public | apt-key add -
+        - echo "deb https://contrastsecurity.jfrog.io/contrastsecurity/debian-staging/ bionic contrast" > /etc/apt/sources.list.d/contrast.list
+        - apt-get update && apt-get install -y contrast-modsecurity contrast-service
+        - ls && pwd
 
 pipelines:
   default:
