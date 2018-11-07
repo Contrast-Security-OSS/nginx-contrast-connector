@@ -75,7 +75,7 @@ definitions:
         - ./bitbucket_scripts/install_pipeline_agent.sh
         - sed -i "s/contrast_admin/alex.boyd@contrastsecurity.com/" /etc/contrast/webserver/contrast_security.yaml
         - sed -i "s/demo/JO2GLJL842HNA3H8/" /etc/contrast/webserver/contrast_security.yaml
-        - sed -i "s/demo/wwEHMnYEIAujE03f/" /etc/contrast/webserver/contrast_security.yaml
+        - 'sed -i "s/api_key: JO2GLJL842HNA3H8/api_key: wwEHMnYEIAujE03f/" /etc/contrast/webserver/contrast_security.yaml'
         - sed -i "s%http://10.0.2.2:19080/Contrast%https://alpha.contrastsecurity.com/Contrast%" /etc/contrast/webserver/contrast_security.yaml
         - cat /etc/contrast/webserver/contrast_security.yaml
         - git clone https://github.com/nginx/nginx-tests.git
