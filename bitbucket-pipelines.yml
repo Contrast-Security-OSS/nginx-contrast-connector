@@ -73,6 +73,7 @@ definitions:
         - echo "deb https://contrastsecurity.jfrog.io/contrastsecurity/debian-staging/ bionic contrast" > /etc/apt/sources.list.d/contrast.list
         - apt-get update && apt-get install -y contrast-modsecurity contrast-service
         - ./bitbucket_scripts/install_pipeline_agent.sh
+        - cat /etc/contrast/webserver/contrast_security.yaml
         - git clone https://github.com/nginx/nginx-tests.git
         - (/usr/bin/Contrast-Service &) && cd nginx-tests && TEST_NGINX_GLOBALS="load_module /usr/lib/nginx/modules/ngx_http_contrast_connector_module.so;" TEST_NGINX_GLOBALS_HTTP="contrast on;" TEST_NGINX_BINARY=/usr/sbin/nginx prove .
 
