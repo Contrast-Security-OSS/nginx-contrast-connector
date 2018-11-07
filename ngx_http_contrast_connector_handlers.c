@@ -218,6 +218,13 @@ create_http_response_dtm(ngx_pool_t *pool, ngx_http_request_t *r)
     dtm->response_headers[dtm->n_response_headers] = pair;
     dtm->n_response_headers++;
 
+    /*
+     * ctx->content_len will be zero if there is no content or if
+     * contrast_enable_response_body is off as this function will be called in
+     * the LOG phase which is before any body filter logic that fills the
+     * ctx->content_len. I imagine refactoring this logic in the future, it's
+     * hard to follow.
+     */
     if (ctx->output_chain == NULL || ctx->content_len == 0)
     {
         goto exit;
@@ -749,6 +756,44 @@ ngx_http_contrast_connector_preaccess_handler(ngx_http_request_t *r)
         }
     }
 
+return NGX_DECLINED;
+}
+
+/*
+ * Postrequest handler.
+ * This handler runs in the LOG phase only when the
+ * contrast_enable_response_body is off. This means that response body
+ * processing won't happen in the output body filter so we need to tell the
+ * analysis engine about the response metadata (timing, size, status, etc) so
+ * the analysis engine can close out the open transaction internally.
+ */
+ngx_int_t
+ngx_http_contrast_connector_log_handler(ngx_http_request_t *r)
+{
+    contrast_dbg_log(r->connection->log, 0, "in LOG phase handler");
+    ngx_http_contrast_connector_conf_t * conf = ngx_http_get_module_loc_conf(
+            r, ngx_http_contrast_connector_module);
+
+    if (conf->enable_response_body) {
+        contrast_dbg_log(r->connection->log, 0,
+                "skipping log_phase processing because not enabled");
+        return NGX_DECLINED;
+    }
+
+    /*
+     * XXX: There are no intervention decisions made at this phase so we can
+     * actually dispatch the notification to a background context so the nginx
+     * worker doesn't block on the IO to the engine.
+     */
+    Contrast__Api__Connect__Request *http_resp_dtm = create_http_response_dtm(
+            r->pool, r);
+    send_connect_request_dtm(
+        http_resp_dtm, conf->socket_path,
+        r->connection->log,
+        r->pool);
+
+    free_http_response_dtm(r->pool, http_resp_dtm);
+
     return NGX_DECLINED;
 }
 
@@ -893,10 +938,11 @@ ngx_http_contrast_output_body_filter(ngx_http_request_t *r,  ngx_chain_t *in)
      * XXX: These checks could be compressed to one line, but I want to see
      * them separately for now
      */
+
     if (r != r->main) {
         contrast_dbg_log(log, 0, "bodyfilter, !r->main");
         return ngx_http_next_output_body_filter(r, in);
-    } else if (!cf->enable) {
+    } else if (!cf->enable || !cf->enable_response_body) {
         contrast_dbg_log(log, 0, "bodyfilter, disabled");
         return ngx_http_next_output_body_filter(r, in);
     } else if (ctx == NULL) {
