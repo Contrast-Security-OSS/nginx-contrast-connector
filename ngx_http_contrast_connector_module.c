@@ -103,6 +103,15 @@ static ngx_command_t ngx_http_contrast_connector_commands[] = {
         offsetof(ngx_http_contrast_connector_conf_t, app_name),
         NULL
     },
+    {
+        ngx_string("contrast_analyze_response_body"),
+        NGX_HTTP_LOC_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_MAIN_CONF
+            | NGX_CONF_FLAG,
+        ngx_conf_set_flag_slot,
+        NGX_HTTP_LOC_CONF_OFFSET,
+        offsetof(ngx_http_contrast_connector_conf_t, enable_response_body),
+        NULL
+    },
     ngx_null_command
 };
 
@@ -182,6 +191,7 @@ ngx_http_contrast_connector_create_loc_config(ngx_conf_t *cf)
 
     conf->enable = NGX_CONF_UNSET;
     conf->debug = NGX_CONF_UNSET;
+    conf->enable_response_body = NGX_CONF_UNSET;
     return conf;
 }
 
@@ -196,6 +206,7 @@ ngx_http_contrast_connector_merge_loc_config(ngx_conf_t *cf,
     /* default to enable Contrast protection */
     ngx_conf_merge_off_value(conf->enable, prev->enable, 1);
     ngx_conf_merge_off_value(conf->debug, prev->debug, 0);
+    ngx_conf_merge_off_value(conf->enable_response_body, prev->enable_response_body, 0);
     ngx_conf_merge_str_value(conf->socket_path, prev->socket_path,
             DEFAULT_SOCKET);
     
@@ -241,6 +252,15 @@ ngx_http_contrast_connector_module_init(ngx_conf_t * cf)
 
     /* insert output body filter into output chain */
     ngx_http_contrast_output_filters_init(cf);
+
+    /* insert log-phase handler */
+    ngx_http_handler_pt *h_logphase = ngx_array_push(
+        &main_conf->phases[NGX_HTTP_LOG_PHASE].handlers);
+    if (h_logphase == NULL) {
+        contrast_log(ERR, cf->log, 0, "LOG phase handler was NULL");
+        return NGX_ERROR;
+    }
+    *h_logphase = ngx_http_contrast_connector_log_handler;
 
     contrast_log(NOTICE, cf->log, 0,
 	    "Completed initialization of contrast connector module");
