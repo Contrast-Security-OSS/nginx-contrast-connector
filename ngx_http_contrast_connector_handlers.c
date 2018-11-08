@@ -218,6 +218,13 @@ create_http_response_dtm(ngx_pool_t *pool, ngx_http_request_t *r)
     dtm->response_headers[dtm->n_response_headers] = pair;
     dtm->n_response_headers++;
 
+    /*
+     * ctx->content_len will be zero if there is no content or if
+     * contrast_enable_response_body is off as this function will be called in
+     * the LOG phase which is before any body filter logic that fills the
+     * ctx->content_len. I imagine refactoring this logic in the future, it's
+     * hard to follow.
+     */
     if (ctx->output_chain == NULL || ctx->content_len == 0)
     {
         goto exit;
@@ -586,6 +593,33 @@ ngx_http_contrast_connector_preaccess_handler(ngx_http_request_t *r)
     if (r != r->main) {
         contrast_dbg_log(r->connection->log, 0,
                 "skipping processing because not a main request");
+
+        /*
+         * modules later in the nginx phases (such as 'mirror' at the
+         * PRECONTENT phase) will generate a subrequest that goes back thru the
+         * phase machine. Since the request body is typically read after module
+         * like 'mirror', the mirror module will take a shortcut and generate a
+         * subrequest before the client body has been read into the main
+         * request. Since in this module, we read the client request body way
+         * up in the PREACCESS phase, this subrequest is being created with the
+         * client request body from the main request which is wrong.
+         */
+        if (!r->main->preserve_body && r->header_only) {
+            /*
+             * allocate fake request body to overwrite the real request body in
+             * the subrequest only, but only if the main request doesn't want
+             * to preserve its body... I still don't fully understand nginx
+             * internals.
+             */
+
+            dd("allocating subrequest fake body since its a headers_only subrequest");
+            r->request_body = ngx_pcalloc(r->pool, sizeof(ngx_http_request_body_t));
+            if (r->request_body == NULL) {
+                dd("failed alloc subrequest fake body");
+                return NGX_ERROR;
+            }
+        }
+
         return NGX_DECLINED;
     }
 
@@ -722,6 +756,44 @@ ngx_http_contrast_connector_preaccess_handler(ngx_http_request_t *r)
         }
     }
 
+return NGX_DECLINED;
+}
+
+/*
+ * Postrequest handler.
+ * This handler runs in the LOG phase only when the
+ * contrast_enable_response_body is off. This means that response body
+ * processing won't happen in the output body filter so we need to tell the
+ * analysis engine about the response metadata (timing, size, status, etc) so
+ * the analysis engine can close out the open transaction internally.
+ */
+ngx_int_t
+ngx_http_contrast_connector_log_handler(ngx_http_request_t *r)
+{
+    contrast_dbg_log(r->connection->log, 0, "in LOG phase handler");
+    ngx_http_contrast_connector_conf_t * conf = ngx_http_get_module_loc_conf(
+            r, ngx_http_contrast_connector_module);
+
+    if (conf->enable_response_body) {
+        contrast_dbg_log(r->connection->log, 0,
+                "skipping log_phase processing because not enabled");
+        return NGX_DECLINED;
+    }
+
+    /*
+     * XXX: There are no intervention decisions made at this phase so we can
+     * actually dispatch the notification to a background context so the nginx
+     * worker doesn't block on the IO to the engine.
+     */
+    Contrast__Api__Connect__Request *http_resp_dtm = create_http_response_dtm(
+            r->pool, r);
+    send_connect_request_dtm(
+        http_resp_dtm, conf->socket_path,
+        r->connection->log,
+        r->pool);
+
+    free_http_response_dtm(r->pool, http_resp_dtm);
+
     return NGX_DECLINED;
 }
 
@@ -788,7 +860,17 @@ ngx_http_contrast_output_filters_init(ngx_conf_t *cf)
     return NGX_OK;
 }
 
-
+/* 
+ * response headers come to us all at once in this callback.  There are no
+ * multiple calls for partial header info. We /should/ be sending the current
+ * header info for analysis before processing the full body, but we are not
+ * yet.  We simply instruct nginx to buffer the body in memory and then
+ * continue to the next header filter.
+ *
+ * XXX: I *think* this filter is being added to the top of the filter chain.
+ * For full analysis of any dynamically added headers by other filters, we'd
+ * want to be added to the bottom of the filter chain.
+ */
 static ngx_int_t
 ngx_http_contrast_header_filter(ngx_http_request_t *r)
 {
@@ -803,8 +885,7 @@ ngx_http_contrast_header_filter(ngx_http_request_t *r)
      * blocking it), then this header filter will need to set content_length_n
      * to -1.
      */
-   
-   
+
     if (r != r->main || !cf->enable) {
         return ngx_http_next_header_filter(r);
     }
@@ -814,7 +895,6 @@ ngx_http_contrast_header_filter(ngx_http_request_t *r)
         return ngx_http_next_header_filter(r);
     }
 
-  
     /* 
      * Tell nginx to buffer the header data in memory. By not calling the next
      * filter yet, we are forcing the buffering to occur. Setting the flag
@@ -823,7 +903,7 @@ ngx_http_contrast_header_filter(ngx_http_request_t *r)
      * chunks arriving after this one.
      */
     r->filter_need_in_memory = 1;
-    return NGX_OK;
+    return ngx_http_next_header_filter(r);
 }
 
 
@@ -847,7 +927,6 @@ static ngx_int_t
 ngx_http_contrast_output_body_filter(ngx_http_request_t *r,  ngx_chain_t *in)
 {
     ngx_int_t last_buf = 0;
-    ngx_int_t rc = NGX_OK;
     ngx_http_contrast_ctx_t *ctx = NULL;
     ngx_http_contrast_connector_conf_t *cf = NULL;
     ngx_log_t *log = r->connection->log;
@@ -859,10 +938,11 @@ ngx_http_contrast_output_body_filter(ngx_http_request_t *r,  ngx_chain_t *in)
      * XXX: These checks could be compressed to one line, but I want to see
      * them separately for now
      */
+
     if (r != r->main) {
         contrast_dbg_log(log, 0, "bodyfilter, !r->main");
         return ngx_http_next_output_body_filter(r, in);
-    } else if (!cf->enable) {
+    } else if (!cf->enable || !cf->enable_response_body) {
         contrast_dbg_log(log, 0, "bodyfilter, disabled");
         return ngx_http_next_output_body_filter(r, in);
     } else if (ctx == NULL) {
@@ -964,22 +1044,6 @@ ngx_http_contrast_output_body_filter(ngx_http_request_t *r,  ngx_chain_t *in)
                 NGX_HTTP_FORBIDDEN);
     }
  
-    /* 
-     * XXX: modsecurity clears this flag. Appears to short-circuit the
-     * http_header_filter in nginx when set, as if a signal that the work it
-     * was about to do was already done. Not sure why we need it cleared here.
-     */
-    r->header_sent = 0;
-
-    /* sends out the buffered header */
-    rc = ngx_http_next_header_filter(r);
-
-    if (rc == NGX_ERROR || rc > NGX_OK)
-    {
-        dd("error sending out header");
-        ngx_http_filter_finalize_request(r, &ngx_http_contrast_connector_module, rc);
-    }
-
     contrast_dbg_log(r->connection->log, 0, "calling next body filter");
     /* send out the buffered body */
     return ngx_http_next_output_body_filter(r, ctx->output_chain);

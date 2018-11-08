@@ -61,6 +61,11 @@ typedef struct {
 typedef struct {
     ngx_flag_t enable;
     ngx_flag_t debug;
+    /* 
+     * analyzing response bodies in nginx is ugly.  Only do it if it's really
+     * wanted.
+     */
+    ngx_flag_t enable_response_body;
     ngx_str_t socket_path;
     ngx_str_t app_name;
 } ngx_http_contrast_connector_conf_t;
@@ -87,4 +92,5 @@ ngx_int_t ngx_http_contrast_connector_preaccess_handler(
         ngx_http_request_t * r);
 
 
+ngx_int_t ngx_http_contrast_connector_log_handler(ngx_http_request_t *r);
 #endif
