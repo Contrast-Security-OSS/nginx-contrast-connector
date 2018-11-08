@@ -75,6 +75,8 @@ pipelines:
             image: contrast/proxy-pipeline-environment:ubuntu-18
             script:
                 - ls -lah pkgs
+                - cd pkgs && ls | grep "dbg" | xargs rm && cd ../
+                - cd pkgs && ls | grep "debuginfo" | xargs rm && cd ../
                 - bitbucket_scripts/deploy.sh pkgs staging
         - step: *deployToTSStaging
     master:
@@ -94,6 +96,8 @@ pipelines:
             image: contrast/proxy-pipeline-environment:ubuntu-18
             script:
                 - ls -lah pkgs
+                - cd pkgs && ls | grep "dbg" | xargs rm && cd ../
+                - cd pkgs && ls | grep "debuginfo" | xargs rm && cd ../
                 - bitbucket_scripts/deploy.sh pkgs public
         - step: *deployToTSStaging
         - step:
