@@ -586,6 +586,33 @@ ngx_http_contrast_connector_preaccess_handler(ngx_http_request_t *r)
     if (r != r->main) {
         contrast_dbg_log(r->connection->log, 0,
                 "skipping processing because not a main request");
+
+        /*
+         * modules later in the nginx phases (such as 'mirror' at the
+         * PRECONTENT phase) will generate a subrequest that goes back thru the
+         * phase machine. Since the request body is typically read after module
+         * like 'mirror', the mirror module will take a shortcut and generate a
+         * subrequest before the client body has been read into the main
+         * request. Since in this module, we read the client request body way
+         * up in the PREACCESS phase, this subrequest is being created with the
+         * client request body from the main request which is wrong.
+         */
+        if (!r->main->preserve_body && r->header_only) {
+            /*
+             * allocate fake request body to overwrite the real request body in
+             * the subrequest only, but only if the main request doesn't want
+             * to preserve its body... I still don't fully understand nginx
+             * internals.
+             */
+
+            dd("allocating subrequest fake body since its a headers_only subrequest");
+            r->request_body = ngx_pcalloc(r->pool, sizeof(ngx_http_request_body_t));
+            if (r->request_body == NULL) {
+                dd("failed alloc subrequest fake body");
+                return NGX_ERROR;
+            }
+        }
+
         return NGX_DECLINED;
     }
 
@@ -788,7 +815,17 @@ ngx_http_contrast_output_filters_init(ngx_conf_t *cf)
     return NGX_OK;
 }
 
-
+/* 
+ * response headers come to us all at once in this callback.  There are no
+ * multiple calls for partial header info. We /should/ be sending the current
+ * header info for analysis before processing the full body, but we are not
+ * yet.  We simply instruct nginx to buffer the body in memory and then
+ * continue to the next header filter.
+ *
+ * XXX: I *think* this filter is being added to the top of the filter chain.
+ * For full analysis of any dynamically added headers by other filters, we'd
+ * want to be added to the bottom of the filter chain.
+ */
 static ngx_int_t
 ngx_http_contrast_header_filter(ngx_http_request_t *r)
 {
@@ -803,8 +840,7 @@ ngx_http_contrast_header_filter(ngx_http_request_t *r)
      * blocking it), then this header filter will need to set content_length_n
      * to -1.
      */
-   
-   
+
     if (r != r->main || !cf->enable) {
         return ngx_http_next_header_filter(r);
     }
@@ -814,7 +850,6 @@ ngx_http_contrast_header_filter(ngx_http_request_t *r)
         return ngx_http_next_header_filter(r);
     }
 
-  
     /* 
      * Tell nginx to buffer the header data in memory. By not calling the next
      * filter yet, we are forcing the buffering to occur. Setting the flag
@@ -823,7 +858,7 @@ ngx_http_contrast_header_filter(ngx_http_request_t *r)
      * chunks arriving after this one.
      */
     r->filter_need_in_memory = 1;
-    return NGX_OK;
+    return ngx_http_next_header_filter(r);
 }
 
 
@@ -847,7 +882,6 @@ static ngx_int_t
 ngx_http_contrast_output_body_filter(ngx_http_request_t *r,  ngx_chain_t *in)
 {
     ngx_int_t last_buf = 0;
-    ngx_int_t rc = NGX_OK;
     ngx_http_contrast_ctx_t *ctx = NULL;
     ngx_http_contrast_connector_conf_t *cf = NULL;
     ngx_log_t *log = r->connection->log;
@@ -964,22 +998,6 @@ ngx_http_contrast_output_body_filter(ngx_http_request_t *r,  ngx_chain_t *in)
                 NGX_HTTP_FORBIDDEN);
     }
  
-    /* 
-     * XXX: modsecurity clears this flag. Appears to short-circuit the
-     * http_header_filter in nginx when set, as if a signal that the work it
-     * was about to do was already done. Not sure why we need it cleared here.
-     */
-    r->header_sent = 0;
-
-    /* sends out the buffered header */
-    rc = ngx_http_next_header_filter(r);
-
-    if (rc == NGX_ERROR || rc > NGX_OK)
-    {
-        dd("error sending out header");
-        ngx_http_filter_finalize_request(r, &ngx_http_contrast_connector_module, rc);
-    }
-
     contrast_dbg_log(r->connection->log, 0, "calling next body filter");
     /* send out the buffered body */
     return ngx_http_next_output_body_filter(r, ctx->output_chain);
