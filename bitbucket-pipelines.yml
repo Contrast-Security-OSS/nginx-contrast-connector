@@ -66,7 +66,9 @@ definitions:
 
     nginxTests: &nginx_tests
       name: Nginx Tests
-      image: ubuntu
+      image: 
+        name: ubuntu
+        run-as-user: nginx
       script:
         - apt-get update -y && apt-get install -y curl gnupg2 git
         - curl https://contrastsecurity.jfrog.io/contrastsecurity/api/gpg/key/public | apt-key add -
