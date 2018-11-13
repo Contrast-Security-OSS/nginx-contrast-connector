@@ -774,7 +774,7 @@ ngx_http_contrast_connector_log_handler(ngx_http_request_t *r)
     ngx_http_contrast_connector_conf_t * conf = ngx_http_get_module_loc_conf(
             r, ngx_http_contrast_connector_module);
 
-    if (conf->enable_response_body) {
+    if (!conf->enable || conf->enable_response_body) {
         contrast_dbg_log(r->connection->log, 0,
                 "skipping log_phase processing because not enabled");
         return NGX_DECLINED;
