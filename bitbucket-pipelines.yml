@@ -70,14 +70,13 @@ definitions:
         name: contrast/proxy-pipeline-environment:ubuntu-18
         run-as-user: 1000
       script:
-        - whoami
         - sudo apt-get update -y && sudo apt-get install -y curl gnupg2
         - curl https://contrastsecurity.jfrog.io/contrastsecurity/api/gpg/key/public | sudo apt-key add -
         - sudo su -c 'echo "deb https://contrastsecurity.jfrog.io/contrastsecurity/debian-staging/ bionic contrast" > /etc/apt/sources.list.d/contrast.list'
         - sudo sudo apt-get update && sudo apt-get install -y contrast-modsecurity contrast-service
         - sudo sudo apt install -y ./pkgs/$(ls ./pkgs | awk '!/dbg/ && /bionic/' | head -n 1)
         - sudo git clone https://github.com/nginx/nginx-tests.git
-        - (sudo /usr/bin/Contrast-Service &) && cd nginx-tests && TEST_NGINX_GLOBALS='load_module /usr/lib/nginx/modules/ngx_http_contrast_connector_module.so;' TEST_NGINX_GLOBALS_HTTP='contrast on;' TEST_NGINX_BINARY=/usr/sbin/nginx prove .
+        - (sudo /usr/bin/Contrast-Service &) && cd nginx-tests && TEST_NGINX_GLOBALS='load_module /usr/lib/nginx/modules/ngx_http_contrast_connector_module.so;' TEST_NGINX_GLOBALS_HTTP='contrast off;' TEST_NGINX_BINARY=/usr/sbin/nginx prove .
 
 pipelines:
   default:
