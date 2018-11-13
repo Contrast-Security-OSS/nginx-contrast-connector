@@ -70,6 +70,7 @@ definitions:
         name: contrast/proxy-pipeline-environment:ubuntu-18
         run-as-user: 1000
       script:
+        - whoami
         - sudo apt-get update -y && sudo apt-get install -y curl gnupg2
         - curl https://contrastsecurity.jfrog.io/contrastsecurity/api/gpg/key/public | sudo apt-key add -
         - sudo su -c 'echo "deb https://contrastsecurity.jfrog.io/contrastsecurity/debian-staging/ bionic contrast" > /etc/apt/sources.list.d/contrast.list'
