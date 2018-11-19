@@ -17,11 +17,11 @@ on the nginx documentation for this since modules use the nginx build system.
 # Obtaining the source.
 
 We target the latest stable release of nginx from its official source repo. At
-the time of this writing, that is 1.14.0.  You can try with older versions of
+the time of this writing, that is 1.14.1.  You can try with older versions of
 nginx, but they are not being tested currently.
 
 Here are some links to the source you will need:
-* http://nginx.org/download/nginx-1.14.0.tar.gz
+* http://nginx.org/download/nginx-1.14.1.tar.gz
 * https://github.com/protobuf-c/protobuf-c/releases/download/v1.3.1/protobuf-c-1.3.1.tar.gz
 * XXX Insert link to CONTRAST NGINX CONNECTOR IN GITHUB XXX "contrast-webserver-agent-nginx-<version>.tgz"
 
@@ -32,7 +32,7 @@ other.  It's not required to be adjacent, but it will make the example commands
 using relative paths work out.
 
     tar -xzvf contrast-webserver-agent-nginx-1.0.0.tar.gz
-    tar -xzvf nginx-1.14.0.tar.gz
+    tar -xzvf nginx-1.14.1.tar.gz
     tar -xzvf protobuf-c-1.3.1.tar.gz
 
 The connector module has an external dependency on protobuf-c which it will
@@ -60,7 +60,7 @@ The nginx build system can build a dynamic nginx module or statically
 compile the module into nginx. I'll first show the dynamic module compilation
 step: 
 
-    cd nginx-1.14.0
+    cd nginx-1.14.1
     PROTOBUFC_LIB=../protobuf-c-root/lib/ PROTOBUFC_INC=../protobuf-c-root/include/ \
         ./configure  --add-dynamic-module=../contrast-webserver-agent-nginx-1.0.0/ \
             --prefix=`pwd`/../nginx-svr --with-compat

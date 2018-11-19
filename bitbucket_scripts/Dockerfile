@@ -80,8 +80,8 @@ cp .libs/* /usr/local/modsecurity/lib/
 
 # Install NGINX Connector
 RUN cd nginx-speedracer-connector && git submodule update --init --recursive \
-&& ./build_module.sh -y -f -n contrast -v 1.14.0 /app/nginx-speedracer-connector && \
-cd ~/debuild && dpkg -i nginx-module-contrast_1.14.0-1~xenial_amd64.deb && \
+&& ./build_module.sh -y -f -n contrast -v 1.14.1 /app/nginx-speedracer-connector && \
+cd ~/debuild && dpkg -i nginx-module-contrast_1.14.1-1~xenial_amd64.deb && \
 cd /etc/nginx && mkdir -p /etc/nginx/logs/ && \
 mv /app/nginx-speedracer-connector/nginx.conf nginx.conf && \
 echo 'user root;' >> nginx.conf && service nginx stop

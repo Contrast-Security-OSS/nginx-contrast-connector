@@ -43,7 +43,7 @@ and it will build a module for the current targeted stable nginx release. To
 build for other versions of nginx, pass the `V` env var to `make` with the
 version of nginx you want to build against:
 
-    make V=1.14.0
+    make V=1.14.1
 
 Module binaries will be left in `vendor/nginx-<version>/objs/`
 
