@@ -9,7 +9,7 @@ definitions:
       - ./bitbucket_scripts/build_protobuf-c.sh
       - mkdir pkgs
       - make module_version.h
-      - ./build_module.sh -y -o `pwd`/pkgs -n contrast -v 1.14.0 .
+      - ./build_module.sh -y -o `pwd`/pkgs -n contrast -v 1.14.1 .
 
     build_steps_rpm: &build_all_rpm
       - yum install autoconf automake libtool -y
@@ -17,7 +17,7 @@ definitions:
       - ./bitbucket_scripts/build_protobuf-c.sh
       - mkdir pkgs
       - make module_version.h
-      - ./build_module.sh -y -o `pwd`/pkgs -n contrast -v 1.14.0 .
+      - ./build_module.sh -y -o `pwd`/pkgs -n contrast -v 1.14.1 .
 
     parallel: &build_all_artifacts
       - step:
@@ -30,25 +30,25 @@ definitions:
           artifacts:
               - contrast-webserver-agent-nginx-*.tar.gz
       - step:
-          name: ubuntu-18 nginx-1.14.0 pkg
+          name: ubuntu-18 nginx-1.14.1 pkg
           image: contrast/proxy-pipeline-environment:ubuntu-18
           script: *build_all_deb
           artifacts:
               - pkgs/*
       - step:
-          name: ubuntu-16 nginx-1.14.0 pkg
+          name: ubuntu-16 nginx-1.14.1 pkg
           image: contrast/proxy-pipeline-environment:ubuntu-16
           script: *build_all_deb
           artifacts:
               - pkgs/*
       - step:
-          name: ubuntu-14 nginx-1.14.0 pkg
+          name: ubuntu-14 nginx-1.14.1 pkg
           image: contrast/proxy-pipeline-environment:ubuntu-14
           script: *build_all_deb
           artifacts:
               - pkgs/*
       - step:
-          name: centos7 nginx-1.14.0 pkg
+          name: centos7 nginx-1.14.1 pkg
           image: contrast/proxy-pipeline-environment:centos-7
           script: *build_all_rpm
           artifacts:

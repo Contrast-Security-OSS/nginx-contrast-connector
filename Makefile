@@ -47,7 +47,7 @@ DIST_FILES=*.c *.h *.md config vendor/*.conf VERSION
 
 PROJ_NAME=contrast-webserver-agent-nginx
 # modules are built against a specific nginx version.
-V?=1.14.0
+V?=1.14.1
 
 
 .PHONY: all deps modules conf protobuf-c clean maintainer-clean

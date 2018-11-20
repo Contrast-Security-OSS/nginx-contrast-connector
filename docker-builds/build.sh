@@ -22,10 +22,10 @@ cd /
 tar -xzf nginx-speedracer-connector/contrast-webserver-agent-nginx-$CONN_VERSION.tgz
 
 cd /
-curl -L -o /nginx-1.14.0.tar.gz http://nginx.org/download/nginx-1.14.0.tar.gz
+curl -L -o /nginx-1.14.1.tar.gz http://nginx.org/download/nginx-1.14.1.tar.gz
 curl -L https://github.com/protobuf-c/protobuf-c/releases/download/v1.3.1/protobuf-c-1.3.1.tar.gz > protobuf-c-1.3.1.tar.gz
 
-tar -xzf /nginx-1.14.0.tar.gz
+tar -xzf /nginx-1.14.1.tar.gz
 tar -xzf /protobuf-c-1.3.1.tar.gz
 
 # protobuf-c
@@ -36,7 +36,7 @@ make install
 cd /
 ls -l /
 # nginx + module
-cd nginx-1.14.0
+cd nginx-1.14.1
 PROTOBUFC_LIB=../protobuf-c-root/lib/ PROTOBUFC_INC=../protobuf-c-root/include/ \
     ./configure \
     --add-dynamic-module=../contrast-webserver-agent-nginx-$CONN_VERSION \
